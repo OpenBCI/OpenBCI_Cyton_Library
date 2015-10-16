@@ -1,2 +1,7 @@
 # OpenBCI_32bit_Libraries
-Repository for OpenBCI 32bit Arduino Libraries
+
+To use these librareis with the OpenBCI 32bit Board, download the zip, or clone the repo, and move the folders 'OBCI_SD' and 'OpenBCI_32_Daisy' into your
+
+    User/Documents/Arduino/libraries
+
+folder. If you don't have a 'libraries' folder in your Arduino sketch folder, go ahead and make one.
