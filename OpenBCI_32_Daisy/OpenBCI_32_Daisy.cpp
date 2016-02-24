@@ -479,7 +479,7 @@ void OpenBCI_32_Daisy::changeChannelLeadOffDetect()
       if(!daisyPresent){ return; }
       targetSS = DAISY_ADS; startChan = 8; endChan = 16;
     }
-
+ 
     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
     byte P_setting = RREG(LOFF_SENSP,targetSS);
     byte N_setting = RREG(LOFF_SENSN,targetSS);
@@ -502,19 +502,20 @@ void OpenBCI_32_Daisy::changeChannelLeadOffDetect()
 }
 
 // change the lead off detect settings for specified channel
-void OpenBCI_32_Daisy::changeChannelLeadOffDetect(byte N) 
+void OpenBCI_32_Daisy::changeChannelLeadOffDetect(byte N) // N arrives as zero indexed
 {
-  byte setting, targetSS, startChan, endChan;
+  byte setting, targetSS, startChan; //, endChan;
 
-  if(N < 9){
-    targetSS = BOARD_ADS; startChan = 0; endChan = 8; 
+  if(N < 0x08){
+    targetSS = BOARD_ADS; startChan = 0x00; //endChan = 0x08; 
   }else{
-    if(!daisyPresent) { return; }
-    targetSS = DAISY_ADS; startChan = 8; endChan = 16;
+    if(!daisyPresent) { Serial0.println("no daisy attached!"); return; }
+    targetSS = DAISY_ADS; startChan = 0x08; //endChan = 0x10;
   }
 
-  N = constrain(N-1,startChan,endChan-1);
-  SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+
+  // N = constrain(N-1,startChan,endChan-1);
+  // SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
   byte P_setting = RREG(LOFF_SENSP,targetSS);
   byte N_setting = RREG(LOFF_SENSN,targetSS);
   
