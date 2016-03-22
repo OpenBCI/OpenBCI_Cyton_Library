@@ -1,16 +1,22 @@
 //
 //  Definitions_32.h
-//  
-//	
+//
+//
 //  Created by Conor Russomanno, Luke Travis, and Joel Murphy. Summer 2013.
 //	Modified by Joel Murphy, Summer 2014
 //	Joel Added Daisy Functionality Fall 2014
 //
 
-#ifndef _Definitions_32_Daisy_h
-#define _Definitions_32_Daisy_h
+#ifndef _Definitions_Board_h
+#define _Definitions_Board_h
 
-//PIN CONNECTIONS 
+// The default baud rate
+#define OPENBCI_BAUD_RATE 115200
+
+// File transmissions
+#define OPENBCI_EOT "$$$"
+
+//PIN CONNECTIONS
 #define ADS_DRDY	9	// ADS data ready pin
 #define ADS_RST	4		// ADS reset pin
 #define BOARD_ADS	8 		// ADS chip select
@@ -19,6 +25,8 @@
 #define SD_SS	2  		// SD card chip select
 #define LIS3DH_SS	1 // LIS3DH chip select
 #define LIS3DH_DRDY	0	// LIS3DH data ready pin
+#define OPENBCI_PIN_LED 11
+#define OPENBCI_PIN_PGC 12
 
 
 //ADS1299 SPI Command Definition Byte Assignments
@@ -63,7 +71,7 @@
 #define OUTPUT_16_CHAN (2)  // using Daisy module
 #define ON_BOARD	(8)			  // slave address for on board ADS
 #define ON_DAISY	(3)				// slave address for daisy ADS
-// CHANNEL SETTINGS 
+// CHANNEL SETTINGS
 #define POWER_DOWN      (0)
 #define GAIN_SET        (1)
 #define INPUT_TYPE_SET  (2)
@@ -122,7 +130,7 @@
 #define PCKT_START 0xA0	// prefix for data packet error checking
 #define PCKT_END 0xC0	// postfix for data packet error checking
 
-// daisy module 
+// daisy module
 #define CLK_EN	5
 
 //LIS3DH
@@ -130,7 +138,7 @@
 #define READ_MULTI		0x40
 
 #define STATUS_REG_AUX	        0x07	// axis over-run and data available flags (see 0x27)
-#define OUT_ADC1_L		0x08	// 
+#define OUT_ADC1_L		0x08	//
 #define OUT_ADC1_H		0x09	//
 #define OUT_ADC2_L		0x0A	//	ADC input values (check DS)
 #define OUT_ADC2_H		0x0B	//
@@ -153,7 +161,7 @@
 #define OUT_Y_H			0x2B	//
 #define OUT_Z_L			0x2C	//
 #define OUT_Z_H			0x2D	//
-#define FIFO_CTRL_REG	        0x2E	// FIFO mode; trigger output pin select (?); 
+#define FIFO_CTRL_REG	        0x2E	// FIFO mode; trigger output pin select (?);
 #define FIFO_SRC_REG	        0x2F	// ??
 #define INT1_CFG		0x30	// 6 degree control register
 #define INT1_SOURCE		0x31	// axis threshold interrupt control

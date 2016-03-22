@@ -2,19 +2,26 @@
    insert header here
 
 */
-#ifndef _____OpenBCI_32_Daisy__
-#define _____OpenBCI_32_Daisy__
+#ifndef _____OpenBCI_Board__
+#define _____OpenBCI_Board__
 
 
 #include <DSPI.h>
-#include <WProgram.h>
-#include "Definitions_32_Daisy.h"
+#include <Arduino.h>
+#include "Definitions_Board.h"
 
-class OpenBCI_32_Daisy {
+class OpenBCI_Board {
 public:
+  // Start up functions
+    OpenBCI_Board()
+    void begin(void);
+    void readSerial(void);
+    void writeSerial(void);
+
+
     DSPI0 spi;  // use DSPI library
 
-// BOARD 
+// BOARD
     boolean useAccel;
     boolean useAux;
     void initialize(void);  // ADD DAISY USE outputType
@@ -23,7 +30,7 @@ public:
     void startStreaming(void);  // ADD DAISY USE outputType
     void stopStreaming(void);   // ADD DAISY USE outputType
 
-// ADS1299  
+// ADS1299
     void initialize_ads(void);
     void updateChannelSettings(void);
     void writeChannelSettings(void);
@@ -38,20 +45,20 @@ public:
     void RESET(int);   // set all register values to default
     void START(int);   // start data acquisition
     void STOP(int);    // stop data acquisition
-    void RDATAC(int);  // go into read data continuous mode 
+    void RDATAC(int);  // go into read data continuous mode
     void SDATAC(int);  // get out of read data continuous mode
-    void RDATA(int);   // read data one-shot   
+    void RDATA(int);   // read data one-shot
     byte RREG(byte,int);            // read one ADS register
     void RREGS(byte,byte,int);      // read multiple ADS registers
     void WREG(byte,byte,int);       // write one ADS register
     void WREGS(byte,byte,int);      // write multiple ADS registers
-    byte ADS_getDeviceID(int);         
+    byte ADS_getDeviceID(int);
     void printRegisterName(byte);   // used for verbosity
     void printHex(byte);            // used for verbosity
     void updateChannelData(void);   // retrieve data from ADS
     void updateBoardData(void);
     void updateDaisyData(void);
-    byte xfer(byte);        // SPI Transfer function 
+    byte xfer(byte);        // SPI Transfer function
     void resetADS(int);     // reset all the ADS1299's settings
     void startADS(void);
     void stopADS(void);
@@ -60,11 +67,11 @@ public:
     void configureLeadOffDetection(byte,byte);
     void changeChannelLeadOffDetect(void);
     void changeChannelLeadOffDetect(byte);
-    void configureInternalTestSignal(byte,byte); 
-    void changeInputType(byte); 
+    void configureInternalTestSignal(byte,byte);
+    void changeInputType(byte);
     boolean isDataAvailable(void);
     void ADS_writeChannelData(void);
-    // void ADS_printDeviceID(int);   // 
+    // void ADS_printDeviceID(int);   //
     boolean smellDaisy(void);
     void removeDaisy(void);
     void attachDaisy(void);
@@ -101,14 +108,14 @@ public:
 
 // LIS3DH
     short axisData[3];
-    void initialize_accel(byte);    // initialize 
+    void initialize_accel(byte);    // initialize
     void enable_accel(byte);  // start acceleromoeter with default settings
     void disable_accel(void); // stop data acquisition and go into low power mode
-    byte LIS3DH_getDeviceID(void);    
+    byte LIS3DH_getDeviceID(void);
     byte LIS3DH_read(byte);     // read a register on LIS3DH
     void LIS3DH_write(byte,byte);   // write a register on LIS3DH
     int LIS3DH_read16(byte);    // read two bytes, used to get axis data
-    int getX(void);     
+    int getX(void);
     int getY(void);
     int getZ(void);
     boolean LIS3DH_DataReady(void); // check LIS3DH_DRDY pin
@@ -122,8 +129,14 @@ public:
 
 
 private:
+    //
+    void boardBegin(void);
+    void boardReset(void);
+    void ledFlash(int numberOfFlashes);
+    void serialWriteEOT(void);
+
 // ADS1299
-    boolean isRunning;  
+    boolean isRunning;
 // LIS3DH
     int DRDYpinValue;
     int lastDRDYpinValue;
