@@ -13,10 +13,10 @@
 class OpenBCI_Board {
 public:
   // Start up functions
-    OpenBCI_Board()
+    OpenBCI_Board();
     void begin(void);
     void readSerial(void);
-    void writeSerial(void);
+    void writeSerial(char *data);
 
 
     DSPI0 spi;  // use DSPI library
@@ -134,6 +134,8 @@ private:
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
     void serialWriteEOT(void);
+
+    char buffer[1];
 
 // ADS1299
     boolean isRunning;

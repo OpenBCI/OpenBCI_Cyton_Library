@@ -32,9 +32,12 @@ void OpenBCI_Board::begin(void) {
 *                 the data is not recognized
 * @return: [char *] - The character's not processed
 */
-char *OpenBCI_Board::readSerial(void) {
-  while(Serial0.availale() > 0) {
-    writeSerial(Serial0.read());
+void OpenBCI_Board::readSerial(void) {
+  ledFlash(1);
+  while(Serial0.available() > 0) {
+
+    Serial0.print((char)Serial0.read());
+    // writeSerial(buffer);
   }
 }
 
@@ -44,7 +47,7 @@ char *OpenBCI_Board::readSerial(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_Board::writeSerial(char *data) {
-  Serial0.print(data);
+  Serial0.print(data[0]);
 }
 
 /***************************************************/
