@@ -23,7 +23,7 @@ OpenBCI_Board::OpenBCI_Board() {
 */
 void OpenBCI_Board::begin(void) {
   // Bring the board up
-  boardBegin();
+  boardBegin() ? ledFlash(2) : ledFlash(1);
 
 }
 
@@ -33,11 +33,17 @@ void OpenBCI_Board::begin(void) {
 * @return: [char *] - The character's not processed
 */
 void OpenBCI_Board::readSerial(void) {
-  ledFlash(1);
-  while(Serial0.available() > 0) {
+  int numBytesToRead  = Serial0.available();
+  if (numBytesToRead > 0) {
+    int timesToFlashLED = numBytesToRead;
+    while(numBytesToRead > 0) {
+      // Echo what ever comes in...
+      Serial0.print((char)Serial0.read());
 
-    Serial0.print((char)Serial0.read());
-    // writeSerial(buffer);
+      // Decrement the number of bytes to read
+      numBytesToRead--;
+    }
+    ledFlash(timesToFlashLED);
   }
 }
 
@@ -59,18 +65,17 @@ void OpenBCI_Board::writeSerial(char *data) {
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_Board::boardBegin(void) {
+boolean OpenBCI_Board::boardBegin(void) {
   // Initalize the serial port baud rate
   Serial0.begin(OPENBCI_BAUD_RATE);
 
   pinMode(OPENBCI_PIN_LED, OUTPUT);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
-  // Flash LED twice to say its up
-  ledFlash(1);
-
   // Do a soft reset
   boardReset();
+
+  return true;
 
 }
 

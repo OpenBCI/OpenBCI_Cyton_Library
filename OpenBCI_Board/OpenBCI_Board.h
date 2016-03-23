@@ -130,7 +130,7 @@ public:
 
 private:
     //
-    void boardBegin(void);
+    boolean boardBegin(void);
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
     void serialWriteEOT(void);
