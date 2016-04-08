@@ -37,7 +37,7 @@
 #define _STOP 0x0A // Stop conversion
 #define _RDATAC 0x10 // Enable Read Data Continuous mode (default mode at power-up)
 #define _SDATAC 0x11 // Stop Read Data Continuous mode
-#define _RDATA 0x12 // Read data by command; supports multiple read back
+#define _RDATA 0x12 // Read data by command supports multiple read back
 
 //ASD1299 Register Addresses
 #define ADS_ID	0x3E	// product ID for ADS1299
@@ -145,13 +145,13 @@
 #define OUT_ADC3_L		0x0C	//
 #define OUT_ADC3_H		0x0D	//
 #define INT_COUNTER_REG	        0x0E	// ??
-#define WHO_AM_I		0x0F	// DEVICE ID = 0x33
-#define TMP_CFG_REG		0x1F	// ADC enable (0x80); Temperature sensor enable (0x40)
-#define CTRL_REG1		0x20	// Data Rate; Power Mode; X enable; Y enable; Z enable (on >= 0x10)
+#define WHO_AM_I		0x0F	// DEVICE ID 0x33
+#define TMP_CFG_REG		0x1F	// ADC enable (0x80) Temperature sensor enable (0x40)
+#define CTRL_REG1		0x20	// Data Rate Power Mode X enable Y enable Z enable (on >0x10)
 #define CTRL_REG2		0x21	// High Pass Filter Stuph
 #define CTRL_REG3		0x22	// INT1 select register
-#define CTRL_REG4		0x23	// Block update timing; endian; G-force; resolution; self test; SPI pins
-#define CTRL_REG5		0x24	// reboot; FIFO enable; latch; 4D detection;
+#define CTRL_REG4		0x23	// Block update timing endian G-force resolution self test SPI pins
+#define CTRL_REG5		0x24	// reboot FIFO enable latch 4D detection
 #define CTRL_REG6		0x25	// ??
 #define REFERENCE		0x26	// interrupt reference
 #define STATUS_REG2		0x27	// axis overrun and availale flags (see 0x07)
@@ -161,7 +161,7 @@
 #define OUT_Y_H			0x2B	//
 #define OUT_Z_L			0x2C	//
 #define OUT_Z_H			0x2D	//
-#define FIFO_CTRL_REG	        0x2E	// FIFO mode; trigger output pin select (?);
+#define FIFO_CTRL_REG	        0x2E	// FIFO mode trigger output pin select (?)
 #define FIFO_SRC_REG	        0x2F	// ??
 #define INT1_CFG		0x30	// 6 degree control register
 #define INT1_SOURCE		0x31	// axis threshold interrupt control
@@ -189,6 +189,177 @@
 #define RATE_1250HZ_N		0x90  //(b10010000)	// 1250Hz sample rate in normal mode
 #define RATE_5000HZ_LP	        0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
 
+// OPENBCI_COMMANDS
+/** Turning channels off */
+#define OPENBCI_CHANNEL_OFF_1 "1"
+#define OPENBCI_CHANNEL_OFF_2 "2"
+#define OPENBCI_CHANNEL_OFF_3 "3"
+#define OPENBCI_CHANNEL_OFF_4 "4"
+#define OPENBCI_CHANNEL_OFF_5 "5"
+#define OPENBCI_CHANNEL_OFF_6 "6"
+#define OPENBCI_CHANNEL_OFF_7 "7"
+#define OPENBCI_CHANNEL_OFF_8 "8"
+#define OPENBCI_CHANNEL_OFF_9 "q"
+#define OPENBCI_CHANNEL_OFF_10 "w"
+#define OPENBCI_CHANNEL_OFF_11 "e"
+#define OPENBCI_CHANNEL_OFF_12 "r"
+#define OPENBCI_CHANNEL_OFF_13 "t"
+#define OPENBCI_CHANNEL_OFF_14 "y"
+#define OPENBCI_CHANNEL_OFF_15 "u"
+#define OPENBCI_CHANNEL_OFF_16 "i"
 
+/** Turn channels on */
+#define OPENBCI_CHANNEL_ON_1 "!"
+#define OPENBCI_CHANNEL_ON_2 "@"
+#define OPENBCI_CHANNEL_ON_3 "#"
+#define OPENBCI_CHANNEL_ON_4 "$"
+#define OPENBCI_CHANNEL_ON_5 "%"
+#define OPENBCI_CHANNEL_ON_6 "^"
+#define OPENBCI_CHANNEL_ON_7 "&"
+#define OPENBCI_CHANNEL_ON_8 "*"
+#define OPENBCI_CHANNEL_ON_9 "Q"
+#define OPENBCI_CHANNEL_ON_10 "W"
+#define OPENBCI_CHANNEL_ON_11 "E"
+#define OPENBCI_CHANNEL_ON_12 "R"
+#define OPENBCI_CHANNEL_ON_13 "T"
+#define OPENBCI_CHANNEL_ON_14 "Y"
+#define OPENBCI_CHANNEL_ON_15 "U"
+#define OPENBCI_CHANNEL_ON_16 "I"
+
+/** Test Signal Control Commands
+ * 1x - Voltage will be 1 * (VREFP - VREFN) / 2.4 mV
+ * 2x - Voltage will be 2 * (VREFP - VREFN) / 2.4 mV
+ */
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_DC            "p"
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_GROUNF        "0"
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_FAST "="
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_SLOW "-"
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_FAST "]"
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_SLOW "["
+
+/** Channel Setting Commands */
+#define OPENBCI_CHANNEL_CMD_ADC_Normal      "0"
+#define OPENBCI_CHANNEL_CMD_ADC_Shorted     "1"
+#define OPENBCI_CHANNEL_CMD_ADC_BiasDRP     "6"
+#define OPENBCI_CHANNEL_CMD_ADC_BiasDRN     "7"
+#define OPENBCI_CHANNEL_CMD_ADC_BiasMethod  "2"
+#define OPENBCI_CHANNEL_CMD_ADC_MVDD        "3"
+#define OPENBCI_CHANNEL_CMD_ADC_Temp        "4"
+#define OPENBCI_CHANNEL_CMD_ADC_TestSig     "5"
+#define OPENBCI_CHANNEL_CMD_BIAS_INCLUDE    "1"
+#define OPENBCI_CHANNEL_CMD_BIAS_REMOVE     "0"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_1       "1"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_2       "2"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_3       "3"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_4       "4"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_5       "5"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_6       "6"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_7       "7"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_8       "8"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_9       "Q"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_10      "W"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_11      "E"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_12      "R"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_13      "T"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_14      "Y"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_15      "U"
+#define OPENBCI_CHANNEL_CMD_CHANNEL_16      "I"
+#define OPENBCI_CHANNEL_CMD_GAIN_1          "0"
+#define OPENBCI_CHANNEL_CMD_GAIN_2          "1"
+#define OPENBCI_CHANNEL_CMD_GAIN_4          "2"
+#define OPENBCI_CHANNEL_CMD_GAIN_6          "3"
+#define OPENBCI_CHANNEL_CMD_GAIN_8          "4"
+#define OPENBCI_CHANNEL_CMD_GAIN_12         "5"
+#define OPENBCI_CHANNEL_CMD_GAIN_24         "6"
+#define OPENBCI_CHANNEL_CMD_LATCH           "X"
+#define OPENBCI_CHANNEL_CMD_POWER_OFF       "1"
+#define OPENBCI_CHANNEL_CMD_POWER_ON        "0"
+#define OPENBCI_CHANNEL_CMD_SET             "x"
+#define OPENBCI_CHANNEL_CMD_SRB1_CONNECT    "1"
+#define OPENBCI_CHANNEL_CMD_SRB1_DISCONNECT "0"
+#define OPENBCI_CHANNEL_CMD_SRB2_CONNECT    "1"
+#define OPENBCI_CHANNEL_CMD_SRB2_DISCONNECT "0"
+
+/** Channel Setting Helper Strings */
+#define OPENBCI_STRING_ADC_NORMAL      "normal"
+#define OPENBCI_STRING_ADC_SHORTED     "shorted"
+#define OPENBCI_STRING_ADC_BIAS_METHOD  "biasMethod"
+#define OPENBCI_STRING_ADC_MVDD        "mvdd"
+#define OPENBCI_STRING_ADC_TEMP        "temp"
+#define OPENBCI_STRING_ADC_TEST_SIG     "testSig"
+#define OPENBCI_STRING_ADC_BIAS_DRP     "biasDrp"
+#define OPENBCI_STRING_ADC_BIAS_DRN     "biasDrn"
+
+/** Default Channel Settings */
+#define OPENBCI_CHANNEL_DEFAULT_ALL_SET "d"
+#define OPENBCI_CHANNEL_DEFAULT_ALL_GET "D"
+
+/** LeadOff Impedance Commands */
+#define OPENBCI_CHANNEL_IMPEDANCE_LATCH                "Z"
+#define OPENBCI_CHANNEL_IMPEDANCE_SET                  "z"
+#define OPENBCI_CHANNEL_IMPEDANCE_TEST_SIGNAL_APPLIED    "1"
+#define OPENBCI_CHANNEL_IMPEDANCE_TEST_SIGNAL_APPLIED_NOT "0"
+
+/** SD card Commands */
+#define OPENBCI_SD_LOG_FOR_HOUR_1    "G"
+#define OPENBCI_SD_LOG_FOR_HOUR_2    "H"
+#define OPENBCI_SD_LOG_FOR_HOUR_4    "J"
+#define OPENBCI_SD_LOG_FOR_HOUR_12   "K"
+#define OPENBCI_SD_LOG_FOR_HOUR_24   "L"
+#define OPENBCI_SD_LOG_FOR_MIN_5     "A"
+#define OPENBCI_SD_LOG_FOR_MIN_15    "S"
+#define OPENBCI_SD_LOG_FOR_MIN_30    "F"
+#define OPENBCI_SD_LOG_FOR_SEC_14    "a"
+#define OPENBCI_SD_LOG_STOP        "j"
+
+/** Stream Data Commands */
+#define OPENBCI_STREAM_START  "b"
+#define OPENBCI_STREAM_STOP   "s"
+
+/** Miscellaneous */
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS            "?"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_1    "CH1SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_2    "CH2SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_3    "CH3SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_4    "CH4SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_5    "CH5SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_6    "CH6SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_7    "CH7SET"
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS_CHANNEL_8    "CH8SET"
+#define OPENBCI_MiscSoftReset                        "v"
+
+/** 16 Channel Commands */
+#define OPENBCI_CHANNEL_MAX_NUMBER_8    "c"
+#define OPENBCI_CHANNEL_MAX_NUMBER_16   "C"
+
+/** Triggers */
+#define OPENBCI_TRIGGER "`"
+
+/** Sync Clocks */
+#define OPENBCI_SYNC_CLOCK_SERVER_DATA "<"
+#define OPENBCI_SYNC_CLOCK_START ">"
+#define OPENBCI_SYNC_CLOCK_STOP "."
+
+/** Possible number of channels */
+#define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
+#define OPENBCI_NUMBER_OF_CHANNELS_DEFAULT 8
+#define OPENBCI_NUMBER_OF_CHANNELS_GANGLION 4
+
+/** Possible Sample Rates*/
+#define OPENBCI_SAMPLE_RATE_125 125
+#define OPENBCI_SAMPLE_RATE_250 250
+
+/** Packet Size */
+#define OPENBCI_PACKET_SIZE 33
+
+/** Impedance Calculation Variables */
+#define OPENBCI_LEAD_OFF_DRIVE_AMPS 0.000000006
+#define OPENBCI_LEAD_OFF_FREQUENCY_HZ 31
+
+/** Raw data packet types/codes */
+#define OPENBCI_PACKET_TYPE_RAW_AUX         3 // 0011
+#define OPENBCI_PACKET_TYPE_V3              0 // 0000
+#define OPENBCI_PACKET_TYPE_TIME_SYNCED     1 // 0001
+#define OPENBCI_PACKET_TYPE_USER_DEFINED    2 // 0010
 
 #endif
