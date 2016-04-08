@@ -2,21 +2,25 @@
    insert header here
 
 */
-#ifndef _____OpenBCI_Board__
-#define _____OpenBCI_Board__
+#ifndef _____OpenBCI_32bit__
+#define _____OpenBCI_32bit__
 
 
 #include <DSPI.h>
 #include <Arduino.h>
-#include "Definitions_Board.h"
+#include "OpenBCI_32Bit_Definitions.h"
 
-class OpenBCI_Board {
+
+class OpenBCI_32bit_Class {
+
 public:
   // Start up functions
-    OpenBCI_Board();
+    OpenBCI_32bit_Class();
     void begin(void);
     void readSerial(void);
     void writeSerial(char *data);
+
+    boolean isThereNewADSData(void);
 
 
     DSPI0 spi;  // use DSPI library
@@ -144,5 +148,8 @@ private:
     int lastDRDYpinValue;
 
 };
+
+// This let's us call into the class from within the library if necessary
+extern OpenBCI_32bit_Class board;
 
 #endif

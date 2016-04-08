@@ -7,8 +7,8 @@
 //	Joel Added Daisy Functionality Fall 2014
 //
 
-#ifndef _Definitions_Board_h
-#define _Definitions_Board_h
+#ifndef _____OpenBCI_32bit_Definitions_h
+#define _____OpenBCI_32bit_Definitions_h
 
 // The default baud rate
 #define OPENBCI_BAUD_RATE 115200
