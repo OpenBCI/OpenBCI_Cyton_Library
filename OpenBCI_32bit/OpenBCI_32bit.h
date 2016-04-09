@@ -14,13 +14,22 @@
 class OpenBCI_32bit_Class {
 
 public:
-  // Start up functions
+    // Start up functions
     OpenBCI_32bit_Class();
     void begin(void);
     void readSerial(void);
     void writeSerial(char *data);
 
+
+
     boolean isThereNewADSData(void);
+    boolean isThereSerialDataReadyToBeRead(void);
+
+
+    // Variables
+    boolean streaming;
+
+
 
 
     DSPI0 spi;  // use DSPI library
