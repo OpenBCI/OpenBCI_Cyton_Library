@@ -28,22 +28,29 @@ public:
     char processChar(char character);
     char processNewImpedanceSettings(void);
 
-    void streamSafeChannelDeactivate(int channelNumber);
-    void streamSafeChannelActivate(int channelNumber);
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
-    char getChannelNumberForAsciiChar(char asciiChar);
-    char *processNewImpedanceSettings(void);
-    void leadOffDetectionSetAll(byte amplitudeCode, byte freqCode);
-    void leadOffDetectionSetForSS(byte targetSS, byte amplitudeCode, byte freqCode);
+    void processNewImpedanceSettings(void);
+    void leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode);
+    void leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode);
+    void leadOffSetForAllChannels(void);
+    void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
+    void streamSafeChannelDeactivate(byte channelNumber);
+    void streamSafeChannelActivate(byte channelNumber);
+    void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
+    void streamStart(void);  // ADD DAISY USE outputType
+    void streamStop(void);   // ADD DAISY USE outputType
 
     // Variables
     boolean streaming;
     boolean daisy;
     int boardType;
 
-    void streamStart(void);  // ADD DAISY USE outputType
-    void streamStop(void);   // ADD DAISY USE outputType
+    // Getters
+    char getChannelNumberForAsciiChar(char asciiChar);
+    char getNumberForAsciiChar(char asciiChar);
+    char getTargetSSForChannelNumber(byte channelNumber);
+
 
 
 

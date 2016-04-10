@@ -339,49 +339,7 @@ void OpenBCI_32bit_Class::serialWriteEOT(void) {
     Serial0.print("$$$");
 }
 
-/**
-* @description Used to activate a channel, if running must stop and start after...
-* @param channelNumber int the channel you want to change
-* @author AJ Keller (@pushtheworldllc)
-*/
-void streamSafeChannelActivate(int channelNumber) {
-    boolean wasStreaming = streaming;
 
-    // Stop streaming if you are currently streaming
-    if (streaming) {
-        streamStop();
-    }
-
-    // Activate the channel
-    activateChannel(channelNumber);
-
-    // Restart stream if need be
-    if (wasStreaming) {
-        streamStart();
-    }
-}
-
-/**
-* @description Used to deactivate a channel, if running must stop and start after...
-* @param channelNumber int the channel you want to change
-* @author AJ Keller (@pushtheworldllc)
-*/
-void streamSafeChannelDeactivate(int channelNumber){
-    boolean wasStreaming = streaming;
-
-    // Stop streaming if you are currently streaming
-    if (streaming) {
-        streamStop();
-    }
-
-    // Activate the channel
-    deactivateChannel(channelNumber);
-
-    // Restart stream if need be
-    if (wasStreaming) {
-        streamStart();
-    }
-}
 
 void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
 {
@@ -414,29 +372,32 @@ char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
 
     int bytesToRead = 4; // total bytes left in to get for impedance
 
-    char msg[3];
+    char currentChannel;
 
     while (bytesIn < bytesToRead) {
         if (Serial0.availale()) {
             char newChar = Serial0.read();
 
             if (bytesIn == 0) { // This is the first byte
-                msg[0] = getChannelNumberForAsciiChar(newChar);
+                currentChannel = getChannelNumberForAsciiChar(newChar);
             } else if (bytesIn == 1) {
-                newChar -= '0';
-                msg[1] = newChar;
-            } else if (bytesIn == 2) {
-                newChar -= '0';
-                msg[2] = newChar;
-            } else {
+                leadOffSettings[currentChannel][PCHAN] = getNumberForAsciiChar(newChar);
+            } else if (byteIn == 2) {
+                leadOffSettings[currentChannel][NCHAN] = getNumberForAsciiChar(newChar);
+            }else {
+                // The forth character must be the impedance latch
                 if (newChar != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
-                    return;
-                }
-                if (!streaming) {
-                    Serial0.print("Received all impedance settings.");
+                    if (!streaming) {
+                        Serial0.print("Err: 4th char not ");
+                        Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                    }
+                    return; // Exit
+                } else {
+                    if (!streaming) {
+                        Serial0.println("All impedance recieved");
+                    }
                 }
             }
-
             bytesIn++;
         }
 
@@ -447,6 +408,9 @@ char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
         }
 
     }
+
+    // Set
+    leadOffSetForChannel(currentChannel,leadOffSettings[currentChannel][PCHAN],leadOffSettings[currentChannel][NCHAN]);
 
     return msg;
 
@@ -488,6 +452,22 @@ char getChannelNumberForAsciiChar(char asciiChar) {
         default: break;
     }
     return n;
+}
+
+/**
+ * @description Converts ascii '0' to number 0 and ascii '1' to number 1
+ * @param `asciiChar` - [char] - The ascii character to convert
+ * @return [char] - Byte number value of acsii character, defaults to 0
+ * @author AJ Keller (@pushtheworldllc)
+ */
+char getNumberForAsciiChar(char asciiChar) {
+    switch (asciiChar) {
+        case '1':
+            return ACTIVATE;
+        case '0':
+        default:
+            return DEACTIVATE;
+    }
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -533,33 +513,7 @@ void OpenBCI_32bit_Class::sendChannelData(){
     sampleCounter++;
 }
 
-/**
-* @description Call this to start the streaming data from the ADS1299
-* @returns boolean if able to start streaming
-*/
-boolean OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
-    if (streaming) { // already streaming...
-        return false;
-    } else { // not streaming, so we can start
-        streaming = true;
-        startADS();
-        return true;
-    }
-}
 
-/**
-* @description Call this to stop streaming from the ADS1299
-* @returns boolean if able to stop streaming
-*/
-boolean OpenBCI_32bit_Class::streamStop(){
-    if (streaming) { // we are streaming so we can stop
-        streaming = false;
-        stopADS();
-        return true;
-    } else {
-        return false;
-    }
-}
 
 void OpenBCI_32bit_Class::writeAuxData(){
     for(int i=0; i<3; i++){
@@ -699,6 +653,108 @@ void OpenBCI_32bit_Class::initialize_ads(){
     firstDataPacket = true;
 }
 
+//////////////////////////////////////////////
+///////////// STREAM METHODS /////////////////
+//////////////////////////////////////////////
+
+/**
+* @description Used to activate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Class::streamSafeChannelActivate(byte channelNumber) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    // Activate the channel
+    activateChannel(channelNumber);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+* @description Used to deactivate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Class::streamSafeChannelDeactivate(byte channelNumber){
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    // deactivate the channel
+    deactivateChannel(channelNumber);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+ * @description Used to set lead off for a channel, if running must stop and start after...
+ * @param `channelNumber` - [byte] - The channel you want to change
+ * @param `pInput` - [byte] - Apply signal to P input, either ON (1) or OFF (0)
+ * @param `nInput` - [byte] - Apply signal to N input, either ON (1) or OFF (0)
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    leadOffSetForChannel(channelNumber, pInput, nInput);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+* @description Call this to start the streaming data from the ADS1299
+* @returns boolean if able to start streaming
+*/
+boolean OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
+    if (streaming) { // already streaming...
+        return false;
+    } else { // not streaming, so we can start
+        streaming = true;
+        startADS();
+        return true;
+    }
+}
+
+/**
+* @description Call this to stop streaming from the ADS1299
+* @returns boolean if able to stop streaming
+*/
+boolean OpenBCI_32bit_Class::streamStop(){
+    if (streaming) { // we are streaming so we can stop
+        streaming = false;
+        stopADS();
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////
+////////////// DAISY METHODS /////////////////
+//////////////////////////////////////////////
 boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
@@ -992,94 +1048,117 @@ void OpenBCI_32bit_Class::activateChannel(byte N)
     WREG(MISC1,setting,targetSS);     // close all SRB1 swtiches
 }
 
-// change the lead off detect settings for all channels
-void OpenBCI_32bit_Class::changeChannelLeadOffDetect()
-{
-    byte setting, startChan, endChan, targetSS;
+//////////////////////////////////////////////
+///////////// LEAD OFF METHODS ///////////////
+//////////////////////////////////////////////
 
-    for(int b=0; b<2; b++){
-        if(b == 0){
-            targetSS = BOARD_ADS;
-            startChan = 0;
-            endChan = 8;
-        }
-        if(b == 1){
-            if(!daisyPresent){
-                return;
-            }
-            targetSS = DAISY_ADS;
-            startChan = 8;
-            endChan = 16;
-        }
+/**
+ * @description Runs through the `leadOffSettings` global array to set/change
+ *                  the lead off signals for all inputs of all channels.
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void OpenBCI_32bit_Class::leadOffSetForAllChannels(void) {
+    byte channelNumberUpperLimit;
 
-        SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-        byte P_setting = RREG(LOFF_SENSP,targetSS);
-        byte N_setting = RREG(LOFF_SENSN,targetSS);
+    // The upper limit of the channels, either 8 or 16
+    channelNumberUpperLimit = daisyPresent ? OPENBCI_NUMBER_OF_CHANNELS_DAISY : OPENBCI_NUMBER_OF_CHANNELS_DEFAULT;
 
-        for(int i=startChan; i<endChan; i++){
-            if(leadOffSettings[i][PCHAN] == ON){
-                bitSet(P_setting,i-startChan);
-            }else{
-                bitClear(P_setting,i-startChan);
-            }
-            if(leadOffSettings[i][NCHAN] == ON){
-                bitSet(N_setting,i-startChan);
-            }else{
-                bitClear(N_setting,i-startChan);
-            }
-            WREG(LOFF_SENSP,P_setting,targetSS);
-            WREG(LOFF_SENSN,N_setting,targetSS);
-        }
+    // Loop through all channels
+    for (int i = 0; i < channelNumberUpperLimit; i++) {
+        leadOffSetForChannel((byte)i,leadOffSettings[i][PCHAN],leadOffSettings[i][NCHAN]);
     }
 }
 
-// change the lead off detect settings for specified channel
-void OpenBCI_32bit_Class::changeChannelLeadOffDetect(byte N)
-{
-    byte setting, targetSS, startChan, endChan;
+/**
+ * @description Used to set lead off for a channel
+ * @param `channelNumber` - [byte] - The channel you want to change
+ * @param `pInput` - [byte] - Apply signal to P input, either ON (1) or OFF (0)
+ * @param `nInput` - [byte] - Apply signal to N input, either ON (1) or OFF (0)
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void OpenBCI_32bit_Class::leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
 
-    if(N < 9){
-        targetSS = BOARD_ADS; startChan = 0; endChan = 8;
-    }else{
-        if(!daisyPresent) { return; }
-        targetSS = DAISY_ADS; startChan = 8; endChan = 16;
-    }
+    // contstrain the channel number to 0-15
+    channelNumber = getConstrainedChannelNumber(channelNumber);
 
-    N = constrain(N-1,startChan,endChan-1);
-    SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+    // Get the slave select pin for this channel
+    byte targetSS = getTargetSSForChannelNumber(channelNumber);
+
+    // exit Read Data Continuous mode to communicate with ADS
+    SDATAC(targetSS);
+    delay(1);
+
+    // Read P register
     byte P_setting = RREG(LOFF_SENSP,targetSS);
+
+    // Read N register
     byte N_setting = RREG(LOFF_SENSN,targetSS);
 
-    if(leadOffSettings[N][PCHAN] == ON){
-        bitSet(P_setting,N-startChan);
-    }else{
-        bitClear(P_setting,N-startChan);
+    // Since we are addressing 8 bit registers, we need to subtract 8 from the
+    //  channelNumber if we are addressing the Daisy ADS
+    if (targetSS == DAISY_ADS) {
+        channelNumber -= OPENBCI_NUMBER_OF_CHANNELS_DEFAULT;
     }
-    if(leadOffSettings[N][NCHAN] == ON){
-        bitSet(N_setting,N-startChan);
-    }else{
-        bitClear(N_setting,N-startChan);
+
+    // If pInput is ON then we want to set, otherwise we want to clear
+    if (pInput == ON) {
+        bitSet(P_setting, channelNumber);
+    } else {
+        bitClear(P_setting, channelNumber);
     }
+    // Write to the P register
     WREG(LOFF_SENSP,P_setting,targetSS);
+
+    // If nInput is ON then we want to set, otherwise we want to clear
+    if (nInput == ON) {
+        bitSet(N_setting, channelNumber);
+    } else {
+        bitClear(N_setting, channelNumber);
+    }
+    // Write to the N register
     WREG(LOFF_SENSN,N_setting,targetSS);
 }
 
- /**
-  * @description This sets the LOFF register on the Board ADS and the Daisy ADS
-  * @param `amplitudeCode` - [byte] - The amplitude of the of impedance signal.
-  *                 See `.setLeadOffDetectionForSS()` for complete description
-  * @param `freqCode` - [byte] - The frequency of the impedance signal can be either.
-  *                 See `.setLeadOffDetectionForSS()` for complete description
-  * @author Joel/Leif/Conor (@OpenBCI) Summer 2014
-  */
-void OpenBCI_32bit_Class::leadOffDetectionSetAll(byte amplitudeCode, byte freqCode)
+/**
+ * @description Convert user channelNumber for use in array indexs by subtracting 1,
+ *                  also make sure N is not greater than 15 or less than 0
+ * @param `channelNumber` - [byte] - The channel number
+ * @return [byte] - Constrained channel number
+ */
+char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
+    return constrain(channelNumber - 1, 0, OPENBCI_NUMBER_OF_CHANNELS_DAISY - 1);
+}
+
+/**
+ * @description Get slave select pin for channelNumber
+ * @param `channelNumber` - [byte] - The channel number
+ * @return [byte] - Constrained channel number
+ */
+char OpenBCI_32bit_Class::getTargetSSForChannelNumber(byte channelNumber) {
+    // Is channelNumber in the range of default [0,7]
+    if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
+        return BOARD_ADS;
+    } else {
+        return DAISY_ADS;
+    }
+}
+
+/**
+ * @description This sets the LOFF register on the Board ADS and the Daisy ADS
+ * @param `amplitudeCode` - [byte] - The amplitude of the of impedance signal.
+ *                 See `.setleadOffForSS()` for complete description
+ * @param `freqCode` - [byte] - The frequency of the impedance signal can be either.
+ *                 See `.setleadOffForSS()` for complete description
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void OpenBCI_32bit_Class::leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode)
 {
     // Set the lead off detection for the on board ADS
-    setLeadOffDetectionForSS(BOARD_ADS, amplitudeCode, freqCode);
+    leadOffConfigureSignalForTargetSS(BOARD_ADS, amplitudeCode, freqCode);
 
     // if the daisy board is present, set that register as well
     if (daisyPresent) {
-        setLeadOffDetectionForSS(DAISY_ADS, amplitudeCode, freqCode);
+        leadOffConfigureSignalForTargetSS(DAISY_ADS, amplitudeCode, freqCode);
     }
 }
 
@@ -1099,7 +1178,7 @@ void OpenBCI_32bit_Class::leadOffDetectionSetAll(byte amplitudeCode, byte freqCo
  *          LOFF_FREQ_FS_4      (0b00000011)
  * @author Joel/Leif/Conor (@OpenBCI) Summer 2014
  */
-void OpenBCI_32bit_Class::leadOffDetectionSetForSS(byte targetSS, byte amplitudeCode, byte freqCode) {
+void OpenBCI_32bit_Class::leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode) {
     byte setting;
 
     amplitudeCode &= 0b00001100;  //only these two bits should be used

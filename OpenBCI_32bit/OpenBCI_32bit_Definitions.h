@@ -325,7 +325,6 @@
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
 #define OPENBCI_NUMBER_OF_CHANNELS_DEFAULT 8
-#define OPENBCI_NUMBER_OF_CHANNELS_GANGLION 4
 
 /** Possible Sample Rates*/
 #define OPENBCI_SAMPLE_RATE_125 125
