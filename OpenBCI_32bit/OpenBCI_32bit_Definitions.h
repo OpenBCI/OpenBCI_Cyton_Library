@@ -109,14 +109,14 @@
 #define ADSTESTSIG_NOCHANGE (0b11111111)
 
 //Lead-off signal choices
-#define LOFF_MAG_6NA (0b00000000)
-#define LOFF_MAG_24NA (0b00000100)
-#define LOFF_MAG_6UA (0b00001000)
-#define LOFF_MAG_24UA (0b00001100)
-#define LOFF_FREQ_DC (0b00000000)
-#define LOFF_FREQ_7p8HZ (0b00000001)
-#define LOFF_FREQ_31p2HZ (0b00000010)
-#define LOFF_FREQ_FS_4 (0b00000011)
+#define LOFF_MAG_6NA        (0b00000000)
+#define LOFF_MAG_24NA       (0b00000100)
+#define LOFF_MAG_6UA        (0b00001000)
+#define LOFF_MAG_24UA       (0b00001100)
+#define LOFF_FREQ_DC        (0b00000000)
+#define LOFF_FREQ_7p8HZ     (0b00000001)
+#define LOFF_FREQ_31p2HZ    (0b00000010)
+#define LOFF_FREQ_FS_4      (0b00000011)
 #define PCHAN (0)
 #define NCHAN (1)
 #define OFF (0)
@@ -137,14 +137,14 @@
 #define READ_REG		0x80
 #define READ_MULTI		0x40
 
-#define STATUS_REG_AUX	        0x07	// axis over-run and data available flags (see 0x27)
+#define STATUS_REG_AUX	0x07	// axis over-run and data available flags (see 0x27)
 #define OUT_ADC1_L		0x08	//
 #define OUT_ADC1_H		0x09	//
 #define OUT_ADC2_L		0x0A	//	ADC input values (check DS)
 #define OUT_ADC2_H		0x0B	//
 #define OUT_ADC3_L		0x0C	//
 #define OUT_ADC3_H		0x0D	//
-#define INT_COUNTER_REG	        0x0E	// ??
+#define INT_COUNTER_REG	0x0E	// ??
 #define WHO_AM_I		0x0F	// DEVICE ID 0x33
 #define TMP_CFG_REG		0x1F	// ADC enable (0x80) Temperature sensor enable (0x40)
 #define CTRL_REG1		0x20	// Data Rate Power Mode X enable Y enable Z enable (on >0x10)
@@ -161,17 +161,17 @@
 #define OUT_Y_H			0x2B	//
 #define OUT_Z_L			0x2C	//
 #define OUT_Z_H			0x2D	//
-#define FIFO_CTRL_REG	        0x2E	// FIFO mode trigger output pin select (?)
-#define FIFO_SRC_REG	        0x2F	// ??
+#define FIFO_CTRL_REG	0x2E	// FIFO mode trigger output pin select (?)
+#define FIFO_SRC_REG	0x2F	// ??
 #define INT1_CFG		0x30	// 6 degree control register
 #define INT1_SOURCE		0x31	// axis threshold interrupt control
 #define INT1_THS		0x32	// INT1 threshold
-#define INT1_DURATION	        0x33	// INT1 duration
+#define INT1_DURATION	0x33	// INT1 duration
 #define CLICK_CFG		0x38	// click on axis
 #define CLICK_SRC		0x39	// other click
 #define CLICK_THS		0x3A	// more click
 #define TIME_LIMIT		0x3B	// click related
-#define TIME_LATENCY	        0x3C	// and so on
+#define TIME_LATENCY	0x3C	// and so on
 #define TIME_WINDOW		0x3D	// contined click
 
 #define SCALE_2G		0x00  //(b00000000)	// +/- 2G sensitivity
@@ -185,9 +185,9 @@
 #define RATE_100HZ		0x50  //(b01010000)	// 100Hz sample rate in normal or low-power mode
 #define RATE_200HZ		0x60  //(b01100000)	// 200Hz sample rate in normal or low-power mode
 #define RATE_400HZ		0x70  //(b01110000)	// 400Hz sample rate in normal or low-power mode
-#define RATE_1600HZ_LP	        0x80  //(b10000000)	// 1600Hz sample rate in low-power mode
-#define RATE_1250HZ_N		0x90  //(b10010000)	// 1250Hz sample rate in normal mode
-#define RATE_5000HZ_LP	        0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
+#define RATE_1600HZ_LP	0x80  //(b10000000)	// 1600Hz sample rate in low-power mode
+#define RATE_1250HZ_N	0x90  //(b10010000)	// 1250Hz sample rate in normal mode
+#define RATE_5000HZ_LP	0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
 
 // OPENBCI_COMMANDS
 /** Turning channels off */
@@ -343,5 +343,7 @@
 #define OPENBCI_PACKET_TYPE_V3              0 // 0000
 #define OPENBCI_PACKET_TYPE_TIME_SYNCED     1 // 0001
 #define OPENBCI_PACKET_TYPE_USER_DEFINED    2 // 0010
+
+#define OPENBCI_TIME_OUT_MS_1 1
 
 #endif

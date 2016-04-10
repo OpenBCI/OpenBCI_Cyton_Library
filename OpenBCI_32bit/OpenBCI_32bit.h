@@ -33,10 +33,13 @@ public:
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
     char getChannelNumberForAsciiChar(char asciiChar);
     char *processNewImpedanceSettings(void);
+    void leadOffDetectionSetAll(byte amplitudeCode, byte freqCode);
+    void leadOffDetectionSetForSS(byte targetSS, byte amplitudeCode, byte freqCode);
 
 
     // Variables
     boolean streaming;
+    boolean daisy;
     int boardType;
 
     void streamStart(void);  // ADD DAISY USE outputType

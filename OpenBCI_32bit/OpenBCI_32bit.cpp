@@ -16,6 +16,7 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 // CONSTRUCTOR
 OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
     boardType = OUTPUT_NOTHING;
+    daisyPresent = false;
     streaming = false;
 }
 
@@ -411,28 +412,40 @@ char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
 
     int bytesIn = 0;
 
-    int bytesToRead = 4;
+    int bytesToRead = 4; // total bytes left in to get for impedance
 
     char msg[3];
 
-    while (Serial0.availale() && bytesIn < bytesToRead) {
-        char newChar = Serial0.read();
+    while (bytesIn < bytesToRead) {
+        if (Serial0.availale()) {
+            char newChar = Serial0.read();
 
-        if (bytesIn == 0) { // This is the first byte
-            msg[0] = getChannelNumberForAsciiChar(newChar);
-        } else if (bytesIn == 1) {
-            newChar -= '0';
-            msg[1] = newChar;
-        } else if (bytesIn == 2) {
-            newChar -= '0';
-            msg[2] = newChar;
-        } else {
-            if (!streaming) {
-                Serial0.print("Received all impedance settings.");
+            if (bytesIn == 0) { // This is the first byte
+                msg[0] = getChannelNumberForAsciiChar(newChar);
+            } else if (bytesIn == 1) {
+                newChar -= '0';
+                msg[1] = newChar;
+            } else if (bytesIn == 2) {
+                newChar -= '0';
+                msg[2] = newChar;
+            } else {
+                if (newChar != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
+                    return;
+                }
+                if (!streaming) {
+                    Serial0.print("Received all impedance settings.");
+                }
             }
+
+            bytesIn++;
         }
 
-        bytesIn++;
+        // This is timeout protection, in case for some reason bytes were lost in
+        //  the serial transmission
+        if (millis() > (startTime + OPENBCI_TIME_OUT_MS_1)) {
+            return; // return void
+        }
+
     }
 
     return msg;
@@ -1051,26 +1064,54 @@ void OpenBCI_32bit_Class::changeChannelLeadOffDetect(byte N)
     WREG(LOFF_SENSN,N_setting,targetSS);
 }
 
-void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte freqCode)
+ /**
+  * @description This sets the LOFF register on the Board ADS and the Daisy ADS
+  * @param `amplitudeCode` - [byte] - The amplitude of the of impedance signal.
+  *                 See `.setLeadOffDetectionForSS()` for complete description
+  * @param `freqCode` - [byte] - The frequency of the impedance signal can be either.
+  *                 See `.setLeadOffDetectionForSS()` for complete description
+  * @author Joel/Leif/Conor (@OpenBCI) Summer 2014
+  */
+void OpenBCI_32bit_Class::leadOffDetectionSetAll(byte amplitudeCode, byte freqCode)
 {
+    // Set the lead off detection for the on board ADS
+    setLeadOffDetectionForSS(BOARD_ADS, amplitudeCode, freqCode);
+
+    // if the daisy board is present, set that register as well
+    if (daisyPresent) {
+        setLeadOffDetectionForSS(DAISY_ADS, amplitudeCode, freqCode);
+    }
+}
+
+/**
+ * @description This sets the LOFF (lead off) register for the given ADS with slave
+ *                  select
+ * @param `targetSS` - [byte] - The Slave Select pin.
+ * @param `amplitudeCode` - [byte] - The amplitude of the of impedance signal.
+ *          LOFF_MAG_6NA        (0b00000000)
+ *          LOFF_MAG_24NA       (0b00000100)
+ *          LOFF_MAG_6UA        (0b00001000)
+ *          LOFF_MAG_24UA       (0b00001100)
+ * @param `freqCode` - [byte] - The frequency of the impedance signal can be either.
+ *          LOFF_FREQ_DC        (0b00000000)
+ *          LOFF_FREQ_7p8HZ     (0b00000001)
+ *          LOFF_FREQ_31p2HZ    (0b00000010)
+ *          LOFF_FREQ_FS_4      (0b00000011)
+ * @author Joel/Leif/Conor (@OpenBCI) Summer 2014
+ */
+void OpenBCI_32bit_Class::leadOffDetectionSetForSS(byte targetSS, byte amplitudeCode, byte freqCode) {
+    byte setting;
+
     amplitudeCode &= 0b00001100;  //only these two bits should be used
     freqCode &= 0b00000011;  //only these two bits should be used
 
-    byte setting, targetSS;
-    for(int i=0; i<2; i++){
-        if(i == 0){ targetSS = BOARD_ADS; }
-        if(i == 1){
-            if(!daisyPresent){ return; }
-            targetSS = DAISY_ADS;
-        }
-        setting = RREG(LOFF,targetSS); //get the current bias settings
-        //reconfigure the byte to get what we want
-        setting &= 0b11110000;  //clear out the last four bits
-        setting |= amplitudeCode;  //set the amplitude
-        setting |= freqCode;    //set the frequency
-        //send the config byte back to the hardware
-        WREG(LOFF,setting,targetSS); delay(1);  //send the modified byte back to the ADS
-    }
+    setting = RREG(LOFF,targetSS); //get the current bias settings
+    //reconfigure the byte to get what we want
+    setting &= 0b11110000;  //clear out the last four bits
+    setting |= amplitudeCode;  //set the amplitude
+    setting |= freqCode;    //set the frequency
+    //send the config byte back to the hardware
+    WREG(LOFF,setting,targetSS); delay(1);  //send the modified byte back to the ADS
 }
 
 //Configure the test signals that can be inernally generated by the ADS1299
