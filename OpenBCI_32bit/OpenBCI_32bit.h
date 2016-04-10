@@ -26,12 +26,21 @@ public:
     boolean isThereSerialDataReadyToBeRead(void);
 
     char processChar(char character);
+    char processNewImpedanceSettings(void);
 
-    void safeChannelDeactivate(int channelNumber);
-    void safeChannelActivate(int channelNumber);
+    void streamSafeChannelDeactivate(int channelNumber);
+    void streamSafeChannelActivate(int channelNumber);
+    void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
+    char getChannelNumberForAsciiChar(char asciiChar);
+    char *processNewImpedanceSettings(void);
+
 
     // Variables
     boolean streaming;
+    int boardType;
+
+    void streamStart(void);  // ADD DAISY USE outputType
+    void streamStop(void);   // ADD DAISY USE outputType
 
 
 
@@ -44,8 +53,7 @@ public:
     void initialize(void);  // ADD DAISY USE outputType
     void printAllRegisters(void);   // ADD DAISY USE outputType
     void sendChannelData(void); // send the current data with sample number
-    void startStreaming(void);  // ADD DAISY USE outputType
-    void stopStreaming(void);   // ADD DAISY USE outputType
+
 
 // ADS1299
     void initialize_ads(void);

@@ -64,111 +64,138 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
     }
 }
 
-/**
-* @description Used to activate a channel, if running must stop and start after...
-* @param channelNumber int the channel you want to change
-* @author AJ Keller (@pushtheworldllc)
-*/
-void safeChannelActivate(int channelNumber) {
-    boolean wasStreaming = streaming;
-
-}
-
-/**
-* @description Used to deactivate a channel, if running must stop and start after...
-* @param channelNumber int the channel you want to change
-* @author AJ Keller (@pushtheworldllc)
-*/
-void safeChannelDeactivate(int channelNumber){
-
-}
-
 
 char processChar(char character) {
     switch (character){
         //TURN CHANNELS ON/OFF COMMANDS
         case '1':
-        changeChannelState_maintainRunningState(1,DEACTIVATE); break;
+            streamSafeChannelDeactivate(1);
+            break;
         case '2':
-        changeChannelState_maintainRunningState(2,DEACTIVATE); break;
+            streamSafeChannelDeactivate(2);
+            break;
         case '3':
-        changeChannelState_maintainRunningState(3,DEACTIVATE); break;
+            streamSafeChannelDeactivate(3);
+            break;
         case '4':
-        changeChannelState_maintainRunningState(4,DEACTIVATE); break;
+            streamSafeChannelDeactivate(4);
+            break;
         case '5':
-        changeChannelState_maintainRunningState(5,DEACTIVATE); break;
+            streamSafeChannelDeactivate(5);
+            break;
         case '6':
-        changeChannelState_maintainRunningState(6,DEACTIVATE); break;
+            streamSafeChannelDeactivate(6);
+            break;
         case '7':
-        changeChannelState_maintainRunningState(7,DEACTIVATE); break;
+            streamSafeChannelDeactivate(7);
+            break;
         case '8':
-        changeChannelState_maintainRunningState(8,DEACTIVATE); break;
-        case '!':
-        changeChannelState_maintainRunningState(1,ACTIVATE); break;
-        case '@':
-        changeChannelState_maintainRunningState(2,ACTIVATE); break;
-        case '#':
-        changeChannelState_maintainRunningState(3,ACTIVATE); break;
-        case '$':
-        changeChannelState_maintainRunningState(4,ACTIVATE); break;
-        case '%':
-        changeChannelState_maintainRunningState(5,ACTIVATE); break;
-        case '^':
-        changeChannelState_maintainRunningState(6,ACTIVATE); break;
-        case '&':
-        changeChannelState_maintainRunningState(7,ACTIVATE); break;
-        case '*':
-        changeChannelState_maintainRunningState(8,ACTIVATE); break;
+            streamSafeChannelDeactivate(8);
+            break;
         case 'q':
-        changeChannelState_maintainRunningState(9,DEACTIVATE); break;
+            streamSafeChannelDeactivate(9);
+            break;
         case 'w':
-        changeChannelState_maintainRunningState(10,DEACTIVATE); break;
+            streamSafeChannelDeactivate(10);
+            break;
         case 'e':
-        changeChannelState_maintainRunningState(11,DEACTIVATE); break;
+            streamSafeChannelDeactivate(11);
+            break;
         case 'r':
-        changeChannelState_maintainRunningState(12,DEACTIVATE); break;
+            streamSafeChannelDeactivate(12);
+            break;
         case 't':
-        changeChannelState_maintainRunningState(13,DEACTIVATE); break;
+            streamSafeChannelDeactivate(13);
+            break;
         case 'y':
-        changeChannelState_maintainRunningState(14,DEACTIVATE); break;
+            streamSafeChannelDeactivate(14);
+            break;
         case 'u':
-        changeChannelState_maintainRunningState(15,DEACTIVATE); break;
+            streamSafeChannelDeactivate(15);
+            break;
         case 'i':
-        changeChannelState_maintainRunningState(16,DEACTIVATE); break;
+            streamSafeChannelDeactivate(16);
+            break;
+        case '!':
+            streamSafeChannelActivate(1);
+            break;
+        case '@':
+            streamSafeChannelActivate(2);
+            break;
+        case '#':
+            streamSafeChannelActivate(3);
+            break;
+        case '$':
+            streamSafeChannelActivate(4);
+            break;
+        case '%':
+            streamSafeChannelActivate(5);
+            break;
+        case '^':
+            streamSafeChannelActivate(6);
+            break;
+        case '&':
+            streamSafeChannelActivate(7);
+            break;
+        case '*':
+            streamSafeChannelActivate(8);
+            break;
         case 'Q':
-        changeChannelState_maintainRunningState(9,ACTIVATE); break;
+            streamSafeChannelActivate(9);
+            break;
         case 'W':
-        changeChannelState_maintainRunningState(10,ACTIVATE); break;
+            streamSafeChannelActivate(10);
+            break;
         case 'E':
-        changeChannelState_maintainRunningState(11,ACTIVATE); break;
+            streamSafeChannelActivate(11);
+            break;
         case 'R':
-        changeChannelState_maintainRunningState(12,ACTIVATE); break;
+            streamSafeChannelActivate(12);
+            break;
         case 'T':
-        changeChannelState_maintainRunningState(13,ACTIVATE); break;
+            streamSafeChannelActivate(13);
+            break;
         case 'Y':
-        changeChannelState_maintainRunningState(14,ACTIVATE); break;
+            streamSafeChannelActivate(14);
+            break;
         case 'U':
-        changeChannelState_maintainRunningState(15,ACTIVATE); break;
+            streamSafeChannelActivate(15);
+            break;
         case 'I':
-        changeChannelState_maintainRunningState(16,ACTIVATE); break;
+            streamSafeChannelActivate(16);
+            break;
+
 
         // TEST SIGNAL CONTROL COMMANDS
         case '0':
-        activateAllChannelsToTestCondition(ADSINPUT_SHORTED,ADSTESTSIG_NOCHANGE,ADSTESTSIG_NOCHANGE); break;
+            activateAllChannelsToTestCondition(ADSINPUT_SHORTED,ADSTESTSIG_NOCHANGE,ADSTESTSIG_NOCHANGE);
+            break;
         case '-':
-        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_SLOW); break;
+            activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_SLOW);
+            break;
         case '=':
-        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST); break;
+            activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST);
+            break;
         case 'p':
-        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_DCSIG); break;
+            activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_DCSIG);
+            break;
         case '[':
-        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_SLOW); break;
+            activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_SLOW);
+            break;
         case ']':
-        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_FAST); break;
+            activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_FAST);
+            break;
 
         // SD CARD COMMANDS
-        //    5min     15min    30min    1hr      2hr      4hr      12hr     24hr    512blocks
-        case 'A': case'S': case'F': case'G': case'H': case'J': case'K': case'L': case 'a':
+        case 'A': // 5min
+        case 'S': // 15min
+        case 'F': // 30 min
+        case 'G': // 1 hr
+        case 'H': // 2 hr
+        case 'J': // 4 hr
+        case 'K': // 12 hr
+        case 'L': // 24 hr
+        case 'a': // 512 blocks
             fileSize = token; SDfileOpen = setupSDcard(fileSize); //
             break;
         case 'j': // close the file, if it's open
@@ -236,16 +263,20 @@ char processChar(char character) {
 
         //  INITIALIZE AND VERIFY
         case 'v':
-        startFromScratch();  // initialize ADS and read device IDs
-        break;
+            boardReset();  // initialize ADS and read device IDs
+            break;
         //  QUERY THE ADS AND ACCEL REGITSTERS
         case '?':
-        printRegisters();     // print the ADS and accelerometer register values
-        break;
+            printRegisters();     // print the ADS and accelerometer register values
+            break;
         default:
-        break;
+            return character;
     }
 }
+
+
+
+
 
 /***************************************************/
 /** PRIVATE METHODS ********************************/
@@ -278,16 +309,15 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
 */
 void OpenBCI_32bit_Class::boardReset(void) {
     initialize();
-    delay(500);
-    writeSerial("taco is $$$");
-    // Serial0.println("OpenBCI V3 16 channel");
-    // configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
-    // Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
-    // if(OBCI.daisyPresent){  // library will set this in initialize() if daisy present and functional
-    //   Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
-    // }
-    // Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(OBCI.LIS3DH_getDeviceID(),HEX);
-    // Serial0.print(OPENBCI_EOT);
+
+    Serial0.println("OpenBCI V3 16 channel");
+    configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
+    Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
+    if(OBCI.daisyPresent){  // library will set this in initialize() if daisy present and functional
+      Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
+    }
+    Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(OBCI.LIS3DH_getDeviceID(),HEX);
+    Serial0.print(OPENBCI_EOT);
 }
 
 
@@ -306,6 +336,145 @@ void OpenBCI_32bit_Class::ledFlash(int numberOfFlashes) {
 */
 void OpenBCI_32bit_Class::serialWriteEOT(void) {
     Serial0.print("$$$");
+}
+
+/**
+* @description Used to activate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void streamSafeChannelActivate(int channelNumber) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    // Activate the channel
+    activateChannel(channelNumber);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+* @description Used to deactivate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void streamSafeChannelDeactivate(int channelNumber){
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    // Activate the channel
+    deactivateChannel(channelNumber);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
+{
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    //must stop running to change channel settings
+    delay(10);
+
+    //set the test signal to the desired state
+    configureInternalTestSignal(amplitudeCode,freqCode);
+    //change input type settings for all channels
+    changeInputType(testInputCode);
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
+    // we need to pull off four bytes from serial port
+    unsigned long startTime = millis();
+
+    int bytesIn = 0;
+
+    int bytesToRead = 4;
+
+    char msg[3];
+
+    while (Serial0.availale() && bytesIn < bytesToRead) {
+        char newChar = Serial0.read();
+
+        if (bytesIn == 0) { // This is the first byte
+            msg[0] = getChannelNumberForAsciiChar(newChar);
+        } else if (bytesIn == 1) {
+            newChar -= '0';
+            msg[1] = newChar;
+        } else if (bytesIn == 2) {
+            newChar -= '0';
+            msg[2] = newChar;
+        } else {
+            if (!streaming) {
+                Serial0.print("Received all impedance settings.");
+            }
+        }
+
+        bytesIn++;
+    }
+
+    return msg;
+
+
+
+    // LEAD OFF IMPEDANCE DETECTION COMMANDS
+    case 'z':  // expect 2 parameters
+    if(!is_running) {Serial0.println("ready to accept new impedance detect settings");}
+    leadOffSettingsCounter = 0;  // reset counter
+    getLeadOffSettings = true;
+    break;
+    case 'Z':  // latch impedance parameters
+    if(!is_running) {Serial0.println("updating impedance detect settings");}
+    changeChannelLeadOffDetect_maintainRunningState(currentChannelToSet);
+    break;
+}
+
+char getChannelNumberForAsciiChar(char asciiChar) {
+    if(n > '0' && n < '9'){
+        n -= '1';
+    }
+    switch(n){
+        case 'Q':
+        n = 0x08; break;
+        case 'W':
+        n = 0x09; break;
+        case 'E':
+        n = 0x0A; break;
+        case 'R':
+        n = 0x0B; break;
+        case 'T':
+        n = 0x0C; break;
+        case 'Y':
+        n = 0x0D; break;
+        case 'U':
+        n = 0x0E; break;
+        case 'I':
+        n = 0x0F; break;
+        default: break;
+    }
+    return n;
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -355,7 +524,7 @@ void OpenBCI_32bit_Class::sendChannelData(){
 * @description Call this to start the streaming data from the ADS1299
 * @returns boolean if able to start streaming
 */
-void OpenBCI_32bit_Class::startStreaming(){  // needs daisy functionality
+boolean OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
     if (streaming) { // already streaming...
         return false;
     } else { // not streaming, so we can start
@@ -369,7 +538,7 @@ void OpenBCI_32bit_Class::startStreaming(){  // needs daisy functionality
 * @description Call this to stop streaming from the ADS1299
 * @returns boolean if able to stop streaming
 */
-void OpenBCI_32bit_Class::stopStreaming(){
+boolean OpenBCI_32bit_Class::streamStop(){
     if (streaming) { // we are streaming so we can stop
         streaming = false;
         stopADS();
@@ -400,17 +569,33 @@ void OpenBCI_32bit_Class::csLow(int SS)
 { // select an SPI slave to talk to
     switch(SS){
         case BOARD_ADS:
-        spi.setMode(DSPI_MODE1); spi.setSpeed(4000000); digitalWrite(BOARD_ADS, LOW); break;
+            spi.setMode(DSPI_MODE1);
+            spi.setSpeed(4000000);
+            digitalWrite(BOARD_ADS, LOW);
+            break;
         case LIS3DH_SS:
-        spi.setMode(DSPI_MODE3); spi.setSpeed(4000000); digitalWrite(LIS3DH_SS, LOW); break;
+            spi.setMode(DSPI_MODE3);
+            spi.setSpeed(4000000);
+            digitalWrite(LIS3DH_SS, LOW);
+            break;
         case SD_SS:
-        spi.setMode(DSPI_MODE0); spi.setSpeed(20000000); digitalWrite(SD_SS, LOW); break;
+            spi.setMode(DSPI_MODE0);
+            spi.setSpeed(20000000);
+            digitalWrite(SD_SS, LOW);
+            break;
         case DAISY_ADS:
-        spi.setMode(DSPI_MODE1); spi.setSpeed(4000000); digitalWrite(DAISY_ADS, LOW); break;
+            spi.setMode(DSPI_MODE1);
+            spi.setSpeed(4000000);
+            digitalWrite(DAISY_ADS, LOW);
+            break;
         case BOTH_ADS:
-        spi.setMode(DSPI_MODE1); spi.setSpeed(4000000);
-        digitalWrite(BOARD_ADS,LOW); digitalWrite(DAISY_ADS,LOW); break;
-        default: break;
+            spi.setMode(DSPI_MODE1);
+            spi.setSpeed(4000000);
+            digitalWrite(BOARD_ADS,LOW);
+            digitalWrite(DAISY_ADS,LOW);
+            break;
+        default:
+            break;
     }
 }
 
@@ -418,17 +603,26 @@ void OpenBCI_32bit_Class::csHigh(int SS)
 { // deselect SPI slave
     switch(SS){
         case BOARD_ADS:
-        digitalWrite(BOARD_ADS, HIGH); spi.setSpeed(20000000); break;
+            digitalWrite(BOARD_ADS, HIGH);
+            spi.setSpeed(20000000);
+            break;
         case LIS3DH_SS:
-        digitalWrite(LIS3DH_SS, HIGH); spi.setSpeed(20000000); break;
+            digitalWrite(LIS3DH_SS, HIGH);
+            spi.setSpeed(20000000);
+            break;
         case SD_SS:
-        digitalWrite(SD_SS, HIGH); spi.setSpeed(4000000); break;
+            digitalWrite(SD_SS, HIGH);
+            spi.setSpeed(4000000);
+            break;
         case DAISY_ADS:
-        digitalWrite(DAISY_ADS, HIGH); spi.setSpeed(20000000); break;
+            digitalWrite(DAISY_ADS, HIGH);
+            spi.setSpeed(20000000);
+            break;
         case BOTH_ADS:
-        digitalWrite(BOARD_ADS, HIGH); digitalWrite(DAISY_ADS, HIGH);
-        spi.setSpeed(20000000); break;
-        default:
+            digitalWrite(BOARD_ADS, HIGH);
+            digitalWrite(DAISY_ADS, HIGH);
+            spi.setSpeed(20000000); break;
+            default:
         break;
     }
     spi.setMode(DSPI_MODE0);  // DEFAULT TO SD MODE!
@@ -791,10 +985,18 @@ void OpenBCI_32bit_Class::changeChannelLeadOffDetect()
     byte setting, startChan, endChan, targetSS;
 
     for(int b=0; b<2; b++){
-        if(b == 0){ targetSS = BOARD_ADS; startChan = 0; endChan = 8; }
+        if(b == 0){
+            targetSS = BOARD_ADS;
+            startChan = 0;
+            endChan = 8;
+        }
         if(b == 1){
-            if(!daisyPresent){ return; }
-            targetSS = DAISY_ADS; startChan = 8; endChan = 16;
+            if(!daisyPresent){
+                return;
+            }
+            targetSS = DAISY_ADS;
+            startChan = 8;
+            endChan = 16;
         }
 
         SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
