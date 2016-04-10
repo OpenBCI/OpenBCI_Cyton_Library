@@ -26,11 +26,14 @@ public:
     boolean isThereSerialDataReadyToBeRead(void);
 
     char processChar(char character);
-    char processIncomingLeadOffSettings(void);
+    void processIncomingLeadOffSettings(void);
+    void processIncomingChannelSettings(void);
 
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
     void processNewImpedanceSettings(void);
 
+    void channelSettingsArraySetForAll(void);
+    void channelSettingsArraySetForChannel(byte N);
     void channelSettingsSetForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
 
     void leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode);
