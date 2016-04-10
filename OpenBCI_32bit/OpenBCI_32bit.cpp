@@ -197,10 +197,13 @@ char processChar(char character) {
         case 'K': // 12 hr
         case 'L': // 24 hr
         case 'a': // 512 blocks
-            fileSize = token; SDfileOpen = setupSDcard(fileSize); //
+            fileSize = token;
+            SDfileOpen = setupSDcard(fileSize); //
             break;
         case 'j': // close the file, if it's open
-            if(SDfileOpen){ SDfileOpen = closeSDfile(); }
+            if(SDfileOpen){
+                SDfileOpen = closeSDfile();
+            }
             break;
 
         // CHANNEL SETTING COMMANDS
@@ -210,24 +213,20 @@ char processChar(char character) {
             getChannelSettings = true;
             break;
         case 'X':  // latch channel settings
-            if(!is_running) {Serial0.println("updating channel settings");}
-        writeChannelSettings_maintainRunningState(currentChannelToSet); break;
+            if(!is_running) {
+                Serial0.println("updating channel settings");
+            }
+            writeChannelSettings_maintainRunningState(currentChannelToSet); break;
         case 'd':  // reset all channel settings to default
-        if(!is_running) {Serial0.println("updating channel settings to default");}
-        setChannelsToDefaultSetting(); break;
+            if(!is_running) {Serial0.println("updating channel settings to default");}
+            setChannelsToDefaultSetting(); break;
         case 'D':  // report the default settings
-        sendDefaultChannelSettings(); break;
+            sendDefaultChannelSettings(); break;
 
         // LEAD OFF IMPEDANCE DETECTION COMMANDS
-        case 'z':  // expect 2 parameters
-        if(!is_running) {Serial0.println("ready to accept new impedance detect settings");}
-        leadOffSettingsCounter = 0;  // reset counter
-        getLeadOffSettings = true;
-        break;
-        case 'Z':  // latch impedance parameters
-        if(!is_running) {Serial0.println("updating impedance detect settings");}
-        changeChannelLeadOffDetect_maintainRunningState(currentChannelToSet);
-        break;
+        case 'z':
+            processIncomingLeadOffSettings();
+            break;
 
         // DAISY MODULE COMMANDS
         case 'c':  // use 8 channel mode
@@ -288,7 +287,7 @@ char processChar(char character) {
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Class::boardBegin(void) {
+boolean OpenBCI_32bit_Class::begin(void) {
     // Initalize the serial port baud rate
     Serial0.begin(OPENBCI_BAUD_RATE);
 
@@ -341,7 +340,7 @@ void OpenBCI_32bit_Class::serialWriteEOT(void) {
 
 
 
-void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
+void OpenBCI_32bit_Class::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
 {
     boolean wasStreaming = streaming;
 
@@ -364,7 +363,12 @@ void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, 
     }
 }
 
-char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
+/**
+ * @description When a 'z' is found on the serial port, we jump to this function
+ *                  where we continue to read from the serial port and read the
+ *                  remaining 4 bytes.
+ */
+void OpenBCI_32bit_Class::processIncomingLeadOffSettings(void) {
     // we need to pull off four bytes from serial port
     unsigned long startTime = millis();
 
@@ -379,7 +383,7 @@ char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
             char newChar = Serial0.read();
 
             if (bytesIn == 0) { // This is the first byte
-                currentChannel = getChannelNumberForAsciiChar(newChar);
+                currentChannel = getChannelCommandForAsciiChar(newChar);
             } else if (bytesIn == 1) {
                 leadOffSettings[currentChannel][PCHAN] = getNumberForAsciiChar(newChar);
             } else if (byteIn == 2) {
@@ -406,68 +410,10 @@ char *OpenBCI_32bit_Class::processNewImpedanceSettings(void) {
         if (millis() > (startTime + OPENBCI_TIME_OUT_MS_1)) {
             return; // return void
         }
-
     }
 
-    // Set
-    leadOffSetForChannel(currentChannel,leadOffSettings[currentChannel][PCHAN],leadOffSettings[currentChannel][NCHAN]);
-
-    return msg;
-
-
-
-    // LEAD OFF IMPEDANCE DETECTION COMMANDS
-    case 'z':  // expect 2 parameters
-    if(!is_running) {Serial0.println("ready to accept new impedance detect settings");}
-    leadOffSettingsCounter = 0;  // reset counter
-    getLeadOffSettings = true;
-    break;
-    case 'Z':  // latch impedance parameters
-    if(!is_running) {Serial0.println("updating impedance detect settings");}
-    changeChannelLeadOffDetect_maintainRunningState(currentChannelToSet);
-    break;
-}
-
-char getChannelNumberForAsciiChar(char asciiChar) {
-    if(n > '0' && n < '9'){
-        n -= '1';
-    }
-    switch(n){
-        case 'Q':
-        n = 0x08; break;
-        case 'W':
-        n = 0x09; break;
-        case 'E':
-        n = 0x0A; break;
-        case 'R':
-        n = 0x0B; break;
-        case 'T':
-        n = 0x0C; break;
-        case 'Y':
-        n = 0x0D; break;
-        case 'U':
-        n = 0x0E; break;
-        case 'I':
-        n = 0x0F; break;
-        default: break;
-    }
-    return n;
-}
-
-/**
- * @description Converts ascii '0' to number 0 and ascii '1' to number 1
- * @param `asciiChar` - [char] - The ascii character to convert
- * @return [char] - Byte number value of acsii character, defaults to 0
- * @author AJ Keller (@pushtheworldllc)
- */
-char getNumberForAsciiChar(char asciiChar) {
-    switch (asciiChar) {
-        case '1':
-            return ACTIVATE;
-        case '0':
-        default:
-            return DEACTIVATE;
-    }
+    // Set lead off settings
+    streamSafeLeadOffSetForChannel(currentChannel,leadOffSettings[currentChannel][PCHAN],leadOffSettings[currentChannel][NCHAN]);
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -708,7 +654,7 @@ void OpenBCI_32bit_Class::streamSafeChannelDeactivate(byte channelNumber){
  * @param `nInput` - [byte] - Apply signal to N input, either ON (1) or OFF (0)
  * @author AJ Keller (@pushtheworldllc)
  */
-void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
+void OpenBCI_32bit_Class::streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -962,6 +908,121 @@ void OpenBCI_32bit_Class::writeChannelSettings(byte N){
         setting = 0x20;     // close SRB1 swtich
     }
     if(channelSettings[N][SRB1_SET] == NO){
+        for(int i=startChan; i<endChan; i++){
+            channelSettings[i][SRB1_SET] = NO;
+        }
+        if(targetSS == BOARD_ADS) boardUseSRB1 = false;
+        if(targetSS == DAISY_ADS) daisyUseSRB1 = false;
+        setting = 0x00;     // open SRB1 switch
+    }
+    WREG(MISC1,setting,targetSS);
+}
+
+/**
+ * @description To add a usability abstraction layer above channel setting commands. Due to the
+ *          extensive and highly specific nature of the channel setting command chain.
+ * @param channelNumber - [byte] (1-16)
+ * @param powerDown - [byte] - YES (1) or NO (0)
+ *          Powers channel down
+ * @param gain - [byte] - Sets the gain for the channel
+ *          ADS_GAIN01 (0b00000000)	// 0x00
+ *          ADS_GAIN02 (0b00010000)	// 0x10
+ *          ADS_GAIN04 (0b00100000)	// 0x20
+ *          ADS_GAIN06 (0b00110000)	// 0x30
+ *          ADS_GAIN08 (0b01000000)	// 0x40
+ *          ADS_GAIN12 (0b01010000)	// 0x50
+ *          ADS_GAIN24 (0b01100000)	// 0x60
+ * @param inputType - [byte] - Selects the ADC channel input source, either:
+ *          ADSINPUT_NORMAL     (0b00000000)
+ *          ADSINPUT_SHORTED    (0b00000001)
+ *          ADSINPUT_BIAS_MEAS  (0b00000010)
+ *          ADSINPUT_MVDD       (0b00000011)
+ *          ADSINPUT_TEMP       (0b00000100)
+ *          ADSINPUT_TESTSIG    (0b00000101)
+ *          ADSINPUT_BIAS_DRP   (0b00000110)
+ *          ADSINPUT_BIAL_DRN   (0b00000111)
+ * @param bias - [byte] (YES (1) -> Include in bias (default), NO (0) -> remove from bias)
+ *          selects to include the channel input in bias generation
+ * @param srb2 - [byte] (YES (1) -> Connect this input to SRB2 (default),
+ *                     NO (0) -> Disconnect this input from SRB2)
+ *          Select to connect (YES) this channel's P input to the SRB2 pin. This closes
+ *              a switch between P input and SRB2 for the given channel, and allows the
+ *              P input to also remain connected to the ADC.
+ * @param srb1 - [byte] (YES (1) -> connect all N inputs to SRB1,
+ *                     NO (0) -> Disconnect all N inputs from SRB1 (default))
+ *          Select to connect (true) all channels' N inputs to SRB1. This effects all pins,
+ *              and disconnects all N inputs from the ADC.
+ */
+void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
+    byte setting, targetSS;
+
+    // contstrain the channel number to 0-15
+    channelNumber = getConstrainedChannelNumber(channelNumber);
+
+    // Get the slave select pin for this channel
+    byte targetSS = getTargetSSForChannelNumber(channelNumber);
+
+    // first, disable any data collection
+    SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+
+    setting = 0x00;
+
+    // Set the power down bit
+    if(powerDown == YES) {
+        setting |= 0x80;
+    }
+
+    // Set the gain bits
+    setting |= gain;
+
+    // Set input type bits
+    setting |= inputType;
+
+    if(srb2 == YES){
+        setting |= 0x08; // close this SRB2 switch
+        useSRB2[channelNumber] = true;  // keep track of SRB2 usage
+    }else{
+        useSRB2[channelNumber] = false;
+    }
+
+    byte channelNumberRegister = 0x00;
+
+    // Since we are addressing 8 bit registers, we need to subtract 8 from the
+    //  channelNumber if we are addressing the Daisy ADS
+    if (targetSS == DAISY_ADS) {
+        channelNumberRegister = channelNumber - OPENBCI_NUMBER_OF_CHANNELS_DEFAULT;
+    }
+    WREG(CH1SET+channelNumberRegister, setting, targetSS);  // write this channel's register settings
+
+    // add or remove from inclusion in BIAS generation
+    setting = RREG(BIAS_SENSP,targetSS);       //get the current P bias settings
+    if(bias == YES){
+        useInBias[channelNumber] = true;
+        bitSet(setting,channelNumberRegister);    //set this channel's bit to add it to the bias generation
+    }else{
+        useInBias[channelNumber] = false;
+        bitClear(setting,channelNumberRegister);  // clear this channel's bit to remove from bias generation
+    }
+    WREG(BIAS_SENSP,setting,targetSS); delay(1); //send the modified byte back to the ADS
+
+    setting = RREG(BIAS_SENSN,targetSS);       //get the current N bias settings
+    if(bias == YES){
+        bitSet(setting,channelNumberRegister);    //set this channel's bit to add it to the bias generation
+    }else{
+        bitClear(setting,channelNumberRegister);  // clear this channel's bit to remove from bias generation
+    }
+    WREG(BIAS_SENSN,setting,targetSS); delay(1); //send the modified byte back to the ADS
+
+    // if SRB1 is closed or open for one channel, it will be the same for all channels
+    if(srb1 == YES){
+        for(int i=startChan; i<endChan; i++){
+            channelSettings[i][SRB1_SET] = YES;
+        }
+        if(targetSS == BOARD_ADS) boardUseSRB1 = true;
+        if(targetSS == DAISY_ADS) daisyUseSRB1 = true;
+        setting = 0x20;     // close SRB1 swtich
+    }
+    if(srb1 == NO){
         for(int i=startChan; i<endChan; i++){
             channelSettings[i][SRB1_SET] = NO;
         }
@@ -1773,4 +1834,65 @@ void OpenBCI_32bit_Class::printHex(byte _data){
     Serial0.print("0x");
     if(_data < 0x10) Serial0.print("0");
     Serial0.print(_data, HEX);
+}
+
+/**
+ * @description Converts ascii character to byte value for channel setting bytes
+ * @param `asciiChar` - [char] - The ascii character to convert
+ * @return [char] - Byte number value of acsii character, defaults to 0
+ * @author AJ Keller (@pushtheworldllc)
+ */
+char OpenBCI_32bit_Class::getChannelCommandForAsciiChar(char asciiChar) {
+    switch(asciiChar){
+        case OPENBCI_CHANNEL_CMD_CHANNEL_1:
+            return 0x00;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_2:
+            return 0x01;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_3:
+            return 0x02;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_4:
+            return 0x03;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_5:
+            return 0x04;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_6:
+            return 0x05;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_7:
+            return 0x06;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_8:
+            return 0x07;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_9:
+            return 0x08;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_10:
+            return 0x09;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_11:
+            return 0x0A;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_12:
+            return 0x0B;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_13:
+            return 0x0C;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_14:
+            return 0x0D;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_15:
+            return 0x0E;
+        case OPENBCI_CHANNEL_CMD_CHANNEL_16:
+            return 0x0F;
+        default:
+            return 0x00;
+    }
+}
+
+/**
+ * @description Converts ascii '0' to number 0 and ascii '1' to number 1
+ * @param `asciiChar` - [char] - The ascii character to convert
+ * @return [char] - Byte number value of acsii character, defaults to 0
+ * @author AJ Keller (@pushtheworldllc)
+ */
+char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
+    switch (asciiChar) {
+        case '1':
+            return ACTIVATE;
+        case '0':
+        default:
+            return DEACTIVATE;
+    }
 }

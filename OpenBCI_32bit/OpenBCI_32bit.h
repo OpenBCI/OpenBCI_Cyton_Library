@@ -26,12 +26,16 @@ public:
     boolean isThereSerialDataReadyToBeRead(void);
 
     char processChar(char character);
-    char processNewImpedanceSettings(void);
+    char processIncomingLeadOffSettings(void);
 
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
     void processNewImpedanceSettings(void);
+
+    void channelSettingsSetForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
+
     void leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode);
     void leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode);
+
     void leadOffSetForAllChannels(void);
     void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
@@ -47,7 +51,7 @@ public:
     int boardType;
 
     // Getters
-    char getChannelNumberForAsciiChar(char asciiChar);
+    char getChannelCommandForAsciiChar(char asciiChar);
     char getNumberForAsciiChar(char asciiChar);
     char getTargetSSForChannelNumber(byte channelNumber);
 
