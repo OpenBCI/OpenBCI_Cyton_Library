@@ -15,6 +15,7 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 /***************************************************/
 // CONSTRUCTOR
 OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
+    boardType = OUTPUT_NOTHING;
     streaming = false;
 }
 
@@ -43,30 +44,207 @@ boolean OpenBCI_32bit_Class::isThereSerialDataReadyToBeRead(void) {
 /**
 * @description: called in every loop function, returns a char of the data if
 *                 the data is not recognized
-* @return: [char *] - The character's not processed
+* @return: [char] - The character's not processed
 */
-void OpenBCI_32bit_Class::readSerial(void) {
-    int numBytesToRead  = Serial0.available();
-    if (numBytesToRead > 0) {
-        int timesToFlashLED = numBytesToRead;
-        while(numBytesToRead > 0) {
-            // Echo what ever comes in...
-            Serial0.print((char)Serial0.read());
-
-            // Decrement the number of bytes to read
-            numBytesToRead--;
-        }
-        ledFlash(timesToFlashLED);
+char OpenBCI_32bit_Class::readSerial(void) {
+    if (Serial0.available()) {
+        char newByte = Serial0.read();
+        return processChar(newByte);
     }
 }
 
 /**
-* @description: Public function for sending data to the PC
-* @param: data [char *] - The data you want to send
-* @author: AJ Keller (@pushtheworldllc)
+* @description Public function for sending data to the PC
+* @param data [char *] - The data you want to send
+* @author AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::writeSerial(char *data) {
-    Serial0.print(data[0]);
+void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
+    for (int i = 0; i < len; i++) {
+        Serial0.write(data[i]);
+    }
+}
+
+/**
+* @description Used to activate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void safeChannelActivate(int channelNumber) {
+    boolean wasStreaming = streaming;
+
+}
+
+/**
+* @description Used to deactivate a channel, if running must stop and start after...
+* @param channelNumber int the channel you want to change
+* @author AJ Keller (@pushtheworldllc)
+*/
+void safeChannelDeactivate(int channelNumber){
+
+}
+
+
+char processChar(char character) {
+    switch (character){
+        //TURN CHANNELS ON/OFF COMMANDS
+        case '1':
+        changeChannelState_maintainRunningState(1,DEACTIVATE); break;
+        case '2':
+        changeChannelState_maintainRunningState(2,DEACTIVATE); break;
+        case '3':
+        changeChannelState_maintainRunningState(3,DEACTIVATE); break;
+        case '4':
+        changeChannelState_maintainRunningState(4,DEACTIVATE); break;
+        case '5':
+        changeChannelState_maintainRunningState(5,DEACTIVATE); break;
+        case '6':
+        changeChannelState_maintainRunningState(6,DEACTIVATE); break;
+        case '7':
+        changeChannelState_maintainRunningState(7,DEACTIVATE); break;
+        case '8':
+        changeChannelState_maintainRunningState(8,DEACTIVATE); break;
+        case '!':
+        changeChannelState_maintainRunningState(1,ACTIVATE); break;
+        case '@':
+        changeChannelState_maintainRunningState(2,ACTIVATE); break;
+        case '#':
+        changeChannelState_maintainRunningState(3,ACTIVATE); break;
+        case '$':
+        changeChannelState_maintainRunningState(4,ACTIVATE); break;
+        case '%':
+        changeChannelState_maintainRunningState(5,ACTIVATE); break;
+        case '^':
+        changeChannelState_maintainRunningState(6,ACTIVATE); break;
+        case '&':
+        changeChannelState_maintainRunningState(7,ACTIVATE); break;
+        case '*':
+        changeChannelState_maintainRunningState(8,ACTIVATE); break;
+        case 'q':
+        changeChannelState_maintainRunningState(9,DEACTIVATE); break;
+        case 'w':
+        changeChannelState_maintainRunningState(10,DEACTIVATE); break;
+        case 'e':
+        changeChannelState_maintainRunningState(11,DEACTIVATE); break;
+        case 'r':
+        changeChannelState_maintainRunningState(12,DEACTIVATE); break;
+        case 't':
+        changeChannelState_maintainRunningState(13,DEACTIVATE); break;
+        case 'y':
+        changeChannelState_maintainRunningState(14,DEACTIVATE); break;
+        case 'u':
+        changeChannelState_maintainRunningState(15,DEACTIVATE); break;
+        case 'i':
+        changeChannelState_maintainRunningState(16,DEACTIVATE); break;
+        case 'Q':
+        changeChannelState_maintainRunningState(9,ACTIVATE); break;
+        case 'W':
+        changeChannelState_maintainRunningState(10,ACTIVATE); break;
+        case 'E':
+        changeChannelState_maintainRunningState(11,ACTIVATE); break;
+        case 'R':
+        changeChannelState_maintainRunningState(12,ACTIVATE); break;
+        case 'T':
+        changeChannelState_maintainRunningState(13,ACTIVATE); break;
+        case 'Y':
+        changeChannelState_maintainRunningState(14,ACTIVATE); break;
+        case 'U':
+        changeChannelState_maintainRunningState(15,ACTIVATE); break;
+        case 'I':
+        changeChannelState_maintainRunningState(16,ACTIVATE); break;
+
+        // TEST SIGNAL CONTROL COMMANDS
+        case '0':
+        activateAllChannelsToTestCondition(ADSINPUT_SHORTED,ADSTESTSIG_NOCHANGE,ADSTESTSIG_NOCHANGE); break;
+        case '-':
+        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_SLOW); break;
+        case '=':
+        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST); break;
+        case 'p':
+        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_DCSIG); break;
+        case '[':
+        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_SLOW); break;
+        case ']':
+        activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_FAST); break;
+
+        // SD CARD COMMANDS
+        //    5min     15min    30min    1hr      2hr      4hr      12hr     24hr    512blocks
+        case 'A': case'S': case'F': case'G': case'H': case'J': case'K': case'L': case 'a':
+            fileSize = token; SDfileOpen = setupSDcard(fileSize); //
+            break;
+        case 'j': // close the file, if it's open
+            if(SDfileOpen){ SDfileOpen = closeSDfile(); }
+            break;
+
+        // CHANNEL SETTING COMMANDS
+        case 'x':  // expect 6 parameters
+            if(!is_running) {Serial0.println("ready to accept new channel settings");}
+            channelSettingsCounter = 0;
+            getChannelSettings = true;
+            break;
+        case 'X':  // latch channel settings
+            if(!is_running) {Serial0.println("updating channel settings");}
+        writeChannelSettings_maintainRunningState(currentChannelToSet); break;
+        case 'd':  // reset all channel settings to default
+        if(!is_running) {Serial0.println("updating channel settings to default");}
+        setChannelsToDefaultSetting(); break;
+        case 'D':  // report the default settings
+        sendDefaultChannelSettings(); break;
+
+        // LEAD OFF IMPEDANCE DETECTION COMMANDS
+        case 'z':  // expect 2 parameters
+        if(!is_running) {Serial0.println("ready to accept new impedance detect settings");}
+        leadOffSettingsCounter = 0;  // reset counter
+        getLeadOffSettings = true;
+        break;
+        case 'Z':  // latch impedance parameters
+        if(!is_running) {Serial0.println("updating impedance detect settings");}
+        changeChannelLeadOffDetect_maintainRunningState(currentChannelToSet);
+        break;
+
+        // DAISY MODULE COMMANDS
+        case 'c':  // use 8 channel mode
+        if(OBCI.daisyPresent){ OBCI.removeDaisy(); }
+        outputType = OUTPUT_8_CHAN;
+        break;
+        case 'C':  // use 16 channel mode
+        if(OBCI.daisyPresent == false){OBCI.attachDaisy();}
+        if(OBCI.daisyPresent){
+            Serial0.print("16"); outputType = OUTPUT_16_CHAN;
+        }else{
+            Serial0.print("8"); outputType = OUTPUT_8_CHAN;
+        }
+        sendEOT();
+        break;
+
+        // STREAM DATA AND FILTER COMMANDS
+        case 'b':  // stream data
+            if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
+            if(OBCI.useAccel){OBCI.enable_accel(RATE_25HZ);}      // fire up the accelerometer if you want it
+            startRunning(outputType);                             // turn on the fire hose
+            break;
+        case 's':  // stop streaming data
+            if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
+            if(OBCI.useAccel){OBCI.disable_accel();}  // shut down the accelerometer if you're using it
+            stopRunning();
+            break;
+        case 'f':
+        useFilters = true;
+        break;
+        case 'g':
+        useFilters = false;
+        break;
+
+        //  INITIALIZE AND VERIFY
+        case 'v':
+        startFromScratch();  // initialize ADS and read device IDs
+        break;
+        //  QUERY THE ADS AND ACCEL REGITSTERS
+        case '?':
+        printRegisters();     // print the ADS and accelerometer register values
+        break;
+        default:
+        break;
+    }
 }
 
 /***************************************************/

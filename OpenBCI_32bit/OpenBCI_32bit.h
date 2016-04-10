@@ -18,13 +18,17 @@ public:
     OpenBCI_32bit_Class();
     void begin(void);
     void readSerial(void);
-    void writeSerial(char *data);
+    void writeSerial(char *data, int len);
 
 
 
     boolean isThereNewADSData(void);
     boolean isThereSerialDataReadyToBeRead(void);
 
+    char processChar(char character);
+
+    void safeChannelDeactivate(int channelNumber);
+    void safeChannelActivate(int channelNumber);
 
     // Variables
     boolean streaming;
