@@ -69,103 +69,103 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
 char processChar(char character) {
     switch (character){
         //TURN CHANNELS ON/OFF COMMANDS
-        case '1':
+        case OPENBCI_CHANNEL_OFF_1:
             streamSafeChannelDeactivate(1);
             break;
-        case '2':
+        case OPENBCI_CHANNEL_OFF_2:
             streamSafeChannelDeactivate(2);
             break;
-        case '3':
+        case OPENBCI_CHANNEL_OFF_3:
             streamSafeChannelDeactivate(3);
             break;
-        case '4':
+        case OPENBCI_CHANNEL_OFF_4:
             streamSafeChannelDeactivate(4);
             break;
-        case '5':
+        case OPENBCI_CHANNEL_OFF_5:
             streamSafeChannelDeactivate(5);
             break;
-        case '6':
+        case OPENBCI_CHANNEL_OFF_6:
             streamSafeChannelDeactivate(6);
             break;
-        case '7':
+        case OPENBCI_CHANNEL_OFF_7:
             streamSafeChannelDeactivate(7);
             break;
-        case '8':
+        case OPENBCI_CHANNEL_OFF_8:
             streamSafeChannelDeactivate(8);
             break;
-        case 'q':
+        case OPENBCI_CHANNEL_OFF_9:
             streamSafeChannelDeactivate(9);
             break;
-        case 'w':
+        case OPENBCI_CHANNEL_OFF_10:
             streamSafeChannelDeactivate(10);
             break;
-        case 'e':
+        case OPENBCI_CHANNEL_OFF_11:
             streamSafeChannelDeactivate(11);
             break;
-        case 'r':
+        case OPENBCI_CHANNEL_OFF_12:
             streamSafeChannelDeactivate(12);
             break;
-        case 't':
+        case OPENBCI_CHANNEL_OFF_13:
             streamSafeChannelDeactivate(13);
             break;
-        case 'y':
+        case OPENBCI_CHANNEL_OFF_14:
             streamSafeChannelDeactivate(14);
             break;
-        case 'u':
+        case OPENBCI_CHANNEL_OFF_15:
             streamSafeChannelDeactivate(15);
             break;
-        case 'i':
+        case OPENBCI_CHANNEL_OFF_16:
             streamSafeChannelDeactivate(16);
             break;
-        case '!':
+
+        case OPENBCI_CHANNEL_N_1:
             streamSafeChannelActivate(1);
             break;
-        case '@':
+        case OPENBCI_CHANNEL_N_2:
             streamSafeChannelActivate(2);
             break;
-        case '#':
+        case OPENBCI_CHANNEL_N_3:
             streamSafeChannelActivate(3);
             break;
-        case '$':
+        case OPENBCI_CHANNEL_N_4:
             streamSafeChannelActivate(4);
             break;
-        case '%':
+        case OPENBCI_CHANNEL_N_5:
             streamSafeChannelActivate(5);
             break;
-        case '^':
+        case OPENBCI_CHANNEL_N_6:
             streamSafeChannelActivate(6);
             break;
-        case '&':
+        case OPENBCI_CHANNEL_N_7:
             streamSafeChannelActivate(7);
             break;
-        case '*':
+        case OPENBCI_CHANNEL_N_8:
             streamSafeChannelActivate(8);
             break;
-        case 'Q':
+        case OPENBCI_CHANNEL_N_9:
             streamSafeChannelActivate(9);
             break;
-        case 'W':
+        case OPENBCI_CHANNEL_N_10:
             streamSafeChannelActivate(10);
             break;
-        case 'E':
+        case OPENBCI_CHANNEL_N_11:
             streamSafeChannelActivate(11);
             break;
-        case 'R':
+        case OPENBCI_CHANNEL_N_12:
             streamSafeChannelActivate(12);
             break;
-        case 'T':
+        case OPENBCI_CHANNEL_N_13:
             streamSafeChannelActivate(13);
             break;
-        case 'Y':
+        case OPENBCI_CHANNEL_N_14:
             streamSafeChannelActivate(14);
             break;
-        case 'U':
+        case OPENBCI_CHANNEL_N_15:
             streamSafeChannelActivate(15);
             break;
-        case 'I':
+        case OPENBCI_CHANNEL_N_16:
             streamSafeChannelActivate(16);
             break;
-
 
         // TEST SIGNAL CONTROL COMMANDS
         case '0':
@@ -187,36 +187,12 @@ char processChar(char character) {
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_FAST);
             break;
 
-        // SD CARD COMMANDS
-        case 'A': // 5min
-        case 'S': // 15min
-        case 'F': // 30 min
-        case 'G': // 1 hr
-        case 'H': // 2 hr
-        case 'J': // 4 hr
-        case 'K': // 12 hr
-        case 'L': // 24 hr
-        case 'a': // 512 blocks
-            fileSize = token;
-            SDfileOpen = setupSDcard(fileSize); //
-            break;
-        case 'j': // close the file, if it's open
-            if(SDfileOpen){
-                SDfileOpen = closeSDfile();
-            }
-            break;
 
         // CHANNEL SETTING COMMANDS
-        case 'x':  // expect 6 parameters
-            if(!is_running) {Serial0.println("ready to accept new channel settings");}
-            channelSettingsCounter = 0;
-            getChannelSettings = true;
+        case OPENBCI_CHANNEL_CMD_SET:  // This is the first byte that tells us to expect more commands
+            processIncomingChannelSettings();
             break;
-        case 'X':  // latch channel settings
-            if(!is_running) {
-                Serial0.println("updating channel settings");
-            }
-            writeChannelSettings_maintainRunningState(currentChannelToSet); break;
+
         case 'd':  // reset all channel settings to default
             if(!is_running) {Serial0.println("updating channel settings to default");}
             setChannelsToDefaultSetting(); break;

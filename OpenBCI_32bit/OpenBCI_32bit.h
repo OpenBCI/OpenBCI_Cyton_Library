@@ -57,6 +57,7 @@ public:
     char getChannelCommandForAsciiChar(char asciiChar);
     char getNumberForAsciiChar(char asciiChar);
     char getTargetSSForChannelNumber(byte channelNumber);
+    char getYesOrNoForAsciiChar(char asciiChar);
 
 
 
