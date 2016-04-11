@@ -197,11 +197,15 @@ char processChar(char character) {
             processIncomingLeadOffSettings();
             break;
 
-        case 'd':  // reset all channel settings to default
-            if(!is_running) {Serial0.println("updating channel settings to default");}
-            setChannelsToDefaultSetting(); break;
+        case OPENBCI_CHANNEL_DEFAULT_ALL_SET:  // reset all channel settings to default
+            if(!is_running) {
+                Serial0.println("updating channel settings to default");
+            }
+            streamSafeSetAllChannelsToDefault();
+            break;
         case 'D':  // report the default settings
-            sendDefaultChannelSettings(); break;
+            sendDefaultChannelSettings();
+            break;
 
 
 
@@ -607,30 +611,14 @@ void OpenBCI_32bit_Class::initialize_ads(){
         numChannels = 16;   // expect up to 16 ADS channels
     }
 
-    // DEFAULT CHANNEL SETTINGS FOR ADS
-    defaultChannelSettings[POWER_DOWN] = NO;        // on = NO, off = YES
-    defaultChannelSettings[GAIN_SET] = ADS_GAIN24;     // Gain setting
-    defaultChannelSettings[INPUT_TYPE_SET] = ADSINPUT_NORMAL;// input muxer setting
-    defaultChannelSettings[BIAS_SET] = YES;    // add this channel to bias generation
-    defaultChannelSettings[SRB2_SET] = YES;       // connect this P side to SRB2
-    defaultChannelSettings[SRB1_SET] = NO;        // don't use SRB1
+    resetChannelSettingsArrayToDefault(channelSettings);
 
-    for(int i=0; i<numChannels; i++){
-        for(int j=0; j<6; j++){
-            channelSettings[i][j] = defaultChannelSettings[j];  // assign default settings
-        }
-        useInBias[i] = true;    // keeping track of Bias Generation
-        useSRB2[i] = true;      // keeping track of SRB2 inclusion
-    }
-    boardUseSRB1 = daisyUseSRB1 = false;
-
-    writeChannelSettings(); // write settings to the on-board and on-daisy ADS if present
+    channelSettingsArraySetForChannel(); // write settings to the on-board and on-daisy ADS if present
 
     WREG(CONFIG3,0b11101100,BOTH_ADS); delay(1);  // enable internal reference drive and etc.
-    for(int i=0; i<numChannels; i++){  // turn off the impedance measure signal
-        leadOffSettings[i][PCHAN] = OFF;
-        leadOffSettings[i][NCHAN] = OFF;
-    }
+
+    resetLeadOffArrayToDefault(leadOffSettings);
+
     verbosity = false;      // when verbosity is true, there will be Serial feedback
     firstDataPacket = true;
 }
@@ -727,6 +715,22 @@ void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber
     }
 }
 
+void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    setChannelsToDefault();
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
 /**
 * @description Call this to start the streaming data from the ADS1299
 * @returns boolean if able to start streaming
@@ -810,37 +814,31 @@ void OpenBCI_32bit_Class::resetADS(int targetSS)
 }
 
 void OpenBCI_32bit_Class::setChannelsToDefault(void){
-    for(int i=0; i<numChannels; i++){
-        for(int j=0; j<6; j++){
-            channelSettings[i][j] = defaultChannelSettings[j];
-        }
-        useInBias[i] = true;    // keeping track of Bias Generation
-        useSRB2[i] = true;      // keeping track of SRB2 inclusion
-    }
-    boardUseSRB1 = daisyUseSRB1 = false;
 
-    writeChannelSettings();       // write settings to on-board ADS
+    // Reset the global channel settings array to default
+    resetChannelSettingsArrayToDefault(channelSettings, OPENBCI_NUMBER_OF_CHANNELS_DAISY);
+    // Write channel settings to board (and daisy) ADS
+    channelSettingsArraySetForAll();
 
-    for(int i=0; i<numChannels; i++){   // turn off the impedance measure signal
-        leadOffSettings[i][PCHAN] = OFF;
-        leadOffSettings[i][NCHAN] = OFF;
-    }
-    changeChannelLeadOffDetect(); // write settings to all ADS
-
+    // Reset the global lead off settings array to default
+    resetLeadOffArrayToDefault(leadOffSettings, OPENBCI_NUMBER_OF_CHANNELS_DAISY);
+    // Write lead off settings to board (and daisy) ADS
+    leadOffSetForAllChannels();
 
     WREG(MISC1,0x00,BOARD_ADS);  // open SRB1 switch on-board
-    if(daisyPresent){ WREG(MISC1,0x00,DAISY_ADS); } // open SRB1 switch on-daisy
+    if(daisyPresent){  // open SRB1 switch on-daisy
+        WREG(MISC1,0x00,DAISY_ADS);
+    }
 }
 
 
 void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
-
-    Serial0.write(defaultChannelSettings[POWER_DOWN] + '0');        // on = NO, off = YES
-    Serial0.write((defaultChannelSettings[GAIN_SET] >> 4) + '0');     // Gain setting
-    Serial0.write(defaultChannelSettings[INPUT_TYPE_SET] +'0');// input muxer setting
-    Serial0.write(defaultChannelSettings[BIAS_SET] + '0');    // add this channel to bias generation
-    Serial0.write(defaultChannelSettings[SRB2_SET] + '0');       // connect this P side to SRB2
-    Serial0.write(defaultChannelSettings[SRB1_SET] + '0');        // don't use SRB1
+    Serial0.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
+    Serial0.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
+    Serial0.write(getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET)); // input muxer setting
+    Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
+    Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
+    Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
 }
 
 // write settings for ALL 8 channels for a given ADS board
@@ -2021,4 +2019,79 @@ char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
     asciiChar -= '0';
 
     return asciiChar;
+}
+
+/**
+ * @description Used to set the channelSettings array to default settings
+ * @param `setting` - [byte] - The byte you need a setting for....
+ * @returns - [byte] - Retuns the proper byte for the input setting, defualts to 0
+ */
+byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
+    switch (setting) {
+        case POWER_DOWN:
+            return NO;
+        case GAIN_SET:
+            return ADS_GAIN24;
+        case INPUT_TYPE_SET:
+            return ADSINPUT_NORMAL;
+        case BIAS_SET:
+            return YES;
+        case SRB2_SET:
+            return YES;
+        case SRB1_SET:
+            return NO;
+        default:
+            return NO;
+    }
+}
+
+/**
+ * @description Used to set the channelSettings array to default settings
+ * @param `setting` - [byte] - The byte you need a setting for....
+ * @returns - [char] - Retuns the proper ascii char for the input setting, defualts to '0'
+ */
+char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) {
+    switch (setting) {
+        case GAIN_SET: // Special case where GAIN_SET needs to be shifted first
+            return (ADS_GAIN24 >> 4) + '0';
+        default: // All other settings are just adding the ascii value for '0'
+            return getDefaultChannelSettingForSetting(setting) + '0';
+    }
+}
+
+
+
+/**
+ * @description Used to set the channelSettings array to default settings
+ * @param `channelSettingsArray` - [byte **] - Takes a two dimensional array of
+ *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 6 elements
+ */
+void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte** channelSettingsArray) {
+    // Loop through all channels
+    for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
+        channelSettingsArray[i][POWER_DOWN]     = getDefaultChannelSettingForSetting(POWER_DOWN);       // on = NO, off = YES
+        channelSettingsArray[i][GAIN_SET]       = getDefaultChannelSettingForSetting(GAIN_SET);         // Gain setting
+        channelSettingsArray[i][INPUT_TYPE_SET] = getDefaultChannelSettingForSetting(INPUT_TYPE_SET);   // input muxer setting
+        channelSettingsArray[i][BIAS_SET]       = getDefaultChannelSettingForSetting(BIAS_SET);         // add this channel to bias generation
+        channelSettingsArray[i][SRB2_SET]       = getDefaultChannelSettingForSetting(SRB2_SET);         // connect this P side to SRB2
+        channelSettingsArray[i][SRB1_SET]       = getDefaultChannelSettingForSetting(SRB1_SET);         // don't use SRB1
+
+        useInBias[i] = true;    // keeping track of Bias Generation
+        useSRB2[i] = true;      // keeping track of SRB2 inclusion
+    }
+
+    boardUseSRB1 = daisyUseSRB1 = false;
+}
+
+/**
+ * @description Used to set the channelSettings array to default settings
+ * @param `channelSettingsArray` - [byte **] - A two dimensional array of
+ *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 2 elements
+ */
+void OpenBCI_32bit_Class::resetLeadOffArrayToDefault(byte** leadOffArray) {
+    // Loop through all channels
+    for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
+        leadOffArray[i][PCHAN] = OFF;
+        leadOffArray[i][NCHAN] = OFF;
+    }
 }

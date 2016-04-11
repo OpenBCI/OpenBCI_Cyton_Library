@@ -25,12 +25,9 @@ public:
     boolean isThereNewADSData(void);
     boolean isThereSerialDataReadyToBeRead(void);
 
-    char processChar(char character);
-    void processIncomingLeadOffSettings(void);
-    void processIncomingChannelSettings(void);
+
 
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
-    void processNewImpedanceSettings(void);
 
     void channelSettingsArraySetForAll(void);
     void channelSettingsArraySetForChannel(byte N);
@@ -42,8 +39,16 @@ public:
     void leadOffSetForAllChannels(void);
     void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
+    char processChar(char character);
+    void processIncomingLeadOffSettings(void);
+    void processIncomingChannelSettings(void);
+
+    void resetChannelSettingsArrayToDefault(byte** channelSettingsArray);
+    void resetLeadOffArrayToDefault(byte** leadOffArray, int numChannels);
+
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
+    void streamSafeSetAllChannelsToDefault(void);
     void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
     void streamStart(void);  // ADD DAISY USE outputType
     void streamStop(void);   // ADD DAISY USE outputType
@@ -55,6 +60,8 @@ public:
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
+    byte getDefaultChannelSettingForSetting(byte setting);
+    char getDefaultChannelSettingForSettingAscii(byte setting)
     char getNumberForAsciiChar(char asciiChar);
     char getTargetSSForChannelNumber(byte channelNumber);
     char getYesOrNoForAsciiChar(char asciiChar);
@@ -137,11 +144,10 @@ public:
     int lastDaisyChannelDataInt[8];
     int meanDaisyChannelDataInt[8];
     int numChannels;
-    byte channelSettings[16][6];  // array to hold current channel settings
-    byte defaultChannelSettings[6];  // default channel settings
-    byte leadOffSettings[16][2];  // used to control on/off of impedance measure for P and N side of each channel
-    boolean useInBias[16];        // used to remember if we were included in Bias before channel power down
-    boolean useSRB2[16];
+    byte channelSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // array to hold current channel settings
+    byte leadOffSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS];  // used to control on/off of impedance measure for P and N side of each channel
+    boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
+    boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
     boolean boardUseSRB1;             // used to keep track of if we are using SRB1
     boolean daisyUseSRB1;
     boolean verbosity;      // turn on/off Serial verbosity
