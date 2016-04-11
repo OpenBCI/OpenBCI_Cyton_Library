@@ -27,7 +27,6 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
 void OpenBCI_32bit_Class::begin(void) {
     // Bring the board up
     boardBegin() ? ledFlash(2) : ledFlash(1);
-
 }
 
 /**
@@ -118,72 +117,72 @@ char processChar(char character) {
             streamSafeChannelDeactivate(16);
             break;
 
-        case OPENBCI_CHANNEL_N_1:
+        case OPENBCI_CHANNEL_ON_1:
             streamSafeChannelActivate(1);
             break;
-        case OPENBCI_CHANNEL_N_2:
+        case OPENBCI_CHANNEL_ON_2:
             streamSafeChannelActivate(2);
             break;
-        case OPENBCI_CHANNEL_N_3:
+        case OPENBCI_CHANNEL_ON_3:
             streamSafeChannelActivate(3);
             break;
-        case OPENBCI_CHANNEL_N_4:
+        case OPENBCI_CHANNEL_ON_4:
             streamSafeChannelActivate(4);
             break;
-        case OPENBCI_CHANNEL_N_5:
+        case OPENBCI_CHANNEL_ON_5:
             streamSafeChannelActivate(5);
             break;
-        case OPENBCI_CHANNEL_N_6:
+        case OPENBCI_CHANNEL_ON_6:
             streamSafeChannelActivate(6);
             break;
-        case OPENBCI_CHANNEL_N_7:
+        case OPENBCI_CHANNEL_ON_7:
             streamSafeChannelActivate(7);
             break;
-        case OPENBCI_CHANNEL_N_8:
+        case OPENBCI_CHANNEL_ON_8:
             streamSafeChannelActivate(8);
             break;
-        case OPENBCI_CHANNEL_N_9:
+        case OPENBCI_CHANNEL_ON_9:
             streamSafeChannelActivate(9);
             break;
-        case OPENBCI_CHANNEL_N_10:
+        case OPENBCI_CHANNEL_ON_10:
             streamSafeChannelActivate(10);
             break;
-        case OPENBCI_CHANNEL_N_11:
+        case OPENBCI_CHANNEL_ON_11:
             streamSafeChannelActivate(11);
             break;
-        case OPENBCI_CHANNEL_N_12:
+        case OPENBCI_CHANNEL_ON_12:
             streamSafeChannelActivate(12);
             break;
-        case OPENBCI_CHANNEL_N_13:
+        case OPENBCI_CHANNEL_ON_13:
             streamSafeChannelActivate(13);
             break;
-        case OPENBCI_CHANNEL_N_14:
+        case OPENBCI_CHANNEL_ON_14:
             streamSafeChannelActivate(14);
             break;
-        case OPENBCI_CHANNEL_N_15:
+        case OPENBCI_CHANNEL_ON_15:
             streamSafeChannelActivate(15);
             break;
-        case OPENBCI_CHANNEL_N_16:
+        case OPENBCI_CHANNEL_ON_16:
             streamSafeChannelActivate(16);
             break;
 
         // TEST SIGNAL CONTROL COMMANDS
-        case '0':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_GROUND:
             activateAllChannelsToTestCondition(ADSINPUT_SHORTED,ADSTESTSIG_NOCHANGE,ADSTESTSIG_NOCHANGE);
             break;
-        case '-':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_SLOW:
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_SLOW);
             break;
-        case '=':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_FAST:
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_1X,ADSTESTSIG_PULSE_FAST);
             break;
-        case 'p':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_DC:
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_DCSIG);
             break;
-        case '[':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_SLOW:
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_SLOW);
             break;
-        case ']':
+        case OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_FAST:
             activateAllChannelsToTestCondition(ADSINPUT_TESTSIG,ADSTESTSIG_AMP_2X,ADSTESTSIG_PULSE_FAST);
             break;
 
@@ -193,57 +192,57 @@ char processChar(char character) {
             processIncomingChannelSettings();
             break;
 
+        // LEAD OFF IMPEDANCE DETECTION COMMANDS
+        case OPENBCI_CHANNEL_IMPEDANCE_SET:
+            processIncomingLeadOffSettings();
+            break;
+
         case 'd':  // reset all channel settings to default
             if(!is_running) {Serial0.println("updating channel settings to default");}
             setChannelsToDefaultSetting(); break;
         case 'D':  // report the default settings
             sendDefaultChannelSettings(); break;
 
-        // LEAD OFF IMPEDANCE DETECTION COMMANDS
-        case 'z':
-            processIncomingLeadOffSettings();
-            break;
+
 
         // DAISY MODULE COMMANDS
         case 'c':  // use 8 channel mode
-        if(OBCI.daisyPresent){ OBCI.removeDaisy(); }
-        outputType = OUTPUT_8_CHAN;
-        break;
+            if(OBCI.daisyPresent){ OBCI.removeDaisy(); }
+            outputType = OUTPUT_8_CHAN;
+            break;
         case 'C':  // use 16 channel mode
-        if(OBCI.daisyPresent == false){OBCI.attachDaisy();}
-        if(OBCI.daisyPresent){
-            Serial0.print("16"); outputType = OUTPUT_16_CHAN;
-        }else{
-            Serial0.print("8"); outputType = OUTPUT_8_CHAN;
-        }
-        sendEOT();
-        break;
+            if(OBCI.daisyPresent == false){OBCI.attachDaisy();}
+            if(OBCI.daisyPresent){
+                Serial0.print("16"); outputType = OUTPUT_16_CHAN;
+            }else{
+                Serial0.print("8"); outputType = OUTPUT_8_CHAN;
+            }
+            sendEOT();
+            break;
 
         // STREAM DATA AND FILTER COMMANDS
-        case 'b':  // stream data
-            if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
+        case OPENBCI_STREAM_START:  // stream data
+            // if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
             if(OBCI.useAccel){OBCI.enable_accel(RATE_25HZ);}      // fire up the accelerometer if you want it
-            startRunning(outputType);                             // turn on the fire hose
+            streamStart();                            // turn on the fire hose
             break;
-        case 's':  // stop streaming data
-            if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
+        case OPENBCI_STREAM_STOP:  // stop streaming data
+            // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
             if(OBCI.useAccel){OBCI.disable_accel();}  // shut down the accelerometer if you're using it
-            stopRunning();
+            streamStop();
             break;
-        case 'f':
-        useFilters = true;
-        break;
-        case 'g':
-        useFilters = false;
-        break;
 
         //  INITIALIZE AND VERIFY
-        case 'v':
+        case OPENBCI_MISC_SOFT_RESET:
             boardReset();  // initialize ADS and read device IDs
             break;
         //  QUERY THE ADS AND ACCEL REGITSTERS
-        case '?':
-            printRegisters();     // print the ADS and accelerometer register values
+        case OPENBCI_MISC_QUERY_REGISTER_SETTINGS:
+            if (!streaming) {
+                printAllRegisters(); // print the ADS and accelerometer register values
+                sendEOT();
+                delay(20);
+            }
             break;
         default:
             return character;
@@ -263,7 +262,7 @@ char processChar(char character) {
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Class::begin(void) {
+boolean OpenBCI_32bit_Class::boardBegin(void) {
     // Initalize the serial port baud rate
     Serial0.begin(OPENBCI_BAUD_RATE);
 

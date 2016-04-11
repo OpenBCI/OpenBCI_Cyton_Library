@@ -231,7 +231,7 @@
  * 2x - Voltage will be 2 * (VREFP - VREFN) / 2.4 mV
  */
 #define OPENBCI_TEST_SIGNAL_CONNECT_TO_DC            'p'
-#define OPENBCI_TEST_SIGNAL_CONNECT_TO_GROUNF        '0'
+#define OPENBCI_TEST_SIGNAL_CONNECT_TO_GROUND        '0'
 #define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_FAST '='
 #define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_1X_SLOW '-'
 #define OPENBCI_TEST_SIGNAL_CONNECT_TO_PULSE_2X_FAST ']'
@@ -308,7 +308,7 @@
 
 /** Miscellaneous */
 #define OPENBCI_MISC_QUERY_REGISTER_SETTINGS            '?'
-#define OPENBCI_MiscSoftReset                        'v'
+#define OPENBCI_MISC_SOFT_RESET                        'v'
 
 /** 16 Channel Commands */
 #define OPENBCI_CHANNEL_MAX_NUMBER_8    'c'

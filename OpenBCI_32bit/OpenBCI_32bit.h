@@ -170,8 +170,6 @@ public:
     void csLow(int);
     void csHigh(int);
 
-
-private:
     //
     boolean boardBegin(void);
     void boardReset(void);
