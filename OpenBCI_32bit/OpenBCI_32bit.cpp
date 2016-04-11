@@ -33,7 +33,7 @@ void OpenBCI_32bit_Class::begin(void) {
 * @description: called in every loop function
 * @return: [boolean] - If there is data ready to be read
 */
-boolean OpenBCI_32bit_Class::isThereSerialDataReadyToBeRead(void) {
+boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
     if (Serial0.available()) {
         return true;
     } else {
@@ -203,23 +203,26 @@ char processChar(char character) {
             }
             streamSafeSetAllChannelsToDefault();
             break;
-        case 'D':  // report the default settings
-            sendDefaultChannelSettings();
+        case OPENBCI_CHANNEL_DEFAULT_ALL_REPORT:  // report the default settings
+            streamSafeSetAllChannelsToDefault();
             break;
 
 
 
         // DAISY MODULE COMMANDS
         case 'c':  // use 8 channel mode
-            if(OBCI.daisyPresent){ OBCI.removeDaisy(); }
-            outputType = OUTPUT_8_CHAN;
+            if(daisyPresent){
+                removeDaisy();
+            }
             break;
         case 'C':  // use 16 channel mode
-            if(OBCI.daisyPresent == false){OBCI.attachDaisy();}
-            if(OBCI.daisyPresent){
-                Serial0.print("16"); outputType = OUTPUT_16_CHAN;
+            if(daisyPresent == false){
+                attachDaisy();
+            }
+            if(daisyPresent){
+                Serial0.print("16");
             }else{
-                Serial0.print("8"); outputType = OUTPUT_8_CHAN;
+                Serial0.print("8");
             }
             sendEOT();
             break;
@@ -227,12 +230,16 @@ char processChar(char character) {
         // STREAM DATA AND FILTER COMMANDS
         case OPENBCI_STREAM_START:  // stream data
             // if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
-            if(OBCI.useAccel){OBCI.enable_accel(RATE_25HZ);}      // fire up the accelerometer if you want it
+            if(useAccel){
+                enable_accel(RATE_25HZ);
+            }      // fire up the accelerometer if you want it
             streamStart();                            // turn on the fire hose
             break;
         case OPENBCI_STREAM_STOP:  // stop streaming data
             // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
-            if(OBCI.useAccel){OBCI.disable_accel();}  // shut down the accelerometer if you're using it
+            if(useAccel){
+                OBCI.disable_accel();
+            }  // shut down the accelerometer if you're using it
             streamStop();
             break;
 
@@ -290,13 +297,13 @@ void OpenBCI_32bit_Class::boardReset(void) {
     initialize();
 
     Serial0.println("OpenBCI V3 16 channel");
-    configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
+    leadOffConfigureSignalForAll(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
     Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
-    if(OBCI.daisyPresent){  // library will set this in initialize() if daisy present and functional
+    if(daisyPresent){  // library will set this in initialize() if daisy present and functional
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
-    Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(OBCI.LIS3DH_getDeviceID(),HEX);
-    Serial0.print(OPENBCI_EOT);
+    Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
+    sendEOT();
 }
 
 
@@ -313,7 +320,7 @@ void OpenBCI_32bit_Class::ledFlash(int numberOfFlashes) {
 * @description: Simple method to send the EOT over serial...
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::serialWriteEOT(void) {
+void OpenBCI_32bit_Class::sendEOT(void) {
     Serial0.print("$$$");
 }
 
@@ -696,7 +703,7 @@ void OpenBCI_32bit_Class::streamSafeLeadOffSetForChannel(byte channelNumber, byt
 
 /**
  * @description Used to set lead off for a channel, if running must stop and start after...
- * @params see `.channelSettingsSetForChannel()` for parameters
+ * @param see `.channelSettingsSetForChannel()` for parameters
  * @author AJ Keller (@pushtheworldllc)
  */
 void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
@@ -715,6 +722,32 @@ void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber
     }
 }
 
+/**
+ * @description Used to report (Serial0.print) the default channel settings
+ *                  if running must stop and start after...
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void OpenBCI_32bit_Class::streamSafeReportAllChannelDefaults(void) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    reportDefaultChannelSettings();
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+ * @description Used to set all channels on Board (and Daisy) to the default
+ *                  channel settings if running must stop and start after...
+ * @author AJ Keller (@pushtheworldllc)
+ */
 void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
     boolean wasStreaming = streaming;
 
@@ -831,7 +864,9 @@ void OpenBCI_32bit_Class::setChannelsToDefault(void){
     }
 }
 
-
+/**
+ * @description Writes the default channel settings over the serial port
+ */
 void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
     Serial0.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
     Serial0.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
@@ -839,138 +874,6 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
     Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
-}
-
-// write settings for ALL 8 channels for a given ADS board
-// channel settings: powerDown, gain, inputType, SRB2, SRB1
-void OpenBCI_32bit_Class::writeChannelSettings(){
-    boolean use_SRB1 = false;
-    byte setting, startChan, endChan, targetSS;
-
-    for(int b=0; b<2; b++){
-        if(b == 0){ targetSS = BOARD_ADS; startChan = 0; endChan = 8; }
-        if(b == 1){
-            if(!daisyPresent){ return; }
-            targetSS = DAISY_ADS; startChan = 8; endChan = 16;
-        }
-
-        SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-
-        for(byte i=startChan; i<endChan; i++){ // write 8 channel settings
-            setting = 0x00;
-            if(channelSettings[i][POWER_DOWN] == YES){setting |= 0x80;}
-            setting |= channelSettings[i][GAIN_SET]; // gain
-            setting |= channelSettings[i][INPUT_TYPE_SET]; // input code
-            if(channelSettings[i][SRB2_SET] == YES){
-                setting |= 0x08;    // close this SRB2 switch
-                useSRB2[i] = true;  // remember SRB2 state for this channel
-            }else{
-                useSRB2[i] = false; // rememver SRB2 state for this channel
-            }
-            WREG(CH1SET+(i-startChan),setting,targetSS);  // write this channel's register settings
-
-            // add or remove this channel from inclusion in BIAS generation
-            setting = RREG(BIAS_SENSP,targetSS);                   //get the current P bias settings
-            if(channelSettings[i][BIAS_SET] == YES){
-                bitSet(setting,i-startChan); useInBias[i] = true;    //add this channel to the bias generation
-            }else{
-                bitClear(setting,i-startChan); useInBias[i] = false; //remove this channel from bias generation
-            }
-            WREG(BIAS_SENSP,setting,targetSS); delay(1);           //send the modified byte back to the ADS
-
-            setting = RREG(BIAS_SENSN,targetSS);                   //get the current N bias settings
-            if(channelSettings[i][BIAS_SET] == YES){
-                bitSet(setting,i-startChan);    //set this channel's bit to add it to the bias generation
-            }else{
-                bitClear(setting,i-startChan);  // clear this channel's bit to remove from bias generation
-            }
-            WREG(BIAS_SENSN,setting,targetSS); delay(1);           //send the modified byte back to the ADS
-
-            if(channelSettings[i][SRB1_SET] == YES){
-                use_SRB1 = true;  // if any of the channel setting closes SRB1, it is closed for all
-            }
-        } // end of CHnSET and BIAS settings
-    } // end of board select loop
-    if(use_SRB1){
-        for(int i=startChan; i<endChan; i++){
-            channelSettings[i][SRB1_SET] = YES;
-        }
-        WREG(MISC1,0x20,targetSS);     // close SRB1 swtich
-        if(targetSS == BOARD_ADS){ boardUseSRB1 = true; }
-        if(targetSS == DAISY_ADS){ daisyUseSRB1 = true; }
-    }else{
-        for(int i=startChan; i<endChan; i++){
-            channelSettings[i][SRB1_SET] = NO;
-        }
-        WREG(MISC1,0x00,targetSS);    // open SRB1 switch
-        if(targetSS == BOARD_ADS){ boardUseSRB1 = false; }
-        if(targetSS == DAISY_ADS){ daisyUseSRB1 = false; }
-    }
-}
-
-// write settings for a SPECIFIC channel on a given ADS board
-void OpenBCI_32bit_Class::writeChannelSettings(byte N){
-
-    byte setting, startChan, endChan, targetSS;
-    if(N < 9){  // channels 1-8 on board
-        targetSS = BOARD_ADS; startChan = 0; endChan = 8;
-    }else{      // channels 9-16 on daisy module
-        if(!daisyPresent) { return; }
-        targetSS = DAISY_ADS; startChan = 8; endChan = 16;
-    }
-    // function accepts channel 1-16, must be 0 indexed to work with array
-    N = constrain(N-1,startChan,endChan-1);  //subtracts 1 so that we're counting from 0, not 1
-    // first, disable any data collection
-    SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-
-    setting = 0x00;
-    if(channelSettings[N][POWER_DOWN] == YES) setting |= 0x80;
-    setting |= channelSettings[N][GAIN_SET]; // gain
-    setting |= channelSettings[N][INPUT_TYPE_SET]; // input code
-    if(channelSettings[N][SRB2_SET] == YES){
-        setting |= 0x08; // close this SRB2 switch
-        useSRB2[N] = true;  // keep track of SRB2 usage
-    }else{
-        useSRB2[N] = false;
-    }
-    WREG(CH1SET+(N-startChan), setting, targetSS);  // write this channel's register settings
-
-    // add or remove from inclusion in BIAS generation
-    setting = RREG(BIAS_SENSP,targetSS);       //get the current P bias settings
-    if(channelSettings[N][BIAS_SET] == YES){
-        useInBias[N] = true;
-        bitSet(setting,N-startChan);    //set this channel's bit to add it to the bias generation
-    }else{
-        useInBias[N] = false;
-        bitClear(setting,N-startChan);  // clear this channel's bit to remove from bias generation
-    }
-    WREG(BIAS_SENSP,setting,targetSS); delay(1); //send the modified byte back to the ADS
-    setting = RREG(BIAS_SENSN,targetSS);       //get the current N bias settings
-    if(channelSettings[N][BIAS_SET] == YES){
-        bitSet(setting,N-startChan);    //set this channel's bit to add it to the bias generation
-    }else{
-        bitClear(setting,N-startChan);  // clear this channel's bit to remove from bias generation
-    }
-    WREG(BIAS_SENSN,setting,targetSS); delay(1); //send the modified byte back to the ADS
-
-    // if SRB1 is closed or open for one channel, it will be the same for all channels
-    if(channelSettings[N][SRB1_SET] == YES){
-        for(int i=startChan; i<endChan; i++){
-            channelSettings[i][SRB1_SET] = YES;
-        }
-        if(targetSS == BOARD_ADS) boardUseSRB1 = true;
-        if(targetSS == DAISY_ADS) daisyUseSRB1 = true;
-        setting = 0x20;     // close SRB1 swtich
-    }
-    if(channelSettings[N][SRB1_SET] == NO){
-        for(int i=startChan; i<endChan; i++){
-            channelSettings[i][SRB1_SET] = NO;
-        }
-        if(targetSS == BOARD_ADS) boardUseSRB1 = false;
-        if(targetSS == DAISY_ADS) daisyUseSRB1 = false;
-        setting = 0x00;     // open SRB1 switch
-    }
-    WREG(MISC1,setting,targetSS);
 }
 
 /**
@@ -1149,8 +1052,8 @@ void OpenBCI_32bit_Class::deactivateChannel(byte N)
     bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
     WREG(BIAS_SENSN,setting,targetSS); delay(1);   //send the modified byte back to the ADS
 
-    leadOffSettings[N][0] = leadOffSettings[N][1] = NO;
-    changeChannelLeadOffDetect(N+1);
+    leadOffSettings[N][PCHAN] = leadOffSettings[N][NCHAN] = NO;
+    leadOffSetForChannel(N+1, NO, NO);
 }
 
 void OpenBCI_32bit_Class::activateChannel(byte N)
@@ -1383,9 +1286,11 @@ void OpenBCI_32bit_Class::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
     isRunning = true;
 }
 
-// Query to see if data is available from the ADS1299...return TRUE is data is available
-boolean OpenBCI_32bit_Class::isDataAvailable(void)
-{
+/**
+ * @description Query to see if data is available from the ADS1299...
+ * @return - [bool] - TRUE if data is available
+ */
+boolean OpenBCI_32bit_Class::isADSDataAvailable(void) {
     return (!(digitalRead(ADS_DRDY)));
 }
 

@@ -18,11 +18,11 @@ public:
     OpenBCI_32bit_Class();
     void begin(void);
     void readSerial(void);
+
     void writeSerial(char *data, int len);
 
+    boolean isThereADSDataAvailable(void);
 
-
-    boolean isThereNewADSData(void);
     boolean isThereSerialDataReadyToBeRead(void);
 
 
@@ -49,9 +49,10 @@ public:
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
     void streamSafeSetAllChannelsToDefault(void);
+    void streamSafeReportAllChannelDefaults(void);
     void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
-    void streamStart(void);  // ADD DAISY USE outputType
-    void streamStop(void);   // ADD DAISY USE outputType
+    void streamStart(void);
+    void streamStop(void);
 
     // Variables
     boolean streaming;
@@ -75,19 +76,14 @@ public:
 // BOARD
     boolean useAccel;
     boolean useAux;
-    void initialize(void);  // ADD DAISY USE outputType
-    void printAllRegisters(void);   // ADD DAISY USE outputType
+    void initialize(void);
+    void printAllRegisters(void);
     void sendChannelData(void); // send the current data with sample number
 
 
 // ADS1299
     void initialize_ads(void);
-    void updateChannelSettings(void);
-    void writeChannelSettings(void);
-    void writeChannelSettings(byte);
     void setChannelsToDefault(void);
-    void setChannelsToEMG(void);
-    void setChannelsToECG(void);
     void reportDefaultChannelSettings(void);
     void printADSregisters(int);
     void WAKEUP(int);  // get out of low power mode
@@ -114,12 +110,10 @@ public:
     void stopADS(void);
     void activateChannel(byte);                  // enable the selected channel
     void deactivateChannel(byte);                // disable given channel 1-8(16)
-    void configureLeadOffDetection(byte,byte);
-    void changeChannelLeadOffDetect(void);
-    void changeChannelLeadOffDetect(byte);
     void configureInternalTestSignal(byte,byte);
+
     void changeInputType(byte);
-    boolean isDataAvailable(void);
+
     void ADS_writeChannelData(void);
     // void ADS_printDeviceID(int);   //
     boolean smellDaisy(void);
@@ -180,7 +174,7 @@ public:
     boolean boardBegin(void);
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
-    void serialWriteEOT(void);
+    void sendEOT(void);
 
     char buffer[1];
 
