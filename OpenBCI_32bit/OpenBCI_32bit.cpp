@@ -440,28 +440,26 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
             } else if (bytesIn == 1) { // POWER_DOWN
                 channelSettings[currentChannel][POWER_DOWN] = getNumberForAsciiChar(newChar);
             } else if (bytesIn == 2) { // GAIN_SET
-                newChar -= '0';
-                newChar <<= 4;
-                leadOffSettings[currentChannel][GAIN_SET] = newChar;
+                channelSettings[currentChannel][GAIN_SET] = getGainForAsciiChar(newChar);
             } else if (bytesIn == 3) { // INPUT_TYPE_SET
-                leadOffSettings[currentChannel][INPUT_TYPE_SET] = getNumberForAsciiChar(newChar);
+                channelSettings[currentChannel][INPUT_TYPE_SET] = getNumberForAsciiChar(newChar);
             } else if (bytesIn == 4) { // BIAS_SET
-                leadOffSettings[currentChannel][BIAS_SET] = getNumberForAsciiChar(newChar);
+                channelSettings[currentChannel][BIAS_SET] = getNumberForAsciiChar(newChar);
             } else if (bytesIn == 5) { // SRB2_SET
-                leadOffSettings[currentChannel][SRB2_SET] = getNumberForAsciiChar(newChar);
+                channelSettings[currentChannel][SRB2_SET] = getNumberForAsciiChar(newChar);
             } else if (bytesIn == 6) { // SRB1_SET
-                leadOffSettings[currentChannel][SRB1_SET] = getNumberForAsciiChar(newChar);
+                channelSettings[currentChannel][SRB1_SET] = getNumberForAsciiChar(newChar);
             } else {
                 // The forth character must be the impedance latch
                 if (newChar != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
                     if (!streaming) {
-                        Serial0.print("Err: 4th char not ");
-                        Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                        Serial0.print("Err: 7th char not ");
+                        Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
                     }
                     return; // Exit
                 } else {
                     if (!streaming) {
-                        Serial0.println("All impedance recieved");
+                        Serial0.println("All character settings recieved");
                     }
                 }
             }
@@ -475,8 +473,8 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
         }
     }
 
-    // Set lead off settings
-    streamSafeLeadOffSetForChannel(currentChannel,leadOffSettings[currentChannel][PCHAN],leadOffSettings[currentChannel][NCHAN]);
+    // Set channel settings
+    streamSafeChannelSettingsForChannel(currentChannel + 1, channelSettings[currentChannel][POWER_DOWN], channelSettings[currentChannel][GAIN_SET], channelSettings[currentChannel][INPUT_TYPE_SET], channelSettings[currentChannel][BIAS_SET], channelSettings[currentChannel][SRB2_SET], channelSettings[currentChannel][SRB1_SET]);
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2004,7 +2002,7 @@ char OpenBCI_32bit_Class::getChannelCommandForAsciiChar(char asciiChar) {
  * @return [char] - Byte number value of acsii character, defaults to 0
  * @author AJ Keller (@pushtheworldllc)
  */
-char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
+char OpenBCI_32bit_Class::getYesOrNoForAsciiChar(char asciiChar) {
     switch (asciiChar) {
         case '1':
             return ACTIVATE;
@@ -2031,4 +2029,21 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
     output = asciiChar - '0';
 
     return output << 4;
+}
+
+/**
+ * @description Converts ascii character to get gain from channel settings
+ * @param `asciiChar` - [char] - The ascii character to convert
+ * @return [char] - Byte number value of acsii character, defaults to 0
+ * @author AJ Keller (@pushtheworldllc)
+ */
+char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
+    if (asciiChar < '0' && asciiChar > '9') {
+        asciiChar = '0';
+    }
+
+    // Convert ascii char to number
+    asciiChar -= '0';
+
+    return asciiChar;
 }
