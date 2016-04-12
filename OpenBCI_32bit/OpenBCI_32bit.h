@@ -17,15 +17,13 @@ public:
     // Start up functions
     OpenBCI_32bit_Class();
     void begin(void);
-    char readSerial(void);
+    char readOneSerialChar(void);
 
     void writeSerial(char *data, int len);
 
     boolean isADSDataAvailable(void);
 
     boolean isSerialAvailableForRead(void);
-
-
 
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
 
@@ -43,11 +41,12 @@ public:
     void processIncomingLeadOffSettings(void);
     void processIncomingChannelSettings(void);
 
-    void resetChannelSettingsArrayToDefault(byte** channelSettingsArray);
-    void resetLeadOffArrayToDefault(byte** leadOffArray);
+    void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
+    void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
 
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
+    void streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
     void streamSafeSetAllChannelsToDefault(void);
     void streamSafeReportAllChannelDefaults(void);
     void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
@@ -61,15 +60,13 @@ public:
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
+    char getConstrainedChannelNumber(byte channelNumber);
     byte getDefaultChannelSettingForSetting(byte setting);
     char getDefaultChannelSettingForSettingAscii(byte setting);
+    char getGainForAsciiChar(char asciiChar);
     char getNumberForAsciiChar(char asciiChar);
     char getTargetSSForChannelNumber(byte channelNumber);
     char getYesOrNoForAsciiChar(char asciiChar);
-
-
-
-
 
     DSPI0 spi;  // use DSPI library
 

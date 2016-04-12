@@ -46,7 +46,7 @@ boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
 *                 the data is not recognized
 * @return: [char] - The character's not processed
 */
-char OpenBCI_32bit_Class::readSerial(void) {
+char OpenBCI_32bit_Class::readOneSerialChar(void) {
     if (Serial0.available()) {
         return Serial0.read();
     }
@@ -365,7 +365,7 @@ void OpenBCI_32bit_Class::processIncomingLeadOffSettings(void) {
     char currentChannel;
 
     while (bytesIn < bytesToRead) {
-        if (Serial0.availale()) {
+        if (Serial0.available()) {
             char newChar = Serial0.read();
 
             if (bytesIn == 0) { // This is the first byte
@@ -418,7 +418,7 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
     char currentChannel;
 
     while (bytesIn < bytesToRead) {
-        if (Serial0.availale()) {
+        if (Serial0.available()) {
             char newChar = Serial0.read();
 
             if (bytesIn == 0) { // This is the first byte
@@ -620,7 +620,7 @@ void OpenBCI_32bit_Class::initialize_ads(){
 
     resetChannelSettingsArrayToDefault(channelSettings);
 
-    channelSettingsArraySetForChannel(); // write settings to the on-board and on-daisy ADS if present
+    channelSettingsArraySetForAll(); // write settings to the on-board and on-daisy ADS if present
 
     WREG(CONFIG3,0b11101100,BOTH_ADS); delay(1);  // enable internal reference drive and etc.
 
@@ -789,7 +789,7 @@ void OpenBCI_32bit_Class::streamStop(){
 //////////////////////////////////////////////
 ////////////// DAISY METHODS /////////////////
 //////////////////////////////////////////////
-void OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
+boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
     if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX);}
@@ -946,7 +946,7 @@ void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte 
     char index = getConstrainedChannelNumber(channelNumber);
 
     // Get the slave select pin for this channel
-    byte targetSS = getTargetSSForChannelNumber(channelNumber);
+    targetSS = getTargetSSForChannelNumber(channelNumber);
 
     // first, disable any data collection
     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
@@ -999,6 +999,8 @@ void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte 
     }
     WREG(BIAS_SENSN,setting,targetSS); delay(1); //send the modified byte back to the ADS
 
+    byte startChan = targetSS == BOARD_ADS ? 0 : OPENBCI_CHANNEL_MAX_NUMBER_8 - 1;
+    byte endChan = targetSS == BOARD_ADS ? OPENBCI_CHANNEL_MAX_NUMBER_8 : OPENBCI_CHANNEL_MAX_NUMBER_16 - 1;
     // if SRB1 is closed or open for one channel, it will be the same for all channels
     if(srb1 == YES){
         for(int i=startChan; i<endChan; i++){
@@ -1164,30 +1166,6 @@ void OpenBCI_32bit_Class::leadOffSetForChannel(byte channelNumber, byte pInput, 
     }
     // Write to the N register
     WREG(LOFF_SENSN,N_setting,targetSS);
-}
-
-/**
- * @description Convert user channelNumber for use in array indexs by subtracting 1,
- *                  also make sure N is not greater than 15 or less than 0
- * @param `channelNumber` - [byte] - The channel number
- * @return [byte] - Constrained channel number
- */
-char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
-    return constrain(channelNumber - 1, 0, OPENBCI_NUMBER_OF_CHANNELS_DAISY - 1);
-}
-
-/**
- * @description Get slave select pin for channelNumber
- * @param `channelNumber` - [byte] - The channel number
- * @return [byte] - Constrained channel number
- */
-char OpenBCI_32bit_Class::getTargetSSForChannelNumber(byte channelNumber) {
-    // Is channelNumber in the range of default [0,7]
-    if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
-        return BOARD_ADS;
-    } else {
-        return DAISY_ADS;
-    }
 }
 
 /**
@@ -1962,14 +1940,36 @@ char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) 
     }
 }
 
+/**
+ * @description Convert user channelNumber for use in array indexs by subtracting 1,
+ *                  also make sure N is not greater than 15 or less than 0
+ * @param `channelNumber` - [byte] - The channel number
+ * @return [byte] - Constrained channel number
+ */
+char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
+    return constrain(channelNumber - 1, 0, OPENBCI_NUMBER_OF_CHANNELS_DAISY - 1);
+}
 
+/**
+ * @description Get slave select pin for channelNumber
+ * @param `channelNumber` - [byte] - The channel number
+ * @return [byte] - Constrained channel number
+ */
+char OpenBCI_32bit_Class::getTargetSSForChannelNumber(byte channelNumber) {
+    // Is channelNumber in the range of default [0,7]
+    if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
+        return BOARD_ADS;
+    } else {
+        return DAISY_ADS;
+    }
+}
 
 /**
  * @description Used to set the channelSettings array to default settings
  * @param `channelSettingsArray` - [byte **] - Takes a two dimensional array of
  *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 6 elements
  */
-void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte** channelSettingsArray) {
+void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]) {
     // Loop through all channels
     for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
         channelSettingsArray[i][POWER_DOWN]     = getDefaultChannelSettingForSetting(POWER_DOWN);       // on = NO, off = YES
@@ -1991,10 +1991,12 @@ void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte** channelSetti
  * @param `channelSettingsArray` - [byte **] - A two dimensional array of
  *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 2 elements
  */
-void OpenBCI_32bit_Class::resetLeadOffArrayToDefault(byte** leadOffArray) {
+void OpenBCI_32bit_Class::resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]) {
     // Loop through all channels
     for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
         leadOffArray[i][PCHAN] = OFF;
         leadOffArray[i][NCHAN] = OFF;
     }
 }
+
+OpenBCI_32bit_Class board;
