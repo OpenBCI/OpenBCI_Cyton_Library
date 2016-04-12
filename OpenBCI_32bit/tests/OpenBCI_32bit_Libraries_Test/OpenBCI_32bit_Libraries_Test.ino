@@ -42,7 +42,7 @@ boolean testGetChannelCommandForAsciiChar() {
   boolean allPassed = true;
   
   Serial.println("#getChannelCommandForAsciiChar");
-  // allPassed = testCheckSumMake() && allPassed;
+  allPassed = testGetChannelCommandForAsciiChar_ConstsCheck() && allPassed;
     
   return allPassed;
 }
@@ -50,10 +50,6 @@ boolean testGetChannelCommandForAsciiChar() {
 boolean testGetChannelCommandForAsciiChar_ConstsCheck() {
   boolean result = true;
 
-  byte numberOfChannels = OPENBCI_NUMBER_OF_CHANNELS_DAISY && 0xFF;
-
-
- 
   result = assertEqualChar('1', OPENBCI_CHANNEL_CMD_CHANNEL_1) && result;
   if (!result) verbosePrintResult(result,"Consts Check","Channel 1");
   result = assertEqualChar('2', OPENBCI_CHANNEL_CMD_CHANNEL_2) && result;
@@ -90,9 +86,7 @@ boolean testGetChannelCommandForAsciiChar_ConstsCheck() {
   if (!result) verbosePrintResult(result,"Consts Check","Returns  when ASCII not defined");
   
   
-  return result;
-  
-// return assertGreaterThan(byteId,0x7F,"Streaming byteId has 1 in MSB");  
+  return result; 
 }
 
 // TODO: Tests for getYesOrNoForAsciiChar
@@ -103,6 +97,17 @@ boolean testGetYesOrNoForAsciiChar() {
   // allPassed = testCheckSumMake() && allPassed;
     
   return allPassed;
+}
+// Test to make sure getChannelCommandForAsciiChar returns correct char
+boolean testGetYesOrNoForAsciiChar_YES() {
+  boolean result = true;
+
+  result = assertEqualChar(YES, OPENBCI_CHANNEL_CMD_CHANNEL_1) && result;
+  if (!result) verbosePrintResult(result,"Consts Check","Channel 1");
+
+  
+  
+  return result; 
 }
 // TODO: Tests for getGainForAsciiChar
 boolean testGetGainForAsciiChar() {
