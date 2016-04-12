@@ -17,13 +17,13 @@ public:
     // Start up functions
     OpenBCI_32bit_Class();
     void begin(void);
-    void readSerial(void);
+    char readSerial(void);
 
     void writeSerial(char *data, int len);
 
-    boolean isThereADSDataAvailable(void);
+    boolean isADSDataAvailable(void);
 
-    boolean isThereSerialDataReadyToBeRead(void);
+    boolean isSerialAvailableForRead(void);
 
 
 
@@ -39,12 +39,12 @@ public:
     void leadOffSetForAllChannels(void);
     void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
-    char processChar(char character);
+    boolean processChar(char character);
     void processIncomingLeadOffSettings(void);
     void processIncomingChannelSettings(void);
 
     void resetChannelSettingsArrayToDefault(byte** channelSettingsArray);
-    void resetLeadOffArrayToDefault(byte** leadOffArray, int numChannels);
+    void resetLeadOffArrayToDefault(byte** leadOffArray);
 
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
@@ -62,7 +62,7 @@ public:
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
     byte getDefaultChannelSettingForSetting(byte setting);
-    char getDefaultChannelSettingForSettingAscii(byte setting)
+    char getDefaultChannelSettingForSettingAscii(byte setting);
     char getNumberForAsciiChar(char asciiChar);
     char getTargetSSForChannelNumber(byte channelNumber);
     char getYesOrNoForAsciiChar(char asciiChar);
@@ -121,8 +121,8 @@ public:
     void attachDaisy(void);
     void writeAuxData(void);
 
-    short auxData[3];
-    byte regData[24];          // array is used to mirror register data
+    short auxData[3];           // This is user faceing
+    byte regData[24];           // array is used to mirror register data
     byte lastBoardDataRaw[24];
     byte boardChannelDataRaw[24];    // array to hold raw channel data
     byte meanBoardDataRaw[24];

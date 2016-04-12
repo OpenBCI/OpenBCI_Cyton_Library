@@ -282,7 +282,7 @@
 
 /** Default Channel Settings */
 #define OPENBCI_CHANNEL_DEFAULT_ALL_SET 'd'
-#define OPENBCI_CHANNEL_DEFAULT_ALL_GET 'D'
+#define OPENBCI_CHANNEL_DEFAULT_ALL_REPORT 'D'
 
 /** LeadOff Impedance Commands */
 #define OPENBCI_CHANNEL_IMPEDANCE_LATCH                'Z'
@@ -348,6 +348,6 @@
 #define OPENBCI_PACKET_TYPE_USER_DEFINED    2 // 0010
 
 #define OPENBCI_TIME_OUT_MS_1 1
-#define OPENBCI_TIME_OUT_MS_1 3
+#define OPENBCI_TIME_OUT_MS_3 3
 
 #endif

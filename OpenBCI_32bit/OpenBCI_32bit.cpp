@@ -48,8 +48,7 @@ boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
 */
 char OpenBCI_32bit_Class::readSerial(void) {
     if (Serial0.available()) {
-        char newByte = Serial0.read();
-        return processChar(newByte);
+        return Serial0.read();
     }
 }
 
@@ -65,7 +64,7 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
 }
 
 
-char processChar(char character) {
+boolean OpenBCI_32bit_Class::processChar(char character) {
     switch (character){
         //TURN CHANNELS ON/OFF COMMANDS
         case OPENBCI_CHANNEL_OFF_1:
@@ -198,7 +197,7 @@ char processChar(char character) {
             break;
 
         case OPENBCI_CHANNEL_DEFAULT_ALL_SET:  // reset all channel settings to default
-            if(!is_running) {
+            if(!streaming) {
                 Serial0.println("updating channel settings to default");
             }
             streamSafeSetAllChannelsToDefault();
@@ -238,7 +237,7 @@ char processChar(char character) {
         case OPENBCI_STREAM_STOP:  // stop streaming data
             // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
             if(useAccel){
-                OBCI.disable_accel();
+                disable_accel();
             }  // shut down the accelerometer if you're using it
             streamStop();
             break;
@@ -256,8 +255,9 @@ char processChar(char character) {
             }
             break;
         default:
-            return character;
+            return false;
     }
+    return true;
 }
 
 
@@ -768,13 +768,10 @@ void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
 * @description Call this to start the streaming data from the ADS1299
 * @returns boolean if able to start streaming
 */
-boolean OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
-    if (streaming) { // already streaming...
-        return false;
-    } else { // not streaming, so we can start
+void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
+    if (!streaming) { // already streaming...
         streaming = true;
         startADS();
-        return true;
     }
 }
 
@@ -782,20 +779,17 @@ boolean OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
 * @description Call this to stop streaming from the ADS1299
 * @returns boolean if able to stop streaming
 */
-boolean OpenBCI_32bit_Class::streamStop(){
+void OpenBCI_32bit_Class::streamStop(){
     if (streaming) { // we are streaming so we can stop
         streaming = false;
         stopADS();
-        return true;
-    } else {
-        return false;
     }
 }
 
 //////////////////////////////////////////////
 ////////////// DAISY METHODS /////////////////
 //////////////////////////////////////////////
-boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
+void OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
     if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX);}
@@ -849,12 +843,12 @@ void OpenBCI_32bit_Class::resetADS(int targetSS)
 void OpenBCI_32bit_Class::setChannelsToDefault(void){
 
     // Reset the global channel settings array to default
-    resetChannelSettingsArrayToDefault(channelSettings, OPENBCI_NUMBER_OF_CHANNELS_DAISY);
+    resetChannelSettingsArrayToDefault(channelSettings);
     // Write channel settings to board (and daisy) ADS
     channelSettingsArraySetForAll();
 
     // Reset the global lead off settings array to default
-    resetLeadOffArrayToDefault(leadOffSettings, OPENBCI_NUMBER_OF_CHANNELS_DAISY);
+    resetLeadOffArrayToDefault(leadOffSettings);
     // Write lead off settings to board (and daisy) ADS
     leadOffSetForAllChannels();
 
@@ -1325,26 +1319,28 @@ void OpenBCI_32bit_Class::updateBoardData(){
     csHigh(BOARD_ADS);        //  close SPI
     // need to convert 24bit to 32bit if using the filter
     for(int i=0; i<8; i++){     // convert 3 byte 2's compliment to 4 byte 2's compliment
-    if(bitRead(boardChannelDataInt[i],23) == 1){
-        boardChannelDataInt[i] |= 0xFF000000;
-    }else{
-        boardChannelDataInt[i] &= 0x00FFFFFF;
-    }
-}
-if(daisyPresent && !firstDataPacket){
-    byteCounter = 0;
-    for(int i=0; i<8; i++){   // take the average of this and the last sample
-        meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
-    }
-    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
-        for(int b=2; b>=0; b--){
-            meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
-            byteCounter++;
+        if(bitRead(boardChannelDataInt[i],23) == 1){
+            boardChannelDataInt[i] |= 0xFF000000;
+        }else{
+            boardChannelDataInt[i] &= 0x00FFFFFF;
         }
     }
-}
+    if(daisyPresent && !firstDataPacket){
+        byteCounter = 0;
+        for(int i=0; i<8; i++){   // take the average of this and the last sample
+            meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
+        }
+        for(int i=0; i<8; i++){  // place the average values in the meanRaw array
+            for(int b=2; b>=0; b--){
+                meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
+                byteCounter++;
+            }
+        }
+    }
 
-if(firstDataPacket == true){firstDataPacket = false;}
+    if(firstDataPacket == true){
+        firstDataPacket = false;
+    }
 }
 
 void OpenBCI_32bit_Class::updateDaisyData(){
@@ -1373,26 +1369,28 @@ void OpenBCI_32bit_Class::updateDaisyData(){
     csHigh(DAISY_ADS);        //  close SPI
     // need to convert 24bit to 32bit
     for(int i=0; i<8; i++){     // convert 3 byte 2's compliment to 4 byte 2's compliment
-    if(bitRead(daisyChannelDataInt[i],23) == 1){
-        daisyChannelDataInt[i] |= 0xFF000000;
-    }else{
-        daisyChannelDataInt[i] &= 0x00FFFFFF;
-    }
-}
-if(daisyPresent && !firstDataPacket){
-    byteCounter = 0;
-    for(int i=0; i<8; i++){   // average this sample with the last sample
-        meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
-    }
-    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
-        for(int b=2; b>=0; b--){
-            meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
-            byteCounter++;
+        if(bitRead(daisyChannelDataInt[i],23) == 1){
+            daisyChannelDataInt[i] |= 0xFF000000;
+        }else{
+            daisyChannelDataInt[i] &= 0x00FFFFFF;
         }
     }
-}
+    if(daisyPresent && !firstDataPacket){
+        byteCounter = 0;
+        for(int i=0; i<8; i++){   // average this sample with the last sample
+            meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
+        }
+        for(int i=0; i<8; i++){  // place the average values in the meanRaw array
+            for(int b=2; b>=0; b--){
+                meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
+                byteCounter++;
+            }
+        }
+    }
 
-if(firstDataPacket == true){firstDataPacket = false;}
+    if(firstDataPacket == true) {
+        firstDataPacket = false;
+    }
 }
 
 // Stop the continuous data acquisition
