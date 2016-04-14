@@ -420,7 +420,7 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
     while (bytesIn < bytesToRead) {
         if (Serial0.available()) {
             char newChar = Serial0.read();
-
+            Serial0.print(newChar);
             if (bytesIn == 0) { // This is the first byte
                 currentChannel = getChannelCommandForAsciiChar(newChar);
             } else if (bytesIn == 1) { // POWER_DOWN
@@ -455,6 +455,9 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
         // This is timeout protection, in case for some reason bytes were lost in
         //  the serial transmission
         if (millis() > (startTime + OPENBCI_TIME_OUT_MS_3)) {
+            if (!streaming) {
+                Serial0.print("Err: timeout");
+            }
             return; // return void
         }
     }
