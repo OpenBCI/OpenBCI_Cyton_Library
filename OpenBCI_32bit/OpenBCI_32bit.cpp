@@ -232,7 +232,7 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
             if(useAccel){
                 enable_accel(RATE_25HZ);
             }      // fire up the accelerometer if you want it
-            streamStart();                            // turn on the fire hose
+            streamStart(); // turn on the fire hose
             break;
         case OPENBCI_STREAM_STOP:  // stop streaming data
             // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
@@ -296,7 +296,7 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
 void OpenBCI_32bit_Class::boardReset(void) {
     initialize();
 
-    Serial0.println("OpenBCI V3 16 channel");
+    Serial0.println("OpenBCI V4 16 channel");
     leadOffConfigureSignalForAll(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
     Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
     if(daisyPresent){  // library will set this in initialize() if daisy present and functional
@@ -470,6 +470,7 @@ void OpenBCI_32bit_Class::initialize(){
     pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
     pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
     pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
+    pinMode(OPENBCI_PIN_PGC, OUTPUT); digitalWrite(OPENBCI_PIN_PGC, HIGH);
     spi.begin();
     spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
     spi.setMode(DSPI_MODE0);  // default to SD card mode!
@@ -771,6 +772,7 @@ void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
 void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
     if (!streaming) { // already streaming...
         streaming = true;
+        digitalWrite(OPENBCI_PIN_PGC, LOW);
         startADS();
     }
 }
@@ -782,6 +784,7 @@ void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
 void OpenBCI_32bit_Class::streamStop(){
     if (streaming) { // we are streaming so we can stop
         streaming = false;
+        digitalWrite(OPENBCI_PIN_PGC, HIGH);
         stopADS();
     }
 }
