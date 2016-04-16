@@ -1,223 +1,170 @@
 #include <DSPI.h>
 #include <EEPROM.h>
 #include "OpenBCI_32bit.h"
+#include "PTW-Arduino-Assert.h"
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(115200); 
+  Serial0.begin(115200);
+  test.setSerial(Serial0);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  if (Serial.available()) {
-    Serial.read();
-    test(); 
-  } 
+    // put your main code here, to run repeatedly:
+    if (Serial0.available()) {
+        Serial0.read();
+        go();
+    }
 }
 
-void test() {
-  boolean allTestsPassed = true;
-  Serial.println("\nTests Begin\n");
+void go() {
+    // Start the test
+    test.begin();
 
-  allTestsPassed = testGetChannelCommandForAsciiChar() && allTestsPassed;
-  allTestsPassed = testGetYesOrNoForAsciiChar() && allTestsPassed;
-  allTestsPassed = testGetGainForAsciiChar() && allTestsPassed;
-  allTestsPassed = testGetNumberForAsciiChar() && allTestsPassed;
-  allTestsPassed = testGetDefaultChannelSettingForSetting() && allTestsPassed;
-  allTestsPassed = testGetDefaultChannelSettingForSettingAscii() && allTestsPassed;
-  allTestsPassed = testGetConstrainedChannelNumber() && allTestsPassed;
-  allTestsPassed = testGetTargetSSForChannelNumber() && allTestsPassed;
-  allTestsPassed = testResetChannelSettingsArrayToDefault() && allTestsPassed;
-  allTestsPassed = testResetLeadOffArrayToDefault() && allTestsPassed;
+    testGetters();
+    // testResets();
 
-  if (allTestsPassed) {
-    Serial.println("\nAll tests passed!");
-  }
-  
-  Serial.println("\nTests End\n");
+    test.end();
 }
+
+void testGetters() {
+    testGetChannelCommandForAsciiChar();
+    testGetYesOrNoForAsciiChar();
+    testGetGainForAsciiChar();
+    testGetNumberForAsciiChar();
+    testGetDefaultChannelSettingForSetting();
+    testGetDefaultChannelSettingForSettingAscii();
+    testGetConstrainedChannelNumber();
+    testGetTargetSSForChannelNumber();
+}
+
+// void testResets() {
+//     testResetChannelSettingsArrayToDefault();
+//     testResetLeadOffArrayToDefault();
+// }
+
 
 // TODO: Tests for getChannelCommandForAsciiChar
-boolean testGetChannelCommandForAsciiChar() {
-  boolean allPassed = true;
-  
-  Serial.println("#getChannelCommandForAsciiChar");
-  allPassed = testGetChannelCommandForAsciiChar_ConstsCheck() && allPassed;
-    
-  return allPassed;
-}
-// Test to make sure getChannelCommandForAsciiChar returns correct char
-boolean testGetChannelCommandForAsciiChar_ConstsCheck() {
-  boolean result = true;
+void testGetChannelCommandForAsciiChar() {
 
-  result = assertEqualChar('1', OPENBCI_CHANNEL_CMD_CHANNEL_1) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 1");
-  result = assertEqualChar('2', OPENBCI_CHANNEL_CMD_CHANNEL_2) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 2");
-  result = assertEqualChar('3', OPENBCI_CHANNEL_CMD_CHANNEL_3) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 3");
-  result = assertEqualChar('4', OPENBCI_CHANNEL_CMD_CHANNEL_4) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 4");
-  result = assertEqualChar('5', OPENBCI_CHANNEL_CMD_CHANNEL_5) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 5");
-  result = assertEqualChar('6', OPENBCI_CHANNEL_CMD_CHANNEL_6) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 6");
-  result = assertEqualChar('7', OPENBCI_CHANNEL_CMD_CHANNEL_7) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 7");
-  result = assertEqualChar('8', OPENBCI_CHANNEL_CMD_CHANNEL_8) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 8");
-  result = assertEqualChar('Q', OPENBCI_CHANNEL_CMD_CHANNEL_9) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 9");
-  result = assertEqualChar('W', OPENBCI_CHANNEL_CMD_CHANNEL_10) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 10");
-  result = assertEqualChar('E', OPENBCI_CHANNEL_CMD_CHANNEL_11) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 11");
-  result = assertEqualChar('R', OPENBCI_CHANNEL_CMD_CHANNEL_12) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 12");
-  result = assertEqualChar('T', OPENBCI_CHANNEL_CMD_CHANNEL_13) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 13");
-  result = assertEqualChar('Y', OPENBCI_CHANNEL_CMD_CHANNEL_14) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 14");
-  result = assertEqualChar('U', OPENBCI_CHANNEL_CMD_CHANNEL_15) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 15");
-  result = assertEqualChar('I', OPENBCI_CHANNEL_CMD_CHANNEL_16) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 16");
-  result = assertEqualChar('J', 0x00) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Returns  when ASCII not defined");
-  
-  
-  return result; 
+    test.describe("getChannelCommandForAsciiChar");
+
+    test.assertEqual(board.getChannelCommandForAsciiChar('1'),0x00,"Channel 1");
+    test.assertEqual(board.getChannelCommandForAsciiChar('2'),0x01,"Channel 2");
+    test.assertEqual(board.getChannelCommandForAsciiChar('3'),0x02,"Channel 3");
+    test.assertEqual(board.getChannelCommandForAsciiChar('4'),0x03,"Channel 4");
+    test.assertEqual(board.getChannelCommandForAsciiChar('5'),0x04,"Channel 5");
+    test.assertEqual(board.getChannelCommandForAsciiChar('6'),0x05,"Channel 6");
+    test.assertEqual(board.getChannelCommandForAsciiChar('7'),0x06,"Channel 7");
+    test.assertEqual(board.getChannelCommandForAsciiChar('8'),0x07,"Channel 8");
+    test.assertEqual(board.getChannelCommandForAsciiChar('Q'),0x08,"Channel 9");
+    test.assertEqual(board.getChannelCommandForAsciiChar('W'),0x09,"Channel 10");
+    test.assertEqual(board.getChannelCommandForAsciiChar('E'),0x0A,"Channel 11");
+    test.assertEqual(board.getChannelCommandForAsciiChar('R'),0x0B,"Channel 12");
+    test.assertEqual(board.getChannelCommandForAsciiChar('T'),0x0C,"Channel 13");
+    test.assertEqual(board.getChannelCommandForAsciiChar('Y'),0x0D,"Channel 14");
+    test.assertEqual(board.getChannelCommandForAsciiChar('U'),0x0E,"Channel 15");
+    test.assertEqual(board.getChannelCommandForAsciiChar('I'),0x0F,"Channel 16");
+
 }
 
-// TODO: Tests for getYesOrNoForAsciiChar
-boolean testGetYesOrNoForAsciiChar() {
-  boolean allPassed = true;
-  
-  Serial.println("#getYesOrNoForAsciiChar");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// Test to make sure getChannelCommandForAsciiChar returns correct char
-boolean testGetYesOrNoForAsciiChar_YES() {
-  boolean result = true;
+void testGetYesOrNoForAsciiChar() {
 
-  result = assertEqualChar(YES, OPENBCI_CHANNEL_CMD_CHANNEL_1) && result;
-  if (!result) verbosePrintResult(result,"Consts Check","Channel 1");
+    test.describe("getYesOrNoForAsciiChar");
 
-  
-  
-  return result; 
-}
-// TODO: Tests for getGainForAsciiChar
-boolean testGetGainForAsciiChar() {
-  boolean allPassed = true;
-  
-  Serial.println("#getGainForAsciiChar");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for getNumberForAsciiChar
-boolean testGetNumberForAsciiChar() {
-  boolean allPassed = true;
-  
-  Serial.println("#getNumberForAsciiChar");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for getDefaultChannelSettingForSetting
-boolean testGetDefaultChannelSettingForSetting() {
-  boolean allPassed = true;
-  
-  Serial.println("#getDefaultChannelSettingForSetting");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for getDefaultChannelSettingForSettingAscii
-boolean testGetDefaultChannelSettingForSettingAscii() {
-  boolean allPassed = true;
-  
-  Serial.println("#etDefaultChannelSettingForSettingAscii");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for getConstrainedChannelNumber
-boolean testGetConstrainedChannelNumber() {
-  boolean allPassed = true;
-  
-  Serial.println("#getConstrainedChannelNumber");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for getTargetSSForChannelNumber
-boolean testGetTargetSSForChannelNumber() {
-  boolean allPassed = true;
-  
-  Serial.println("#getTargetSSForChannelNumber");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for resetChannelSettingsArrayToDefault
-boolean testResetChannelSettingsArrayToDefault() {
-  boolean allPassed = true;
-  
-  Serial.println("#resetChannelSettingsArrayToDefault");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
-}
-// TODO: Tests for resetLeadOffArrayToDefault
-boolean testResetLeadOffArrayToDefault() {
-  boolean allPassed = true;
-  
-  Serial.println("#resetLeadOffArrayToDefault");
-  // allPassed = testCheckSumMake() && allPassed;
-    
-  return allPassed;
+    test.assertEqual(board.getYesOrNoForAsciiChar('1'),0x01,"Activate");
+    test.assertEqual(board.getYesOrNoForAsciiChar('0'),0x00,"Deactivate");
+    test.assertEqual(board.getYesOrNoForAsciiChar('7'),0x00,"Input defaults to deactivate");
 }
 
-// ASSERT FUNCTIONS!
-boolean assertEqualBoolean(boolean a, boolean b) {
-  return a == b;  
+void testGetGainForAsciiChar() {
+    test.describe("getGainForAsciiChar");
+
+    test.assertEqual(board.getGainForAsciiChar('0'),0x00,"Gain x1");
+    test.assertEqual(board.getGainForAsciiChar('1'),0x10,"Gain x2");
+    test.assertEqual(board.getGainForAsciiChar('2'),0x20,"Gain x4");
+    test.assertEqual(board.getGainForAsciiChar('3'),0x30,"Gain x6");
+    test.assertEqual(board.getGainForAsciiChar('4'),0x40,"Gain x8");
+    test.assertEqual(board.getGainForAsciiChar('5'),0x50,"Gain x12");
+    test.assertEqual(board.getGainForAsciiChar('6'),0x60,"Gain x24");
+    test.assertEqual(board.getGainForAsciiChar(' '),0x60,"Input < '0' defaults to x24");
+    test.assertEqual(board.getGainForAsciiChar('7'),0x60,"Inptu > '6' defaults to x24");
+
 }
 
-boolean assertEqualChar(char a, char b) {
-  return a == b;  
+void testGetNumberForAsciiChar() {
+
+    test.describe("getNumberForAsciiChar");
+
+    test.assertEqual(board.getNumberForAsciiChar('0'),0x00,"Low end test of 0");
+    test.assertEqual(board.getNumberForAsciiChar('9'),0x09,"High end test of 9");
+    test.assertEqual(board.getNumberForAsciiChar('5'),0x05,"Middle test of 5");
+    test.assertEqual(board.getNumberForAsciiChar(' '),0x00,"Out of bounds, too low, defaults to 0");
+    test.assertEqual(board.getNumberForAsciiChar('A'),0x00,"Out of bounds, too high, defaults to 0");
 }
 
-boolean assertGreaterThanChar(char a, char b) {
-  return a > b; 
+void testGetDefaultChannelSettingForSetting() {
+
+    test.describe("getDefaultChannelSettingForSetting");
+
+    test.assertEqual(board.getDefaultChannelSettingForSetting(0),0x00,"Power down setting - NO");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(1),0x60,"Gain Setting - x24");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(2),0x00,"Input type setting - normal");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(3),0x01,"Bias setting - YES");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(4),0x01,"SRB2 setting - YES");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(5),0x00,"SRB1 setting - NO");
+    test.assertEqual(board.getDefaultChannelSettingForSetting(6),0x00,"Defaults setting - NO");
 }
 
-boolean assertLessThanChar(char a, char b) {
-  return a < b; 
+void testGetDefaultChannelSettingForSettingAscii() {
+
+    test.describe("getDefaultChannelSettingForSettingAscii");
+
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(0),'0',"Power down setting - NO");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(1),'6',"Gain Setting - x24");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(2),'0',"Input type setting - normal");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(3),'1',"Bias setting - YES");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(4),'1',"SRB2 setting - YES");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(5),'0',"SRB1 setting - NO");
+    test.assertEqual(board.getDefaultChannelSettingForSettingAscii(6),'0',"Defaults setting - NO");
 }
 
-boolean assertNotEqualChar(char a, char b) {
-  return a != b;  
+void testGetConstrainedChannelNumber() {
+
+    test.describe("getConstrainedChannelNumber");
+
+    test.assertEqual(board.getConstrainedChannelNumber(0),0,"Out of bounds - Low end - Constrains to 0");
+    test.assertEqual(board.getConstrainedChannelNumber(1),0,"Channel 1 - should return 0");
+    test.assertEqual(board.getConstrainedChannelNumber(16),15,"Channel 16 - should return 15");
+    test.assertEqual(board.getConstrainedChannelNumber(17),15,"Out of bounds - High end - Constrains to 16");
 }
 
-boolean assertEqualInt(int a, int b) {
-  return a == b;  
+void testGetTargetSSForChannelNumber() {
+
+    test.describe("getTargetSSForConstrainedChannelNumber");
+
+    test.assertEqual(board.getTargetSSForConstrainedChannelNumber(0),8,"Index 0 gets BOARD_ADS (8)");
+    test.assertEqual(board.getTargetSSForConstrainedChannelNumber(7),8,"Index 7 gets BOARD_ADS (8)");
+    test.assertEqual(board.getTargetSSForConstrainedChannelNumber(8),3,"Index 8 gets DAISY_ADS (3)");
+    test.assertEqual(board.getTargetSSForConstrainedChannelNumber(15),3,"Index 15 gets DAISY_ADS (3)");
 }
 
-void verbosePrintResult(boolean testPassed, char *testName, char *msg) {
-   if (testPassed) {
-     Serial.print("  Passed - "); 
-     Serial.print(testName);
-     Serial.print(" - ");
-     Serial.println(msg);
-   } else  {
-     Serial.print("  ****Failed - ");
-     Serial.print(testName);
-     Serial.print(" - ");
-     Serial.println(msg);  
-   } 
-}
 
+// // TODO: Tests for resetChannelSettingsArrayToDefault
+// boolean testResetChannelSettingsArrayToDefault() {
+//   boolean allPassed = true;
+//
+//   Serial.println("#resetChannelSettingsArrayToDefault");
+//   // allPassed = testCheckSumMake() && allPassed;
+//
+//   return allPassed;
+// }
+// // TODO: Tests for resetLeadOffArrayToDefault
+// boolean testResetLeadOffArrayToDefault() {
+//   boolean allPassed = true;
+//
+//   Serial.println("#resetLeadOffArrayToDefault");
+//   // allPassed = testCheckSumMake() && allPassed;
+//
+//   return allPassed;
+// }

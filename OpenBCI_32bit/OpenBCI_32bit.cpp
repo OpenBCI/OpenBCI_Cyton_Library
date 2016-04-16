@@ -952,7 +952,7 @@ void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte 
     char index = getConstrainedChannelNumber(channelNumber);
 
     // Get the slave select pin for this channel
-    targetSS = getTargetSSForChannelNumber(channelNumber);
+    targetSS = getTargetSSForConstrainedChannelNumber(index);
 
     // first, disable any data collection
     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
@@ -1137,7 +1137,7 @@ void OpenBCI_32bit_Class::leadOffSetForChannel(byte channelNumber, byte pInput, 
     channelNumber = getConstrainedChannelNumber(channelNumber);
 
     // Get the slave select pin for this channel
-    byte targetSS = getTargetSSForChannelNumber(channelNumber);
+    byte targetSS = getTargetSSForConstrainedChannelNumber(channelNumber);
 
     // exit Read Data Continuous mode to communicate with ADS
     SDATAC(targetSS);
@@ -1882,7 +1882,7 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
 
     char output = 0x00;
 
-    if (asciiChar < '0' && asciiChar > '6') {
+    if (asciiChar < '0' || asciiChar > '6') {
         asciiChar = '6'; // Default to 24
     }
 
@@ -1898,7 +1898,7 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
  * @author AJ Keller (@pushtheworldllc)
  */
 char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
-    if (asciiChar < '0' && asciiChar > '9') {
+    if (asciiChar < '0' || asciiChar > '9') {
         asciiChar = '0';
     }
 
@@ -1926,7 +1926,6 @@ byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
         case SRB2_SET:
             return YES;
         case SRB1_SET:
-            return NO;
         default:
             return NO;
     }
@@ -1935,7 +1934,7 @@ byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
 /**
  * @description Used to set the channelSettings array to default settings
  * @param `setting` - [byte] - The byte you need a setting for....
- * @returns - [char] - Retuns the proper ascii char for the input setting, defualts to '0'
+ * @returns - [char] - Retuns the proper ascii char for the input setting, defaults to '0'
  */
 char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) {
     switch (setting) {
@@ -1961,7 +1960,7 @@ char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
  * @param `channelNumber` - [byte] - The channel number
  * @return [byte] - Constrained channel number
  */
-char OpenBCI_32bit_Class::getTargetSSForChannelNumber(byte channelNumber) {
+char OpenBCI_32bit_Class::getTargetSSForConstrainedChannelNumber(byte channelNumber) {
     // Is channelNumber in the range of default [0,7]
     if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
         return BOARD_ADS;

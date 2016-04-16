@@ -65,7 +65,7 @@ public:
     char getDefaultChannelSettingForSettingAscii(byte setting);
     char getGainForAsciiChar(char asciiChar);
     char getNumberForAsciiChar(char asciiChar);
-    char getTargetSSForChannelNumber(byte channelNumber);
+    char getTargetSSForConstrainedChannelNumber(byte channelNumber);
     char getYesOrNoForAsciiChar(char asciiChar);
 
     DSPI0 spi;  // use DSPI library
