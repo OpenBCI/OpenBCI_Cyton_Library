@@ -179,6 +179,8 @@ void testSendChannelData() {
     byte expectedNumberOfBytes = 34;
 
     byte acutalNumberOfBytes = board.sendChannelData();
+    
+    Serial1.print("\n");
 
     test.assertEqual(expectedNumberOfBytes, acutalNumberOfBytes, "Stream packet writes 34 bytes");
 }
