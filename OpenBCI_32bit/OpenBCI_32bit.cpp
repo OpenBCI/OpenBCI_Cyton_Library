@@ -18,6 +18,7 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
     boardType = OUTPUT_NOTHING;
     daisyPresent = false;
     streaming = false;
+    debugSerialMode = true;
 }
 
 /**
@@ -26,7 +27,9 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
 */
 void OpenBCI_32bit_Class::begin(void) {
     // Bring the board up
-    boardBegin() ? ledFlash(2) : ledFlash(1);
+    boardBegin() ? ledFlash(2) : ledFlash(10);
+
+
 }
 
 /**
@@ -34,7 +37,7 @@ void OpenBCI_32bit_Class::begin(void) {
 * @return: [boolean] - If there is data ready to be read
 */
 boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
-    if (Serial0.available()) {
+    if (Serial1.available()) {
         return true;
     } else {
         return false;
@@ -47,8 +50,8 @@ boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
 * @return: [char] - The character's not processed
 */
 char OpenBCI_32bit_Class::readOneSerialChar(void) {
-    if (Serial0.available()) {
-        return Serial0.read();
+    if (Serial1.available()) {
+        return Serial1.read();
     }
 }
 
@@ -59,7 +62,7 @@ char OpenBCI_32bit_Class::readOneSerialChar(void) {
 */
 void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
     for (int i = 0; i < len; i++) {
-        Serial0.write(data[i]);
+        Serial1.write(data[i]);
     }
 }
 
@@ -198,7 +201,7 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
 
         case OPENBCI_CHANNEL_DEFAULT_ALL_SET:  // reset all channel settings to default
             if(!streaming) {
-                Serial0.println("updating channel settings to default");
+                Serial1.println("updating channel settings to default");
             }
             streamSafeSetAllChannelsToDefault();
             break;
@@ -219,9 +222,9 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
                 attachDaisy();
             }
             if(daisyPresent){
-                Serial0.print("16");
+                Serial1.print("16");
             }else{
-                Serial0.print("8");
+                Serial1.print("8");
             }
             sendEOT();
             break;
@@ -274,8 +277,15 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 boolean OpenBCI_32bit_Class::boardBegin(void) {
+    // Assign proper serial to _serial
+    // if (debugSerialMode) { // debug mode
+    //     _serial = &Serial1;
+    // } else { // normal mode
+    //     _serial = &Serial1;
+    // }
+
     // Initalize the serial port baud rate
-    Serial0.begin(OPENBCI_BAUD_RATE);
+    Serial1.begin(OPENBCI_BAUD_RATE);
 
     pinMode(OPENBCI_PIN_LED, OUTPUT);
     pinMode(OPENBCI_PIN_PGC, OUTPUT);
@@ -296,13 +306,13 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
 void OpenBCI_32bit_Class::boardReset(void) {
     initialize();
 
-    Serial0.println("OpenBCI V4 16 channel");
+    Serial1.println("OpenBCI V4 16 channel");
     leadOffConfigureSignalForAll(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
-    Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
+    Serial1.print("On Board ADS1299 Device ID: 0x"); Serial1.println(ADS_getDeviceID(ON_BOARD),HEX);
     if(daisyPresent){  // library will set this in initialize() if daisy present and functional
-      Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
+      Serial1.print("On Daisy ADS1299 Device ID: 0x"); Serial1.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
-    Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
+    Serial1.print("LIS3DH Device ID: 0x"); Serial1.println(LIS3DH_getDeviceID(),HEX);
     sendEOT();
 }
 
@@ -321,7 +331,7 @@ void OpenBCI_32bit_Class::ledFlash(int numberOfFlashes) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Class::sendEOT(void) {
-    Serial0.print("$$$");
+    Serial1.print("$$$");
 }
 
 
@@ -365,8 +375,8 @@ void OpenBCI_32bit_Class::processIncomingLeadOffSettings(void) {
     char currentChannel;
 
     while (bytesIn < bytesToRead) {
-        if (Serial0.available()) {
-            char newChar = Serial0.read();
+        if (Serial1.available()) {
+            char newChar = Serial1.read();
 
             if (bytesIn == 0) { // This is the first byte
                 currentChannel = getChannelCommandForAsciiChar(newChar);
@@ -378,13 +388,13 @@ void OpenBCI_32bit_Class::processIncomingLeadOffSettings(void) {
                 // The forth character must be the impedance latch
                 if (newChar != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
                     if (!streaming) {
-                        Serial0.print("Err: 4th char not ");
-                        Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                        Serial1.print("Err: 4th char not ");
+                        Serial1.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
                     }
                     return; // Exit
                 } else {
                     if (!streaming) {
-                        Serial0.println("All impedance recieved");
+                        Serial1.println("All impedance recieved");
                     }
                 }
             }
@@ -418,9 +428,9 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
     char currentChannel;
 
     while (bytesIn < bytesToRead) {
-        if (Serial0.available()) {
-            char newChar = Serial0.read();
-            Serial0.print(newChar);
+        if (Serial1.available()) {
+            char newChar = Serial1.read();
+            Serial1.print(newChar);
             if (bytesIn == 0) { // This is the first byte
                 currentChannel = getChannelCommandForAsciiChar(newChar);
             } else if (bytesIn == 1) { // POWER_DOWN
@@ -439,13 +449,13 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
                 // The forth character must be the impedance latch
                 if (newChar != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
                     if (!streaming) {
-                        Serial0.print("Err: 7th char not ");
-                        Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
+                        Serial1.print("Err: 7th char not ");
+                        Serial1.println(OPENBCI_CHANNEL_CMD_LATCH);
                     }
                     return; // Exit
                 } else {
                     if (!streaming) {
-                        Serial0.println("All character settings recieved");
+                        Serial1.println("All character settings recieved");
                     }
                 }
             }
@@ -456,7 +466,7 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
         //  the serial transmission
         if (millis() > (startTime + OPENBCI_TIME_OUT_MS_3)) {
             if (!streaming) {
-                Serial0.print("Err: timeout");
+                Serial1.print("Err: timeout");
             }
             return; // return void
         }
@@ -482,19 +492,24 @@ void OpenBCI_32bit_Class::initialize(){
 
 void OpenBCI_32bit_Class::printAllRegisters(){
     if(!isRunning){
-        Serial0.println("\nBoard ADS Registers");
+        Serial1.println("\nBoard ADS Registers");
         printADSregisters(BOARD_ADS);
         if(daisyPresent){
-            Serial0.println("\nDaisy ADS Registers");
+            Serial1.println("\nDaisy ADS Registers");
             printADSregisters(DAISY_ADS);
         }
-        Serial0.println("\nLIS3DH Registers");
+        Serial1.println("\nLIS3DH Registers");
         LIS3DH_readAllRegs();
     }
 }
 
-void OpenBCI_32bit_Class::sendChannelData(){
-    Serial0.write(sampleCounter); // 1 byte
+/**
+ * @description Writes channel data, aux data, and footer to serial port
+ * @return - [byte] - The number of bytes sent
+ */
+byte OpenBCI_32bit_Class::sendChannelData(){
+    byte numberOfBytesSent = 0;
+    numberOfBytesSent += Serial1.write(sampleCounter); // 1 byte
     ADS_writeChannelData();       // 24 bytes
     if(useAux){
         writeAuxData();             // 6 bytes of aux data
@@ -503,21 +518,23 @@ void OpenBCI_32bit_Class::sendChannelData(){
     } else{
         byte zero = 0x00;
         for(int i=0; i<6; i++){
-            Serial0.write(zero);
+            Serial1.write(zero);
         }
     }
-    Serial0.write(OPENBCI_STREAM_PACKET_EOT); // 2 bytes
-    Serial0.write(0xF0); // This determines the type of packet
+    numberOfBytesSent += 6;
+    numberOfBytesSent += Serial1.write('A');
+    numberOfBytesSent += Serial1.write('J'); // 2 bytes
+    numberOfBytesSent += Serial1.write(0xF0); // This determines the type of packet
 
     sampleCounter++;
+
+    return numberOfBytesSent;
 }
-
-
 
 void OpenBCI_32bit_Class::writeAuxData(){
     for(int i=0; i<3; i++){
-        Serial0.write(highByte(auxData[i])); // write 16 bit axis data MSB first
-        Serial0.write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
+        Serial1.write(highByte(auxData[i])); // write 16 bit axis data MSB first
+        Serial1.write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
         auxData[i] = 0;   // reset auxData bytes to 0
     }
 }
@@ -729,7 +746,7 @@ void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber
 }
 
 /**
- * @description Used to report (Serial0.print) the default channel settings
+ * @description Used to report (Serial1.print) the default channel settings
  *                  if running must stop and start after...
  * @author AJ Keller (@pushtheworldllc)
  */
@@ -798,7 +815,7 @@ void OpenBCI_32bit_Class::streamStop(){
 boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
-    if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX);}
+    if(verbosity){Serial1.print("Daisy ID 0x"); Serial1.println(setting,HEX);}
     if(setting == ADS_ID) {isDaisy = true;} // should read as 0x3E
     return isDaisy;
 }
@@ -809,9 +826,9 @@ void OpenBCI_32bit_Class::removeDaisy(void){
         RESET(DAISY_ADS);
         STANDBY(DAISY_ADS);
         daisyPresent = false;
-        if(!isRunning) Serial0.println("daisy removed");
+        if(!isRunning) Serial1.println("daisy removed");
     }else{
-        if(!isRunning) Serial0.println("no daisy to remove!");
+        if(!isRunning) Serial1.println("no daisy to remove!");
     }
 }
 
@@ -824,10 +841,10 @@ void OpenBCI_32bit_Class::attachDaisy(void){
     if(!daisyPresent){
         WREG(CONFIG1,0x96,BOARD_ADS); // turn off clk output if no daisy present
         numChannels = 8;    // expect up to 8 ADS channels
-        if(!isRunning) Serial0.println("no daisy to attach!");
+        if(!isRunning) Serial1.println("no daisy to attach!");
     }else{
         numChannels = 16;   // expect up to 16 ADS channels
-        if(!isRunning) Serial0.println("daisy attached");
+        if(!isRunning) Serial1.println("daisy attached");
     }
 }
 
@@ -868,12 +885,12 @@ void OpenBCI_32bit_Class::setChannelsToDefault(void){
  * @description Writes the default channel settings over the serial port
  */
 void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
-    Serial0.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
-    Serial0.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
-    Serial0.write(getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET)); // input muxer setting
-    Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
-    Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
-    Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
+    Serial1.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
+    Serial1.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
+    Serial1.write(getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET)); // input muxer setting
+    Serial1.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
+    Serial1.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
+    Serial1.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
 }
 
 /**
@@ -1395,16 +1412,16 @@ void OpenBCI_32bit_Class::ADS_writeChannelData()
     if(daisyPresent){
         if(sampleCounter % 2 != 0){ //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
             for (int i=0; i<24; i++){
-                Serial0.write(meanBoardDataRaw[i]); // send board data on odd samples
+                Serial1.write(meanBoardDataRaw[i]); // send board data on odd samples
             }
         }else{
             for (int i=0; i<24; i++){
-                Serial0.write(meanDaisyDataRaw[i]); // send daisy data on even samples
+                Serial1.write(meanDaisyDataRaw[i]); // send daisy data on even samples
             }
         }
     }else{
         for(int i=0; i<24; i++){
-            Serial0.write(boardChannelDataRaw[i]);
+            Serial1.write(boardChannelDataRaw[i]);
         }
     }
 }
@@ -1424,8 +1441,8 @@ void OpenBCI_32bit_Class::printADSregisters(int targetSS)
 byte OpenBCI_32bit_Class::ADS_getDeviceID(int targetSS) {      // simple hello world com check
     byte data = RREG(ID_REG,targetSS);
     if(verbosity){            // verbosity otuput
-        Serial0.print("On Board ADS ID ");
-        printHex(data); Serial0.println();
+        Serial1.print("On Board ADS ID ");
+        printHex(data); Serial1.println();
     }
     return data;
 }
@@ -1530,15 +1547,15 @@ byte OpenBCI_32bit_Class::RREG(byte _address,int targetSS) {    //  reads ONE re
     if (verbosity){           //  verbosity output
         printRegisterName(_address);
         printHex(_address);
-        Serial0.print(", ");
+        Serial1.print(", ");
         printHex(regData[_address]);
-        Serial0.print(", ");
+        Serial1.print(", ");
         for(byte j = 0; j<8; j++){
-            Serial0.print(bitRead(regData[_address], 7-j));
-            if(j!=7) Serial0.print(", ");
+            Serial1.print(bitRead(regData[_address], 7-j));
+            if(j!=7) Serial1.print(", ");
         }
 
-        Serial0.println();
+        Serial1.println();
     }
     return regData[_address];     // return requested register value
 }
@@ -1559,14 +1576,14 @@ void OpenBCI_32bit_Class::RREGS(byte _address, byte _numRegistersMinusOne, int t
         for(int i = 0; i<= _numRegistersMinusOne; i++){
             printRegisterName(_address + i);
             printHex(_address + i);
-            Serial0.print(", ");
+            Serial1.print(", ");
             printHex(regData[_address + i]);
-            Serial0.print(", ");
+            Serial1.print(", ");
             for(int j = 0; j<8; j++){
-                Serial0.print(bitRead(regData[_address + i], 7-j));
-                if(j!=7) Serial0.print(", ");
+                Serial1.print(bitRead(regData[_address + i], 7-j));
+                if(j!=7) Serial1.print(", ");
             }
-            Serial0.println();
+            Serial1.println();
             delay(30);
         }
     }
@@ -1581,9 +1598,9 @@ void OpenBCI_32bit_Class::WREG(byte _address, byte _value, int target_SS) { //  
     csHigh(target_SS);       //  close SPI
     regData[_address] = _value;     //  update the mirror array
     if(verbosity){            //  verbosity output
-        Serial0.print("Register ");
+        Serial1.print("Register ");
         printHex(_address);
-        Serial0.println(" modified.");
+        Serial1.println(" modified.");
     }
 }
 
@@ -1597,10 +1614,10 @@ void OpenBCI_32bit_Class::WREGS(byte _address, byte _numRegistersMinusOne, int t
     }
     csHigh(targetSS);
     if(verbosity){
-        Serial0.print("Registers ");
-        printHex(_address); Serial0.print(" to ");
+        Serial1.print("Registers ");
+        printHex(_address); Serial1.print(" to ");
         printHex(_address + _numRegistersMinusOne);
-        Serial0.println(" modified");
+        Serial1.println(" modified");
     }
 }
 
@@ -1662,8 +1679,8 @@ boolean OpenBCI_32bit_Class::LIS3DH_DataReady(){
 
 void OpenBCI_32bit_Class::LIS3DH_writeAxisData(void){
     for(int i=0; i<3; i++){
-        Serial0.write(highByte(axisData[i])); // write 16 bit axis data MSB first
-        Serial0.write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+        Serial1.write(highByte(axisData[i])); // write 16 bit axis data MSB first
+        Serial1.write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
         axisData[i] = 0;
     }
 }
@@ -1718,25 +1735,25 @@ void OpenBCI_32bit_Class::LIS3DH_readAllRegs(){
 
     for (int i = STATUS_REG_AUX; i <= WHO_AM_I; i++){
         inByte = LIS3DH_read(i);
-        Serial0.print("0x0");Serial0.print(i,HEX);
-        Serial0.print("\t");Serial0.println(inByte,HEX);
+        Serial1.print("0x0");Serial1.print(i,HEX);
+        Serial1.print("\t");Serial1.println(inByte,HEX);
         delay(20);
     }
-    Serial0.println();
+    Serial1.println();
 
     for (int i = TMP_CFG_REG; i <= INT1_DURATION; i++){
         inByte = LIS3DH_read(i);
         // printRegisterName(i);
-        Serial0.print("0x");Serial0.print(i,HEX);
-        Serial0.print("\t");Serial0.println(inByte,HEX);
+        Serial1.print("0x");Serial1.print(i,HEX);
+        Serial1.print("\t");Serial1.println(inByte,HEX);
         delay(20);
     }
-    Serial0.println();
+    Serial1.println();
 
     for (int i = CLICK_CFG; i <= TIME_WINDOW; i++){
         inByte = LIS3DH_read(i);
-        Serial0.print("0x");Serial0.print(i,HEX);
-        Serial0.print("\t");Serial0.println(inByte,HEX);
+        Serial1.print("0x");Serial1.print(i,HEX);
+        Serial1.print("\t");Serial1.println(inByte,HEX);
         delay(20);
     }
 
@@ -1752,53 +1769,53 @@ void OpenBCI_32bit_Class::LIS3DH_readAllRegs(){
 void OpenBCI_32bit_Class::printRegisterName(byte _address) {
     switch(_address){
         case ID_REG:
-        Serial0.print("ADS_ID, "); break;
+        Serial1.print("ADS_ID, "); break;
         case CONFIG1:
-        Serial0.print("CONFIG1, "); break;
+        Serial1.print("CONFIG1, "); break;
         case CONFIG2:
-        Serial0.print("CONFIG2, "); break;
+        Serial1.print("CONFIG2, "); break;
         case CONFIG3:
-        Serial0.print("CONFIG3, "); break;
+        Serial1.print("CONFIG3, "); break;
         case LOFF:
-        Serial0.print("LOFF, "); break;
+        Serial1.print("LOFF, "); break;
         case CH1SET:
-        Serial0.print("CH1SET, "); break;
+        Serial1.print("CH1SET, "); break;
         case CH2SET:
-        Serial0.print("CH2SET, "); break;
+        Serial1.print("CH2SET, "); break;
         case CH3SET:
-        Serial0.print("CH3SET, "); break;
+        Serial1.print("CH3SET, "); break;
         case CH4SET:
-        Serial0.print("CH4SET, "); break;
+        Serial1.print("CH4SET, "); break;
         case CH5SET:
-        Serial0.print("CH5SET, "); break;
+        Serial1.print("CH5SET, "); break;
         case CH6SET:
-        Serial0.print("CH6SET, "); break;
+        Serial1.print("CH6SET, "); break;
         case CH7SET:
-        Serial0.print("CH7SET, "); break;
+        Serial1.print("CH7SET, "); break;
         case CH8SET:
-        Serial0.print("CH8SET, "); break;
+        Serial1.print("CH8SET, "); break;
         case BIAS_SENSP:
-        Serial0.print("BIAS_SENSP, "); break;
+        Serial1.print("BIAS_SENSP, "); break;
         case BIAS_SENSN:
-        Serial0.print("BIAS_SENSN, "); break;
+        Serial1.print("BIAS_SENSN, "); break;
         case LOFF_SENSP:
-        Serial0.print("LOFF_SENSP, "); break;
+        Serial1.print("LOFF_SENSP, "); break;
         case LOFF_SENSN:
-        Serial0.print("LOFF_SENSN, "); break;
+        Serial1.print("LOFF_SENSN, "); break;
         case LOFF_FLIP:
-        Serial0.print("LOFF_FLIP, "); break;
+        Serial1.print("LOFF_FLIP, "); break;
         case LOFF_STATP:
-        Serial0.print("LOFF_STATP, "); break;
+        Serial1.print("LOFF_STATP, "); break;
         case LOFF_STATN:
-        Serial0.print("LOFF_STATN, "); break;
+        Serial1.print("LOFF_STATN, "); break;
         case GPIO:
-        Serial0.print("GPIO, "); break;
+        Serial1.print("GPIO, "); break;
         case MISC1:
-        Serial0.print("MISC1, "); break;
+        Serial1.print("MISC1, "); break;
         case MISC2:
-        Serial0.print("MISC2, "); break;
+        Serial1.print("MISC2, "); break;
         case CONFIG4:
-        Serial0.print("CONFIG4, "); break;
+        Serial1.print("CONFIG4, "); break;
         default:
         break;
     }
@@ -1806,9 +1823,9 @@ void OpenBCI_32bit_Class::printRegisterName(byte _address) {
 
 // Used for printing HEX in verbosity feedback mode
 void OpenBCI_32bit_Class::printHex(byte _data){
-    Serial0.print("0x");
-    if(_data < 0x10) Serial0.print("0");
-    Serial0.print(_data, HEX);
+    Serial1.print("0x");
+    if(_data < 0x10) Serial1.print("0");
+    Serial1.print(_data, HEX);
 }
 
 /**

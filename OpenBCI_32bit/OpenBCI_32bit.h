@@ -56,7 +56,9 @@ public:
     // Variables
     boolean streaming;
     boolean daisy;
+    boolean debugSerialMode;
     int boardType;
+    HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
@@ -75,7 +77,7 @@ public:
     boolean useAux;
     void initialize(void);
     void printAllRegisters(void);
-    void sendChannelData(void); // send the current data with sample number
+    byte sendChannelData(void); // send the current data with sample number
 
 
 // ADS1299

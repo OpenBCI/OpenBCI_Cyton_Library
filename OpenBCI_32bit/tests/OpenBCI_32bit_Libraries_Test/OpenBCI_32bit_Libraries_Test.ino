@@ -1,18 +1,18 @@
-#include <DSPI.h>
+  #include <DSPI.h>
 #include <EEPROM.h>
 #include "OpenBCI_32bit.h"
 #include "PTW-Arduino-Assert.h"
 
 void setup() {
   // put your setup code here, to run once:
-  Serial0.begin(115200);
-  test.setSerial(Serial0);
+  Serial1.begin(115200);
+  test.setSerial(Serial1);
 }
 
 void loop() {
     // put your main code here, to run repeatedly:
-    if (Serial0.available()) {
-        Serial0.read();
+    if (Serial1.available()) {
+        Serial1.read();
         go();
     }
 }
@@ -23,6 +23,7 @@ void go() {
 
     testGetters();
     // testResets();
+    testSendChannelData();
 
     test.end();
 }
@@ -44,7 +45,6 @@ void testGetters() {
 // }
 
 
-// TODO: Tests for getChannelCommandForAsciiChar
 void testGetChannelCommandForAsciiChar() {
 
     test.describe("getChannelCommandForAsciiChar");
@@ -168,3 +168,17 @@ void testGetTargetSSForChannelNumber() {
 //
 //   return allPassed;
 // }
+
+// TODO: Test sendChannelData
+void testSendChannelData() {
+    test.describe("sendChannelData");
+
+    // A call to send channel data should send 34 bytes, so we should be
+    //  able to verify this by counting how many bytes are returned by
+    //  '::sendChannelData()'
+    byte expectedNumberOfBytes = 34;
+
+    byte acutalNumberOfBytes = board.sendChannelData();
+
+    test.assertEqual(expectedNumberOfBytes, acutalNumberOfBytes, "Stream packet writes 34 bytes");
+}
