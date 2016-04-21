@@ -350,4 +350,6 @@
 #define OPENBCI_TIME_OUT_MS_1 1
 #define OPENBCI_TIME_OUT_MS_3 3
 
+#define OPENBCI_STREAM_PACKET_EOT "AJ"
+
 #endif

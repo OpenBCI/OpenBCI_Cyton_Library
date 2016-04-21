@@ -17,6 +17,7 @@ public:
     // Start up functions
     OpenBCI_32bit_Class();
     void begin(void);
+    void beginDebug(void);
     char readOneSerialChar(void);
 
     void writeSerial(char *data, int len);
@@ -44,6 +45,7 @@ public:
     void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
 
+    void sendAStreamPacketToTheHost(void);
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
     void streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
@@ -56,7 +58,9 @@ public:
     // Variables
     boolean streaming;
     boolean daisy;
+    boolean sniffMode;
     int boardType;
+    HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
@@ -65,7 +69,7 @@ public:
     char getDefaultChannelSettingForSettingAscii(byte setting);
     char getGainForAsciiChar(char asciiChar);
     char getNumberForAsciiChar(char asciiChar);
-    char getTargetSSForChannelNumber(byte channelNumber);
+    char getTargetSSForConstrainedChannelNumber(byte channelNumber);
     char getYesOrNoForAsciiChar(char asciiChar);
 
     DSPI0 spi;  // use DSPI library
@@ -75,7 +79,7 @@ public:
     boolean useAux;
     void initialize(void);
     void printAllRegisters(void);
-    void sendChannelData(void); // send the current data with sample number
+    byte sendChannelData(void); // send the current data with sample number
 
 
 // ADS1299
@@ -111,7 +115,7 @@ public:
 
     void changeInputType(byte);
 
-    void ADS_writeChannelData(void);
+    byte ADS_writeChannelData(void);
     // void ADS_printDeviceID(int);   //
     boolean smellDaisy(void);
     void removeDaisy(void);
@@ -169,6 +173,7 @@ public:
 
     //
     boolean boardBegin(void);
+    boolean boardBeginDebug(void);
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
     void sendEOT(void);

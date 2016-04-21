@@ -18,6 +18,7 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
     boardType = OUTPUT_NOTHING;
     daisyPresent = false;
     streaming = false;
+    sniffMode = false;
 }
 
 /**
@@ -26,8 +27,30 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
 */
 void OpenBCI_32bit_Class::begin(void) {
     // Bring the board up
-    boardBegin() ? ledFlash(2) : ledFlash(1);
+    boardBegin() ? ledFlash(2) : ledFlash(10);
 }
+
+/**
+* @description: The function the OpenBCI board will call in setup
+* @author: AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Class::beginDebug(void) {
+    // Bring the board up
+    boolean started = boardBeginDebug();
+
+    sniffMode = true;
+
+    if (Serial1) {
+        if (started) {
+            Serial1.println("Board up");
+        } else {
+            Serial1.println("Board err");
+        }
+
+    }
+}
+
+
 
 /**
 * @description: called in every loop function
@@ -65,6 +88,9 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
 
 
 boolean OpenBCI_32bit_Class::processChar(char character) {
+    if (sniffMode && Serial1) {
+        Serial1.println(character);
+    }
     switch (character){
         //TURN CHANNELS ON/OFF COMMANDS
         case OPENBCI_CHANNEL_OFF_1:
@@ -280,11 +306,34 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
     pinMode(OPENBCI_PIN_LED, OUTPUT);
     pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
+    // chill for a bit
+    delay(1000);
+
     // Do a soft reset
     boardReset();
 
     return true;
+}
 
+/**
+* @description: This is a function that is called once and confiures all pins on
+*                 the PIC32 uC
+* @author: AJ Keller (@pushtheworldllc)
+*/
+boolean OpenBCI_32bit_Class::boardBeginDebug(void) {
+    // Initalize the serial port baud rate
+    Serial0.begin(OPENBCI_BAUD_RATE);
+
+    // Initalize the serial debug port
+    Serial1.begin(OPENBCI_BAUD_RATE);
+
+    // chill for a bit
+    delay(1000);
+
+    // Do a soft reset
+    boardReset();
+
+    return true;
 }
 
 /**
@@ -294,7 +343,8 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Class::boardReset(void) {
-    initialize();
+    initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
+    delay(500);
 
     Serial0.println("OpenBCI V4 16 channel");
     leadOffConfigureSignalForAll(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
@@ -304,15 +354,18 @@ void OpenBCI_32bit_Class::boardReset(void) {
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
     sendEOT();
+
 }
 
 
 void OpenBCI_32bit_Class::ledFlash(int numberOfFlashes) {
-    for(int i = 0;i < numberOfFlashes; i++) {
-        digitalWrite(OPENBCI_PIN_LED,HIGH);
-        delay(500);
-        digitalWrite(OPENBCI_PIN_LED,LOW);
-        delay(500);
+    if (!sniffMode) {
+        for(int i = 0;i < numberOfFlashes; i++) {
+            digitalWrite(OPENBCI_PIN_LED,HIGH);
+            delay(500);
+            digitalWrite(OPENBCI_PIN_LED,LOW);
+            delay(500);
+        }
     }
 }
 
@@ -420,7 +473,7 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
     while (bytesIn < bytesToRead) {
         if (Serial0.available()) {
             char newChar = Serial0.read();
-
+            Serial0.print(newChar);
             if (bytesIn == 0) { // This is the first byte
                 currentChannel = getChannelCommandForAsciiChar(newChar);
             } else if (bytesIn == 1) { // POWER_DOWN
@@ -455,6 +508,9 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(void) {
         // This is timeout protection, in case for some reason bytes were lost in
         //  the serial transmission
         if (millis() > (startTime + OPENBCI_TIME_OUT_MS_3)) {
+            if (!streaming) {
+                Serial0.print("Err: timeout");
+            }
             return; // return void
         }
     }
@@ -470,7 +526,6 @@ void OpenBCI_32bit_Class::initialize(){
     pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
     pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
     pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
-    pinMode(OPENBCI_PIN_PGC, OUTPUT); digitalWrite(OPENBCI_PIN_PGC, HIGH);
     spi.begin();
     spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
     spi.setMode(DSPI_MODE0);  // default to SD card mode!
@@ -491,23 +546,33 @@ void OpenBCI_32bit_Class::printAllRegisters(){
     }
 }
 
-void OpenBCI_32bit_Class::sendChannelData(){
-    Serial0.write(sampleCounter); // 1 byte
-    ADS_writeChannelData();       // 24 bytes
+/**
+ * @description Writes channel data, aux data, and footer to serial port
+ * @return - [byte] - The number of bytes sent
+ */
+byte OpenBCI_32bit_Class::sendChannelData(){
+    byte numberOfBytesSent = 0;
+    numberOfBytesSent += Serial0.write(sampleCounter); // 1 byte
+    if (Serial1) {
+        Serial1.write(sampleCounter); // 1 byte
+    }
+    numberOfBytesSent += ADS_writeChannelData();       // 24 bytes
     if(useAux){
-        writeAuxData();             // 6 bytes of aux data
-    }else if(useAccel){           // or
-        LIS3DH_writeAxisData();     // 6 bytes of accelerometer data
-    }else{
+        writeAuxData();         // 6 bytes of aux data
+    } else if(useAccel){        // or
+        LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
+    } else{
         byte zero = 0x00;
         for(int i=0; i<6; i++){
             Serial0.write(zero);
         }
     }
+    numberOfBytesSent += 6;
+
     sampleCounter++;
+
+    return numberOfBytesSent;
 }
-
-
 
 void OpenBCI_32bit_Class::writeAuxData(){
     for(int i=0; i<3; i++){
@@ -770,10 +835,10 @@ void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
 * @returns boolean if able to start streaming
 */
 void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
-    if (!streaming) { // already streaming...
-        streaming = true;
-        digitalWrite(OPENBCI_PIN_PGC, LOW);
-        startADS();
+    streaming = true;
+    startADS();
+    if (sniffMode && Serial1) {
+        Serial1.println("ADS Started");
     }
 }
 
@@ -782,11 +847,12 @@ void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
 * @returns boolean if able to stop streaming
 */
 void OpenBCI_32bit_Class::streamStop(){
-    if (streaming) { // we are streaming so we can stop
-        streaming = false;
-        digitalWrite(OPENBCI_PIN_PGC, HIGH);
-        stopADS();
+    streaming = false;
+    stopADS();
+    if (sniffMode && Serial1) {
+        Serial1.println("ADS Stopped");
     }
+
 }
 
 //////////////////////////////////////////////
@@ -884,12 +950,9 @@ void OpenBCI_32bit_Class::channelSettingsArraySetForAll(void) {
     channelNumberUpperLimit = daisyPresent ? OPENBCI_NUMBER_OF_CHANNELS_DAISY : OPENBCI_NUMBER_OF_CHANNELS_DEFAULT;
 
     // Loop through all channels
-    for (int i = 1; i <= channelNumberUpperLimit; i++) {
-        // contstrain the channel number to 0-15
-        int index = i - 1;
-
+    for (byte i = 1; i <= channelNumberUpperLimit; i++) {
         // Set for this channel
-        channelSettingsSetForChannel((byte)i, channelSettings[index][POWER_DOWN], channelSettings[index][GAIN_SET], channelSettings[index][INPUT_TYPE_SET], channelSettings[index][BIAS_SET], channelSettings[index][SRB2_SET], channelSettings[index][SRB1_SET]);
+        channelSettingsSetForChannel(i, channelSettings[i][POWER_DOWN], channelSettings[i][GAIN_SET], channelSettings[i][INPUT_TYPE_SET], channelSettings[i][BIAS_SET], channelSettings[i][SRB2_SET], channelSettings[i][SRB1_SET]);
     }
 }
 
@@ -949,7 +1012,13 @@ void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte 
     char index = getConstrainedChannelNumber(channelNumber);
 
     // Get the slave select pin for this channel
-    targetSS = getTargetSSForChannelNumber(channelNumber);
+    targetSS = getTargetSSForConstrainedChannelNumber(index);
+
+    if (sniffMode && Serial1) {
+        if (targetSS == BOARD_ADS) {
+            Serial1.print("Set channel "); Serial1.print(channelNumber); Serial1.println(" settings");
+        }
+    }
 
     // first, disable any data collection
     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
@@ -980,6 +1049,8 @@ void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte 
     //  channelNumber if we are addressing the Daisy ADS
     if (targetSS == DAISY_ADS) {
         channelNumberRegister = index - OPENBCI_NUMBER_OF_CHANNELS_DEFAULT;
+    } else {
+        channelNumberRegister = index;
     }
     WREG(CH1SET+channelNumberRegister, setting, targetSS);  // write this channel's register settings
 
@@ -1134,7 +1205,7 @@ void OpenBCI_32bit_Class::leadOffSetForChannel(byte channelNumber, byte pInput, 
     channelNumber = getConstrainedChannelNumber(channelNumber);
 
     // Get the slave select pin for this channel
-    byte targetSS = getTargetSSForChannelNumber(channelNumber);
+    byte targetSS = getTargetSSForConstrainedChannelNumber(channelNumber);
 
     // exit Read Data Continuous mode to communicate with ADS
     SDATAC(targetSS);
@@ -1280,10 +1351,11 @@ void OpenBCI_32bit_Class::updateBoardData(){
     int byteCounter = 0;
 
     if(daisyPresent && !firstDataPacket){
-        for(int i=0; i<8; i++){  // shift and average the byte arrays
+        for(int i=0; i < 8; i++){  // shift and average the byte arrays
             lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
         }
     }
+
     csLow(BOARD_ADS);       //  open SPI
     for(int i=0; i<3; i++){
         inByte = xfer(0x00);    //  read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
@@ -1293,16 +1365,20 @@ void OpenBCI_32bit_Class::updateBoardData(){
         for(int j=0; j<3; j++){   //  read 24 bits of channel data in 8 3 byte chunks
             inByte = xfer(0x00);
             boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
+            if (sniffMode && Serial1) {
+                Serial1.write(boardChannelDataRaw[byteCounter]);
+            }
             byteCounter++;
             boardChannelDataInt[i] = (boardChannelDataInt[i]<<8) | inByte;  // int data goes here
         }
     }
-    csHigh(BOARD_ADS);        //  close SPI
+    csHigh(BOARD_ADS); // close SPI
+
     // need to convert 24bit to 32bit if using the filter
-    for(int i=0; i<8; i++){     // convert 3 byte 2's compliment to 4 byte 2's compliment
+    for(int i=0; i<8; i++){ // convert 3 byte 2's compliment to 4 byte 2's compliment
         if(bitRead(boardChannelDataInt[i],23) == 1){
             boardChannelDataInt[i] |= 0xFF000000;
-        }else{
+        } else{
             boardChannelDataInt[i] &= 0x00FFFFFF;
         }
     }
@@ -1386,24 +1462,26 @@ void OpenBCI_32bit_Class::stopADS()
 
 
 //write as binary each channel's data
-void OpenBCI_32bit_Class::ADS_writeChannelData()
+byte OpenBCI_32bit_Class::ADS_writeChannelData()
 {
-
+    byte numberOfBytesSent = 0;
     if(daisyPresent){
         if(sampleCounter % 2 != 0){ //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
             for (int i=0; i<24; i++){
-                Serial0.write(meanBoardDataRaw[i]); // send board data on odd samples
+                numberOfBytesSent += Serial0.write(meanBoardDataRaw[i]); // send board data on odd samples
             }
         }else{
             for (int i=0; i<24; i++){
-                Serial0.write(meanDaisyDataRaw[i]); // send daisy data on even samples
+                numberOfBytesSent += Serial0.write(meanDaisyDataRaw[i]); // send daisy data on even samples
             }
         }
     }else{
         for(int i=0; i<24; i++){
-            Serial0.write(boardChannelDataRaw[i]);
+            numberOfBytesSent += Serial0.write(boardChannelDataRaw[i]);
+            Serial1.write(boardChannelDataRaw[i]);
         }
     }
+    return numberOfBytesSent;
 }
 
 
@@ -1879,7 +1957,7 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
 
     char output = 0x00;
 
-    if (asciiChar < '0' && asciiChar > '6') {
+    if (asciiChar < '0' || asciiChar > '6') {
         asciiChar = '6'; // Default to 24
     }
 
@@ -1895,7 +1973,7 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
  * @author AJ Keller (@pushtheworldllc)
  */
 char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
-    if (asciiChar < '0' && asciiChar > '9') {
+    if (asciiChar < '0' || asciiChar > '9') {
         asciiChar = '0';
     }
 
@@ -1923,7 +2001,6 @@ byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
         case SRB2_SET:
             return YES;
         case SRB1_SET:
-            return NO;
         default:
             return NO;
     }
@@ -1932,7 +2009,7 @@ byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
 /**
  * @description Used to set the channelSettings array to default settings
  * @param `setting` - [byte] - The byte you need a setting for....
- * @returns - [char] - Retuns the proper ascii char for the input setting, defualts to '0'
+ * @returns - [char] - Retuns the proper ascii char for the input setting, defaults to '0'
  */
 char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) {
     switch (setting) {
@@ -1958,7 +2035,7 @@ char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
  * @param `channelNumber` - [byte] - The channel number
  * @return [byte] - Constrained channel number
  */
-char OpenBCI_32bit_Class::getTargetSSForChannelNumber(byte channelNumber) {
+char OpenBCI_32bit_Class::getTargetSSForConstrainedChannelNumber(byte channelNumber) {
     // Is channelNumber in the range of default [0,7]
     if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
         return BOARD_ADS;
