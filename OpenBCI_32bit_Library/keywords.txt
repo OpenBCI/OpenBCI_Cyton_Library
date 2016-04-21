@@ -1,0 +1,26 @@
+#######################################
+# Syntax Coloring Map SD
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+board	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin		             KEYWORD2
+beginDebug		KEYWORD2
+readOneSerialChar	     KEYWORD2
+writeSerial	             KEYWORD2
+isADSDataAvailable       KEYWORD2
+isSerialAvailableForRead KEYWORD2
+processChar              KEYWORD2
+updateChannelData        KEYWORD2
+sendChannelData          KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
