@@ -1,6 +1,0 @@
-[submodule "OpenBCI_32bit_Library/test/googletest"]
-	path = OpenBCI_32bit_Library/test/googletest
-	url = https://github.com/google/googletest.git
-[submodule "OpenBCI_32bit_Library/test/arduino-mock"]
-	path = OpenBCI_32bit_Library/test/arduino-mock
-	url = https://github.com/pushtheworldllc/arduino-mock.git
