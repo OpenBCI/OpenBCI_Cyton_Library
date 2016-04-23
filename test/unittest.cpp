@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
-#include "arduino-mock/Arduino.h"
+#include "Arduino.h"
 #include "../include/OpenBCI_32bit_Library.h"
 
 using ::testing::Return;
 
-TEST(loop, pushed) {
-
+TEST(cmds, getChannel) {
+	EXPECT_EQ(board.getChannelCommandForAsciiChar('1'), 0x00) << "Channel 1 cmd incorrect ";
 }
