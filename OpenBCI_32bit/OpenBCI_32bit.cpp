@@ -239,11 +239,13 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
             case OPENBCI_CHANNEL_DEFAULT_ALL_SET:  // reset all channel settings to default
                 if(!streaming) {
                     Serial0.println("updating channel settings to default");
+                    sendEOT();
                 }
                 streamSafeSetAllChannelsToDefault();
                 break;
             case OPENBCI_CHANNEL_DEFAULT_ALL_REPORT:  // report the default settings
                 reportDefaultChannelSettings();
+                sendEOT();
                 break;
 
 
@@ -391,9 +393,6 @@ void OpenBCI_32bit_Class::activateAllChannelsToTestCondition(byte testInputCode,
     if (streaming) {
         streamStop();
     }
-
-    //must stop running to change channel settings
-    delay(10);
 
     //set the test signal to the desired state
     configureInternalTestSignal(amplitudeCode,freqCode);
@@ -571,6 +570,9 @@ byte OpenBCI_32bit_Class::sendChannelData(){
             Serial0.write(zero);
         }
     }
+
+    Serial0.print("AJ");
+    Serial0.write(0xF0);
     numberOfBytesSent += 6;
 
     sampleCounter++;
@@ -984,7 +986,6 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
     Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
-    sendEOT();
 }
 
 /**
@@ -1650,6 +1651,10 @@ void OpenBCI_32bit_Class::configureInternalTestSignal(byte amplitudeCode, byte f
         amplitudeCode &= 0b00000100;  	//only this bit is used
         byte setting = 0b11010000 | freqCode | amplitudeCode;  //compose the code
         WREG(CONFIG2,setting,targetSS); delay(1);
+        if (sniffMode && Serial1) {
+            Serial1.print("Wrote to CONFIG2: ");
+            Serial1.print(setting,BIN);
+        }
     }
 }
 
