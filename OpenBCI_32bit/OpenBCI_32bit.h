@@ -39,8 +39,8 @@ public:
     void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
     boolean processChar(char character);
-    void processIncomingLeadOffSettings(void);
-    void processIncomingChannelSettings(void);
+    void processIncomingLeadOffSettings(char character);
+    void processIncomingChannelSettings(char character);
 
     void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
@@ -55,11 +55,24 @@ public:
     void streamStart(void);
     void streamStop(void);
 
+    // OLD CODE REVERT
+    void writeChannelSettings();
+    void writeChannelSettings(byte N);
+    void changeChannelLeadOffDetect();
+    void changeChannelLeadOffDetect(byte N);
+    void configureLeadOffDetection(byte amplitudeCode, byte freqCode);
+
     // Variables
-    boolean streaming;
     boolean daisy;
     boolean sniffMode;
+    boolean streaming;
+    boolean isProcessingIncomingSettingsChannel;
+    boolean isProcessingIncomingSettingsLeadOff;
+    
     int boardType;
+    int numberOfIncomingSettingsProcessedChannel;
+    int numberOfIncomingSettingsProcessedLeadOff;
+    char currentChannelSetting;
     HardwareSerial *_serial;
 
     // Getters
@@ -115,7 +128,7 @@ public:
 
     void changeInputType(byte);
 
-    byte ADS_writeChannelData(void);
+    void ADS_writeChannelData(void);
     // void ADS_printDeviceID(int);   //
     boolean smellDaisy(void);
     void removeDaisy(void);
@@ -140,6 +153,7 @@ public:
     int meanDaisyChannelDataInt[8];
     int numChannels;
     byte channelSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // array to hold current channel settings
+    byte defaultChannelSettings[OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // default channel settings
     byte leadOffSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS];  // used to control on/off of impedance measure for P and N side of each channel
     boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
     boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
