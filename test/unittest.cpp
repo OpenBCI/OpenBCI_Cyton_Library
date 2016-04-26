@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
-#include "Arduino.h"
 #include "../include/OpenBCI_32bit_Library.h"
+#include "Arduino.h"
 
 using ::testing::Return;
 

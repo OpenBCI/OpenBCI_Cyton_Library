@@ -60,7 +60,6 @@ public:
     boolean daisy;
     boolean sniffMode;
     int boardType;
-    HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
