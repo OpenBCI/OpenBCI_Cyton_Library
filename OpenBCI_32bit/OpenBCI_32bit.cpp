@@ -93,7 +93,10 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
     }
 }
 
-
+/**
+ * @description Process one char at a time from serial port
+ * @return {bool} - True if the command was recognized, false if not
+ */
 boolean OpenBCI_32bit_Class::processChar(char character) {
     if (sniffMode && Serial1) {
         Serial1.print("pC: "); Serial1.println(character);
@@ -303,14 +306,6 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
     return true;
 }
 
-
-
-
-
-/***************************************************/
-/** PRIVATE METHODS ********************************/
-/***************************************************/
-
 /**
 * @description: This is a function that is called once and confiures all pins on
 *                 the PIC32 uC
@@ -363,16 +358,15 @@ void OpenBCI_32bit_Class::boardReset(void) {
     initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
     delay(500);
 
-    Serial0.println("OpenBCI V3 16 channel");
+    Serial0.println("OpenBCI V3 8-16 channel");
     configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
     Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
     if(daisyPresent){  // library will set this in initialize() if daisy present and functional
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-    Serial0.println("2.0.0");
+    Serial0.println("1.0");
     sendEOT();
-
 }
 
 /**
@@ -554,10 +548,11 @@ void OpenBCI_32bit_Class::printAllRegisters(){
 
 /**
  * @description Writes channel data, aux data, and footer to serial port
- * @return - [byte] - The number of bytes sent
  */
-byte OpenBCI_32bit_Class::sendChannelData(){
-    byte numberOfBytesSent = 0;
+void OpenBCI_32bit_Class::sendChannelData(){
+
+    Serial0.print("A");
+
     Serial0.write(sampleCounter); // 1 byte
     ADS_writeChannelData();       // 24 bytes
     if(useAux){
@@ -571,13 +566,9 @@ byte OpenBCI_32bit_Class::sendChannelData(){
         }
     }
 
-    Serial0.print("AJ");
     Serial0.write(0xF0);
-    numberOfBytesSent += 6;
 
     sampleCounter++;
-
-    return numberOfBytesSent;
 }
 
 void OpenBCI_32bit_Class::writeAuxData(){

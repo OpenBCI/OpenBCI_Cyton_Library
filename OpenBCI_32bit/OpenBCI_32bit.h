@@ -68,7 +68,7 @@ public:
     boolean streaming;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
-    
+
     int boardType;
     int numberOfIncomingSettingsProcessedChannel;
     int numberOfIncomingSettingsProcessedLeadOff;
@@ -92,7 +92,7 @@ public:
     boolean useAux;
     void initialize(void);
     void printAllRegisters(void);
-    byte sendChannelData(void); // send the current data with sample number
+    void sendChannelData(void); // send the current data with sample number
 
 
 // ADS1299
