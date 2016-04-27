@@ -8,13 +8,13 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 
 */
 
-#include "OpenBCI_32bit.h"
+#include "OpenBCI_32bit_Library.h"
 
 /***************************************************/
 /** PUBLIC METHODS *********************************/
 /***************************************************/
 // CONSTRUCTOR
-OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
+OpenBCI_32bit_Library_Class::OpenBCI_32bit_Library_Class() {
     boardType = OUTPUT_NOTHING;
     daisyPresent = false;
     streaming = false;
@@ -32,7 +32,7 @@ OpenBCI_32bit_Class::OpenBCI_32bit_Class() {
 * @description: The function the OpenBCI board will call in setup
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::begin(void) {
+void OpenBCI_32bit_Library_Class::begin(void) {
     // Bring the board up
     boardBegin();// ? ledFlash(2) : ledFlash(10);
 }
@@ -41,7 +41,7 @@ void OpenBCI_32bit_Class::begin(void) {
 * @description: The function the OpenBCI board will call in setup
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::beginDebug(void) {
+void OpenBCI_32bit_Library_Class::beginDebug(void) {
     // Bring the board up
     boolean started = boardBeginDebug();
 
@@ -63,7 +63,7 @@ void OpenBCI_32bit_Class::beginDebug(void) {
 * @description: called in every loop function
 * @return: [boolean] - If there is data ready to be read
 */
-boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
+boolean OpenBCI_32bit_Library_Class::isSerialAvailableForRead(void) {
     if (Serial0.available()) {
         return true;
     } else {
@@ -76,7 +76,7 @@ boolean OpenBCI_32bit_Class::isSerialAvailableForRead(void) {
 *                 the data is not recognized
 * @return: [char] - The character's not processed
 */
-char OpenBCI_32bit_Class::readOneSerialChar(void) {
+char OpenBCI_32bit_Library_Class::readOneSerialChar(void) {
     if (Serial0.available()) {
         return Serial0.read();
     }
@@ -87,7 +87,7 @@ char OpenBCI_32bit_Class::readOneSerialChar(void) {
 * @param data [char *] - The data you want to send
 * @author AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
+void OpenBCI_32bit_Library_Class::writeSerial(char *data, int len) {
     for (int i = 0; i < len; i++) {
         Serial0.write(data[i]);
     }
@@ -97,7 +97,7 @@ void OpenBCI_32bit_Class::writeSerial(char *data, int len) {
  * @description Process one char at a time from serial port
  * @return {bool} - True if the command was recognized, false if not
  */
-boolean OpenBCI_32bit_Class::processChar(char character) {
+boolean OpenBCI_32bit_Library_Class::processChar(char character) {
     if (sniffMode && Serial1) {
         Serial1.print("pC: "); Serial1.println(character);
     }
@@ -311,7 +311,7 @@ boolean OpenBCI_32bit_Class::processChar(char character) {
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Class::boardBegin(void) {
+boolean OpenBCI_32bit_Library_Class::boardBegin(void) {
     // Initalize the serial port baud rate
     Serial0.begin(OPENBCI_BAUD_RATE);
 
@@ -332,7 +332,7 @@ boolean OpenBCI_32bit_Class::boardBegin(void) {
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Class::boardBeginDebug(void) {
+boolean OpenBCI_32bit_Library_Class::boardBeginDebug(void) {
     // Initalize the serial port baud rate
     Serial0.begin(OPENBCI_BAUD_RATE);
 
@@ -354,7 +354,7 @@ boolean OpenBCI_32bit_Class::boardBeginDebug(void) {
 *                 many times.
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::boardReset(void) {
+void OpenBCI_32bit_Library_Class::boardReset(void) {
     initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
     delay(500);
 
@@ -373,13 +373,13 @@ void OpenBCI_32bit_Class::boardReset(void) {
 * @description: Simple method to send the EOT over serial...
 * @author: AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::sendEOT(void) {
+void OpenBCI_32bit_Library_Class::sendEOT(void) {
     Serial0.print("$$$");
 }
 
 
 
-void OpenBCI_32bit_Class::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
+void OpenBCI_32bit_Library_Class::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
 {
     boolean wasStreaming = streaming;
 
@@ -405,7 +405,7 @@ void OpenBCI_32bit_Class::activateAllChannelsToTestCondition(byte testInputCode,
  *                  remaining 4 bytes.
  * @param `character` - {char} - The character you want to process...
  */
-void OpenBCI_32bit_Class::processIncomingLeadOffSettings(char character) {
+void OpenBCI_32bit_Library_Class::processIncomingLeadOffSettings(char character) {
 
 
     switch (numberOfIncomingSettingsProcessedLeadOff) {
@@ -459,7 +459,7 @@ void OpenBCI_32bit_Class::processIncomingLeadOffSettings(char character) {
  *                  where we continue to read from the serial port and read the
  *                  remaining 7 bytes.
  */
-void OpenBCI_32bit_Class::processIncomingChannelSettings(char character) {
+void OpenBCI_32bit_Library_Class::processIncomingChannelSettings(char character) {
 
     switch (numberOfIncomingSettingsProcessedChannel) {
         case 1: // channel number
@@ -521,7 +521,7 @@ void OpenBCI_32bit_Class::processIncomingChannelSettings(char character) {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-void OpenBCI_32bit_Class::initialize(){
+void OpenBCI_32bit_Library_Class::initialize(){
     pinMode(SD_SS,OUTPUT); digitalWrite(SD_SS,HIGH);  // de-select SDcard if present
     pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
     pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
@@ -533,7 +533,7 @@ void OpenBCI_32bit_Class::initialize(){
     initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
 }
 
-void OpenBCI_32bit_Class::printAllRegisters(){
+void OpenBCI_32bit_Library_Class::printAllRegisters(){
     if(!isRunning){
         Serial0.println("\nBoard ADS Registers");
         printADSregisters(BOARD_ADS);
@@ -549,7 +549,7 @@ void OpenBCI_32bit_Class::printAllRegisters(){
 /**
  * @description Writes channel data, aux data, and footer to serial port
  */
-void OpenBCI_32bit_Class::sendChannelData(){
+void OpenBCI_32bit_Library_Class::sendChannelData(){
 
     Serial0.print("A");
 
@@ -571,7 +571,7 @@ void OpenBCI_32bit_Class::sendChannelData(){
     sampleCounter++;
 }
 
-void OpenBCI_32bit_Class::writeAuxData(){
+void OpenBCI_32bit_Library_Class::writeAuxData(){
     for(int i=0; i<3; i++){
         Serial0.write(highByte(auxData[i])); // write 16 bit axis data MSB first
         Serial0.write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
@@ -580,7 +580,7 @@ void OpenBCI_32bit_Class::writeAuxData(){
 }
 
 //SPI communication method
-byte OpenBCI_32bit_Class::xfer(byte _data)
+byte OpenBCI_32bit_Library_Class::xfer(byte _data)
 {
     byte inByte;
     inByte = spi.transfer(_data);
@@ -588,7 +588,7 @@ byte OpenBCI_32bit_Class::xfer(byte _data)
 }
 
 //SPI chip select method
-void OpenBCI_32bit_Class::csLow(int SS)
+void OpenBCI_32bit_Library_Class::csLow(int SS)
 { // select an SPI slave to talk to
     switch(SS){
         case BOARD_ADS:
@@ -622,7 +622,7 @@ void OpenBCI_32bit_Class::csLow(int SS)
     }
 }
 
-void OpenBCI_32bit_Class::csHigh(int SS)
+void OpenBCI_32bit_Library_Class::csHigh(int SS)
 { // deselect SPI slave
     switch(SS){
         case BOARD_ADS:
@@ -656,7 +656,7 @@ void OpenBCI_32bit_Class::csHigh(int SS)
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  ADS1299 FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-void OpenBCI_32bit_Class::initialize_ads(){
+void OpenBCI_32bit_Library_Class::initialize_ads(){
 // recommended power up sequence requiers >Tpor (~32mS)
     delay(50);
     pinMode(ADS_RST,OUTPUT);
@@ -718,7 +718,7 @@ void OpenBCI_32bit_Class::initialize_ads(){
 * @param channelNumber int the channel you want to change
 * @author AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::streamSafeChannelActivate(byte channelNumber) {
+void OpenBCI_32bit_Library_Class::streamSafeChannelActivate(byte channelNumber) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -740,7 +740,7 @@ void OpenBCI_32bit_Class::streamSafeChannelActivate(byte channelNumber) {
 * @param channelNumber int the channel you want to change
 * @author AJ Keller (@pushtheworldllc)
 */
-void OpenBCI_32bit_Class::streamSafeChannelDeactivate(byte channelNumber){
+void OpenBCI_32bit_Library_Class::streamSafeChannelDeactivate(byte channelNumber){
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -764,7 +764,7 @@ void OpenBCI_32bit_Class::streamSafeChannelDeactivate(byte channelNumber){
  * @param `nInput` - [byte] - Apply signal to N input, either ON (1) or OFF (0)
  * @author AJ Keller (@pushtheworldllc)
  */
-void OpenBCI_32bit_Class::streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
+void OpenBCI_32bit_Library_Class::streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -787,7 +787,7 @@ void OpenBCI_32bit_Class::streamSafeLeadOffSetForChannel(byte channelNumber, byt
  * @param see `.channelSettingsSetForChannel()` for parameters
  * @author AJ Keller (@pushtheworldllc)
  */
-void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
+void OpenBCI_32bit_Library_Class::streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -810,7 +810,7 @@ void OpenBCI_32bit_Class::streamSafeChannelSettingsForChannel(byte channelNumber
  *                  if running must stop and start after...
  * @author AJ Keller (@pushtheworldllc)
  */
-void OpenBCI_32bit_Class::streamSafeReportAllChannelDefaults(void) {
+void OpenBCI_32bit_Library_Class::streamSafeReportAllChannelDefaults(void) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -831,7 +831,7 @@ void OpenBCI_32bit_Class::streamSafeReportAllChannelDefaults(void) {
  *                  channel settings if running must stop and start after...
  * @author AJ Keller (@pushtheworldllc)
  */
-void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
+void OpenBCI_32bit_Library_Class::streamSafeSetAllChannelsToDefault(void) {
     boolean wasStreaming = streaming;
 
     // Stop streaming if you are currently streaming
@@ -851,7 +851,7 @@ void OpenBCI_32bit_Class::streamSafeSetAllChannelsToDefault(void) {
 * @description Call this to start the streaming data from the ADS1299
 * @returns boolean if able to start streaming
 */
-void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
+void OpenBCI_32bit_Library_Class::streamStart(){  // needs daisy functionality
     streaming = true;
     startADS();
     if (sniffMode && Serial1) {
@@ -863,7 +863,7 @@ void OpenBCI_32bit_Class::streamStart(){  // needs daisy functionality
 * @description Call this to stop streaming from the ADS1299
 * @returns boolean if able to stop streaming
 */
-void OpenBCI_32bit_Class::streamStop(){
+void OpenBCI_32bit_Library_Class::streamStop(){
     streaming = false;
     stopADS();
     if (sniffMode && Serial1) {
@@ -875,7 +875,7 @@ void OpenBCI_32bit_Class::streamStop(){
 //////////////////////////////////////////////
 ////////////// DAISY METHODS /////////////////
 //////////////////////////////////////////////
-boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
+boolean OpenBCI_32bit_Library_Class::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
     if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX);}
@@ -883,7 +883,7 @@ boolean OpenBCI_32bit_Class::smellDaisy(void){ // check if daisy present
     return isDaisy;
 }
 
-void OpenBCI_32bit_Class::removeDaisy(void){
+void OpenBCI_32bit_Library_Class::removeDaisy(void){
     if(daisyPresent){
         SDATAC(DAISY_ADS);
         RESET(DAISY_ADS);
@@ -895,7 +895,7 @@ void OpenBCI_32bit_Class::removeDaisy(void){
     }
 }
 
-void OpenBCI_32bit_Class::attachDaisy(void){
+void OpenBCI_32bit_Library_Class::attachDaisy(void){
     WREG(CONFIG1,0xB6,BOARD_ADS); // tell on-board ADS to output the clk, set the data rate to 250SPS
     delay(40);
     resetADS(DAISY_ADS); // software reset daisy module if present
@@ -912,7 +912,7 @@ void OpenBCI_32bit_Class::attachDaisy(void){
 }
 
 //reset all the ADS1299's settings. Stops all data acquisition
-void OpenBCI_32bit_Class::resetADS(int targetSS)
+void OpenBCI_32bit_Library_Class::resetADS(int targetSS)
 {
     int startChan, stopChan;
     if(targetSS == BOARD_ADS) {startChan = 1; stopChan = 8;}
@@ -926,7 +926,7 @@ void OpenBCI_32bit_Class::resetADS(int targetSS)
     }
 }
 
-void OpenBCI_32bit_Class::setChannelsToDefault(void){
+void OpenBCI_32bit_Library_Class::setChannelsToDefault(void){
   for(int i=0; i<numChannels; i++){
     for(int j=0; j<6; j++){
       channelSettings[i][j] = defaultChannelSettings[j];
@@ -949,7 +949,7 @@ void OpenBCI_32bit_Class::setChannelsToDefault(void){
   if(daisyPresent){ WREG(MISC1,0x00,DAISY_ADS); } // open SRB1 switch on-daisy
 }
 
-// void OpenBCI_32bit_Class::setChannelsToDefault(void){
+// void OpenBCI_32bit_Library_Class::setChannelsToDefault(void){
 
 //     // Reset the global channel settings array to default
 //     resetChannelSettingsArrayToDefault(channelSettings);
@@ -970,7 +970,7 @@ void OpenBCI_32bit_Class::setChannelsToDefault(void){
 /**
  * @description Writes the default channel settings over the serial port
  */
-void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
+void OpenBCI_32bit_Library_Class::reportDefaultChannelSettings(void){
     Serial0.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
     Serial0.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
     Serial0.write(getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET)); // input muxer setting
@@ -983,7 +983,7 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
  * @description Set all channels using global channelSettings array
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::channelSettingsArraySetForAll(void) {
+// void OpenBCI_32bit_Library_Class::channelSettingsArraySetForAll(void) {
 //     byte channelNumberUpperLimit;
 
 //     // The upper limit of the channels, either 8 or 16
@@ -1001,7 +1001,7 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
  * @param `channelNumber` - [byte] - 1-16 channel number
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::channelSettingsArraySetForChannel(byte channelNumber) {
+// void OpenBCI_32bit_Library_Class::channelSettingsArraySetForChannel(byte channelNumber) {
 //     // contstrain the channel number to 0-15
 //     char index = getConstrainedChannelNumber(channelNumber);
 
@@ -1045,7 +1045,7 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
  *              and disconnects all N inputs from the ADC.
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::channelSettingsSetForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
+// void OpenBCI_32bit_Library_Class::channelSettingsSetForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1) {
 //     byte setting, targetSS;
 
 //     // contstrain the channel number to 0-15
@@ -1137,7 +1137,7 @@ void OpenBCI_32bit_Class::reportDefaultChannelSettings(void){
 
 // write settings for ALL 8 channels for a given ADS board
 // channel settings: powerDown, gain, inputType, SRB2, SRB1
-void OpenBCI_32bit_Class::writeChannelSettings(){
+void OpenBCI_32bit_Library_Class::writeChannelSettings(){
   boolean use_SRB1 = false;
   byte setting, startChan, endChan, targetSS;
 
@@ -1203,7 +1203,7 @@ void OpenBCI_32bit_Class::writeChannelSettings(){
 }
 
 // write settings for a SPECIFIC channel on a given ADS board
-void OpenBCI_32bit_Class::writeChannelSettings(byte N){
+void OpenBCI_32bit_Library_Class::writeChannelSettings(byte N){
 
   byte setting, startChan, endChan, targetSS;
   if(N < 9){  // channels 1-8 on board
@@ -1268,7 +1268,7 @@ void OpenBCI_32bit_Class::writeChannelSettings(byte N){
 }
 
 //  deactivate the given channel.
-void OpenBCI_32bit_Class::deactivateChannel(byte N)
+void OpenBCI_32bit_Library_Class::deactivateChannel(byte N)
 {
   byte setting, startChan, endChan, targetSS;
   if(N < 9){
@@ -1298,7 +1298,7 @@ void OpenBCI_32bit_Class::deactivateChannel(byte N)
   changeChannelLeadOffDetect(N+1);
 }
 
-void OpenBCI_32bit_Class::activateChannel(byte N)
+void OpenBCI_32bit_Library_Class::activateChannel(byte N)
 {
     byte setting, startChan, endChan, targetSS;
   if(N < 9){
@@ -1344,7 +1344,7 @@ void OpenBCI_32bit_Class::activateChannel(byte N)
 }
 
 // change the lead off detect settings for all channels
-void OpenBCI_32bit_Class::changeChannelLeadOffDetect()
+void OpenBCI_32bit_Library_Class::changeChannelLeadOffDetect()
 {
   byte setting, startChan, endChan, targetSS;
 
@@ -1377,7 +1377,7 @@ void OpenBCI_32bit_Class::changeChannelLeadOffDetect()
 }
 
 // change the lead off detect settings for specified channel
-void OpenBCI_32bit_Class::changeChannelLeadOffDetect(byte N)
+void OpenBCI_32bit_Library_Class::changeChannelLeadOffDetect(byte N)
 {
   byte setting, targetSS, startChan, endChan;
 
@@ -1407,7 +1407,7 @@ void OpenBCI_32bit_Class::changeChannelLeadOffDetect(byte N)
    WREG(LOFF_SENSN,N_setting,targetSS);
 }
 
-void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte freqCode)
+void OpenBCI_32bit_Library_Class::configureLeadOffDetection(byte amplitudeCode, byte freqCode)
 {
     amplitudeCode &= 0b00001100;  //only these two bits should be used
     freqCode &= 0b00000011;  //only these two bits should be used
@@ -1430,7 +1430,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
 }
 
 // //  deactivate the given channel.
-// void OpenBCI_32bit_Class::deactivateChannel(byte N)
+// void OpenBCI_32bit_Library_Class::deactivateChannel(byte N)
 // {
 //     byte setting, startChan, endChan, targetSS;
 //     if(N < 9){
@@ -1460,7 +1460,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
 //     leadOffSetForChannel(N+1, NO, NO);
 // }
 
-// void OpenBCI_32bit_Class::activateChannel(byte N)
+// void OpenBCI_32bit_Library_Class::activateChannel(byte N)
 // {
 //     byte setting, startChan, endChan, targetSS;
 //     if(N < 9){
@@ -1514,7 +1514,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
  *                  the lead off signals for all inputs of all channels.
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::leadOffSetForAllChannels(void) {
+// void OpenBCI_32bit_Library_Class::leadOffSetForAllChannels(void) {
 //     byte channelNumberUpperLimit;
 
 //     // The upper limit of the channels, either 8 or 16
@@ -1533,7 +1533,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
  * @param `nInput` - [byte] - Apply signal to N input, either ON (1) or OFF (0)
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
+// void OpenBCI_32bit_Library_Class::leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput) {
 
 //     // contstrain the channel number to 0-15
 //     channelNumber = getConstrainedChannelNumber(channelNumber);
@@ -1584,7 +1584,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
  *                 See `.setleadOffForSS()` for complete description
  * @author AJ Keller (@pushtheworldllc)
  */
-// void OpenBCI_32bit_Class::leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode)
+// void OpenBCI_32bit_Library_Class::leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode)
 // {
 //     // Set the lead off detection for the on board ADS
 //     leadOffConfigureSignalForTargetSS(BOARD_ADS, amplitudeCode, freqCode);
@@ -1611,7 +1611,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
  *          LOFF_FREQ_FS_4      (0b00000011)
  * @author Joel/Leif/Conor (@OpenBCI) Summer 2014
  */
-// void OpenBCI_32bit_Class::leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode) {
+// void OpenBCI_32bit_Library_Class::leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode) {
 //     byte setting;
 
 //     amplitudeCode &= 0b00001100;  //only these two bits should be used
@@ -1627,7 +1627,7 @@ void OpenBCI_32bit_Class::configureLeadOffDetection(byte amplitudeCode, byte fre
 // }
 
 //Configure the test signals that can be inernally generated by the ADS1299
-void OpenBCI_32bit_Class::configureInternalTestSignal(byte amplitudeCode, byte freqCode)
+void OpenBCI_32bit_Library_Class::configureInternalTestSignal(byte amplitudeCode, byte freqCode)
 {
     byte setting, targetSS;
     for(int i=0; i<2; i++){
@@ -1649,7 +1649,7 @@ void OpenBCI_32bit_Class::configureInternalTestSignal(byte amplitudeCode, byte f
     }
 }
 
-void OpenBCI_32bit_Class::changeInputType(byte inputCode){
+void OpenBCI_32bit_Library_Class::changeInputType(byte inputCode){
 
     for(int i=0; i<numChannels; i++){
         channelSettings[i][INPUT_TYPE_SET] = inputCode;
@@ -1662,7 +1662,7 @@ void OpenBCI_32bit_Class::changeInputType(byte inputCode){
 }
 
 // Start continuous data acquisition
-void OpenBCI_32bit_Class::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
+void OpenBCI_32bit_Library_Class::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 {
     sampleCounter = 0;
     firstDataPacket = true;
@@ -1677,17 +1677,17 @@ void OpenBCI_32bit_Class::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
  * @description Query to see if data is available from the ADS1299...
  * @return - [bool] - TRUE if data is available
  */
-boolean OpenBCI_32bit_Class::isADSDataAvailable(void) {
+boolean OpenBCI_32bit_Library_Class::isADSDataAvailable(void) {
     return (!(digitalRead(ADS_DRDY)));
 }
 
 // CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
-void OpenBCI_32bit_Class::updateChannelData(){
+void OpenBCI_32bit_Library_Class::updateChannelData(){
     updateBoardData();
     if(daisyPresent) {updateDaisyData();}
 }
 
-void OpenBCI_32bit_Class::updateBoardData(){
+void OpenBCI_32bit_Library_Class::updateBoardData(){
     byte inByte;
     int byteCounter = 0;
 
@@ -1738,7 +1738,7 @@ void OpenBCI_32bit_Class::updateBoardData(){
     }
 }
 
-void OpenBCI_32bit_Class::updateDaisyData(){
+void OpenBCI_32bit_Library_Class::updateDaisyData(){
     byte inByte;
     int byteCounter = 0;
 
@@ -1789,7 +1789,7 @@ void OpenBCI_32bit_Class::updateDaisyData(){
 }
 
 // Stop the continuous data acquisition
-void OpenBCI_32bit_Class::stopADS()
+void OpenBCI_32bit_Library_Class::stopADS()
 {
     STOP(BOTH_ADS);     // stop the data acquisition
     delay(1);
@@ -1800,7 +1800,7 @@ void OpenBCI_32bit_Class::stopADS()
 
 
 //write as binary each channel's data
-void OpenBCI_32bit_Class::ADS_writeChannelData()
+void OpenBCI_32bit_Library_Class::ADS_writeChannelData()
 {
 
   if(daisyPresent){
@@ -1822,7 +1822,7 @@ void OpenBCI_32bit_Class::ADS_writeChannelData()
 
 
 //print out the state of all the control registers
-void OpenBCI_32bit_Class::printADSregisters(int targetSS)
+void OpenBCI_32bit_Library_Class::printADSregisters(int targetSS)
 {
     boolean prevverbosityState = verbosity;
     verbosity = true;						// set up for verbosity output
@@ -1832,7 +1832,7 @@ void OpenBCI_32bit_Class::printADSregisters(int targetSS)
     verbosity = prevverbosityState;
 }
 
-byte OpenBCI_32bit_Class::ADS_getDeviceID(int targetSS) {      // simple hello world com check
+byte OpenBCI_32bit_Library_Class::ADS_getDeviceID(int targetSS) {      // simple hello world com check
     byte data = RREG(ID_REG,targetSS);
     if(verbosity){            // verbosity otuput
         Serial0.print("On Board ADS ID ");
@@ -1842,45 +1842,45 @@ byte OpenBCI_32bit_Class::ADS_getDeviceID(int targetSS) {      // simple hello w
 }
 
 //System Commands
-void OpenBCI_32bit_Class::WAKEUP(int targetSS) {
+void OpenBCI_32bit_Library_Class::WAKEUP(int targetSS) {
     csLow(targetSS);
     xfer(_WAKEUP);
     csHigh(targetSS);
     delayMicroseconds(3);     //must wait 4 tCLK cycles before sending another command (Datasheet, pg. 35)
 }
 
-void OpenBCI_32bit_Class::STANDBY(int targetSS) {    // only allowed to send WAKEUP after sending STANDBY
+void OpenBCI_32bit_Library_Class::STANDBY(int targetSS) {    // only allowed to send WAKEUP after sending STANDBY
     csLow(targetSS);
     xfer(_STANDBY);
     csHigh(targetSS);
 }
 
-void OpenBCI_32bit_Class::RESET(int targetSS) {      // reset all the registers to default settings
+void OpenBCI_32bit_Library_Class::RESET(int targetSS) {      // reset all the registers to default settings
     csLow(targetSS);
     xfer(_RESET);
     delayMicroseconds(12);    //must wait 18 tCLK cycles to execute this command (Datasheet, pg. 35)
     csHigh(targetSS);
 }
 
-void OpenBCI_32bit_Class::START(int targetSS) {      //start data conversion
+void OpenBCI_32bit_Library_Class::START(int targetSS) {      //start data conversion
     csLow(targetSS);
     xfer(_START);           // KEEP ON-BOARD AND ON-DAISY IN SYNC
     csHigh(targetSS);
 }
 
-void OpenBCI_32bit_Class::STOP(int targetSS) {     //stop data conversion
+void OpenBCI_32bit_Library_Class::STOP(int targetSS) {     //stop data conversion
     csLow(targetSS);
     xfer(_STOP);            // KEEP ON-BOARD AND ON-DAISY IN SYNC
     csHigh(targetSS);
 }
 
-void OpenBCI_32bit_Class::RDATAC(int targetSS) {
+void OpenBCI_32bit_Library_Class::RDATAC(int targetSS) {
     csLow(targetSS);
     xfer(_RDATAC);      // read data continuous
     csHigh(targetSS);
     delayMicroseconds(3);
 }
-void OpenBCI_32bit_Class::SDATAC(int targetSS) {
+void OpenBCI_32bit_Library_Class::SDATAC(int targetSS) {
     csLow(targetSS);
     xfer(_SDATAC);
     csHigh(targetSS);
@@ -1889,7 +1889,7 @@ void OpenBCI_32bit_Class::SDATAC(int targetSS) {
 
 
 //  THIS NEEDS CLEANING AND UPDATING TO THE NEW FORMAT
-void OpenBCI_32bit_Class::RDATA(int targetSS) {          //  use in Stop Read Continuous mode when DRDY goes low
+void OpenBCI_32bit_Library_Class::RDATA(int targetSS) {          //  use in Stop Read Continuous mode when DRDY goes low
     byte inByte;            //  to read in one sample of the channels
     csLow(targetSS);        //  open SPI
     xfer(_RDATA);         //  send the RDATA command
@@ -1931,7 +1931,7 @@ csHigh(targetSS);        //  close SPI
 
 }
 
-byte OpenBCI_32bit_Class::RREG(byte _address,int targetSS) {    //  reads ONE register at _address
+byte OpenBCI_32bit_Library_Class::RREG(byte _address,int targetSS) {    //  reads ONE register at _address
     byte opcode1 = _address + 0x20;   //  RREG expects 001rrrrr where rrrrr = _address
     csLow(targetSS);        //  open SPI
     xfer(opcode1);          //  opcode1
@@ -1956,7 +1956,7 @@ byte OpenBCI_32bit_Class::RREG(byte _address,int targetSS) {    //  reads ONE re
 
 
 // Read more than one register starting at _address
-void OpenBCI_32bit_Class::RREGS(byte _address, byte _numRegistersMinusOne, int targetSS) {
+void OpenBCI_32bit_Library_Class::RREGS(byte _address, byte _numRegistersMinusOne, int targetSS) {
 
     byte opcode1 = _address + 0x20;   //  RREG expects 001rrrrr where rrrrr = _address
     csLow(targetSS);        //  open SPI
@@ -1983,7 +1983,7 @@ void OpenBCI_32bit_Class::RREGS(byte _address, byte _numRegistersMinusOne, int t
     }
 }
 
-void OpenBCI_32bit_Class::WREG(byte _address, byte _value, int target_SS) { //  Write ONE register at _address
+void OpenBCI_32bit_Library_Class::WREG(byte _address, byte _value, int target_SS) { //  Write ONE register at _address
     byte opcode1 = _address + 0x40;   //  WREG expects 010rrrrr where rrrrr = _address
     csLow(target_SS);        //  open SPI
     xfer(opcode1);          //  Send WREG command & address
@@ -1998,7 +1998,7 @@ void OpenBCI_32bit_Class::WREG(byte _address, byte _value, int target_SS) { //  
     }
 }
 
-void OpenBCI_32bit_Class::WREGS(byte _address, byte _numRegistersMinusOne, int targetSS) {
+void OpenBCI_32bit_Library_Class::WREGS(byte _address, byte _numRegistersMinusOne, int targetSS) {
     byte opcode1 = _address + 0x40;   //  WREG expects 010rrrrr where rrrrr = _address
     csLow(targetSS);        //  open SPI
     xfer(opcode1);          //  Send WREG command & address
@@ -2021,7 +2021,7 @@ void OpenBCI_32bit_Class::WREGS(byte _address, byte _numRegistersMinusOne, int t
 // <<<<<<<<<<<<<<<<<<<<<<<<<  LIS3DH FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-void OpenBCI_32bit_Class::initialize_accel(byte g){
+void OpenBCI_32bit_Library_Class::initialize_accel(byte g){
     byte setting =  g | 0x08;           // mask the g range for REG4
     pinMode(LIS3DH_DRDY,INPUT);   // setup dataReady interupt from accelerometer
     LIS3DH_write(TMP_CFG_REG, 0x00);  // DISable ADC inputs, enable temperature sensor
@@ -2035,7 +2035,7 @@ void OpenBCI_32bit_Class::initialize_accel(byte g){
     DRDYpinValue = lastDRDYpinValue = digitalRead(LIS3DH_DRDY);  // take a reading to seed these variables
 }
 
-void OpenBCI_32bit_Class::enable_accel(byte Hz){
+void OpenBCI_32bit_Library_Class::enable_accel(byte Hz){
     for(int i=0; i<3; i++){
         axisData[i] = 0;            // clear the axisData array so we don't get any stale news
     }
@@ -2044,22 +2044,22 @@ void OpenBCI_32bit_Class::enable_accel(byte Hz){
     LIS3DH_write(CTRL_REG3, 0x10);      // enable DRDY1 on INT1 (tied to PIC pin 0, LIS3DH_DRDY)
 }
 
-void OpenBCI_32bit_Class::disable_accel(){
+void OpenBCI_32bit_Library_Class::disable_accel(){
     LIS3DH_write(CTRL_REG1, 0x08);      // power down, low power mode
     LIS3DH_write(CTRL_REG3, 0x00);      // disable DRDY1 on INT1
 }
 
-byte OpenBCI_32bit_Class::LIS3DH_getDeviceID(){
+byte OpenBCI_32bit_Library_Class::LIS3DH_getDeviceID(){
     return LIS3DH_read(WHO_AM_I);
 }
 
-boolean OpenBCI_32bit_Class::LIS3DH_DataAvailable(){
+boolean OpenBCI_32bit_Library_Class::LIS3DH_DataAvailable(){
     boolean x = false;
     if((LIS3DH_read(STATUS_REG2) & 0x08) > 0) x = true;  // read STATUS_REG
     return x;
 }
 
-boolean OpenBCI_32bit_Class::LIS3DH_DataReady(){
+boolean OpenBCI_32bit_Library_Class::LIS3DH_DataReady(){
     boolean r = false;
     DRDYpinValue = digitalRead(LIS3DH_DRDY);  // take a look at LIS3DH_DRDY pin
     if(DRDYpinValue != lastDRDYpinValue){     // if the value has changed since last looking
@@ -2071,7 +2071,7 @@ boolean OpenBCI_32bit_Class::LIS3DH_DataReady(){
     return r;
 }
 
-void OpenBCI_32bit_Class::LIS3DH_writeAxisData(void){
+void OpenBCI_32bit_Library_Class::LIS3DH_writeAxisData(void){
     for(int i=0; i<3; i++){
         Serial0.write(highByte(axisData[i])); // write 16 bit axis data MSB first
         Serial0.write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
@@ -2079,7 +2079,7 @@ void OpenBCI_32bit_Class::LIS3DH_writeAxisData(void){
     }
 }
 
-byte OpenBCI_32bit_Class::LIS3DH_read(byte reg){
+byte OpenBCI_32bit_Library_Class::LIS3DH_read(byte reg){
     reg |= READ_REG;                    // add the READ_REG bit
     csLow(LIS3DH_SS);                   // take spi
     spi.transfer(reg);                  // send reg to read
@@ -2088,14 +2088,14 @@ byte OpenBCI_32bit_Class::LIS3DH_read(byte reg){
     return inByte;
 }
 
-void OpenBCI_32bit_Class::LIS3DH_write(byte reg, byte value){
+void OpenBCI_32bit_Library_Class::LIS3DH_write(byte reg, byte value){
     csLow(LIS3DH_SS);         // take spi
     spi.transfer(reg);        // send reg to write
     spi.transfer(value);      // write value
     csHigh(LIS3DH_SS);        // release spi
 }
 
-int OpenBCI_32bit_Class::LIS3DH_read16(byte reg){    // use for reading axis data.
+int OpenBCI_32bit_Library_Class::LIS3DH_read16(byte reg){    // use for reading axis data.
     int inData;
     reg |= READ_REG | READ_MULTI;   // add the READ_REG and READ_MULTI bits
     csLow(LIS3DH_SS);               // take spi
@@ -2105,25 +2105,25 @@ int OpenBCI_32bit_Class::LIS3DH_read16(byte reg){    // use for reading axis dat
     return inData;
 }
 
-int OpenBCI_32bit_Class::getX(){
+int OpenBCI_32bit_Library_Class::getX(){
     return LIS3DH_read16(OUT_X_L);
 }
 
-int OpenBCI_32bit_Class::getY(){
+int OpenBCI_32bit_Library_Class::getY(){
     return LIS3DH_read16(OUT_Y_L);
 }
 
-int OpenBCI_32bit_Class::getZ(){
+int OpenBCI_32bit_Library_Class::getZ(){
     return LIS3DH_read16(OUT_Z_L);
 }
 
-void OpenBCI_32bit_Class::LIS3DH_updateAxisData(){
+void OpenBCI_32bit_Library_Class::LIS3DH_updateAxisData(){
     axisData[0] = getX();
     axisData[1] = getY();
     axisData[2] = getZ();
 }
 
-void OpenBCI_32bit_Class::LIS3DH_readAllRegs(){
+void OpenBCI_32bit_Library_Class::LIS3DH_readAllRegs(){
 
     byte inByte;
 
@@ -2160,7 +2160,7 @@ void OpenBCI_32bit_Class::LIS3DH_readAllRegs(){
 
 
 // String-Byte converters for ADS
-void OpenBCI_32bit_Class::printRegisterName(byte _address) {
+void OpenBCI_32bit_Library_Class::printRegisterName(byte _address) {
     switch(_address){
         case ID_REG:
         Serial0.print("ADS_ID, "); break;
@@ -2216,7 +2216,7 @@ void OpenBCI_32bit_Class::printRegisterName(byte _address) {
 }
 
 // Used for printing HEX in verbosity feedback mode
-void OpenBCI_32bit_Class::printHex(byte _data){
+void OpenBCI_32bit_Library_Class::printHex(byte _data){
     Serial0.print("0x");
     if(_data < 0x10) Serial0.print("0");
     Serial0.print(_data, HEX);
@@ -2228,7 +2228,7 @@ void OpenBCI_32bit_Class::printHex(byte _data){
  * @return [char] - Byte number value of acsii character, defaults to 0
  * @author AJ Keller (@pushtheworldllc)
  */
-char OpenBCI_32bit_Class::getChannelCommandForAsciiChar(char asciiChar) {
+char OpenBCI_32bit_Library_Class::getChannelCommandForAsciiChar(char asciiChar) {
     switch(asciiChar){
         case OPENBCI_CHANNEL_CMD_CHANNEL_1:
             return 0x00;
@@ -2273,7 +2273,7 @@ char OpenBCI_32bit_Class::getChannelCommandForAsciiChar(char asciiChar) {
  * @return [char] - Byte number value of acsii character, defaults to 0
  * @author AJ Keller (@pushtheworldllc)
  */
-char OpenBCI_32bit_Class::getYesOrNoForAsciiChar(char asciiChar) {
+char OpenBCI_32bit_Library_Class::getYesOrNoForAsciiChar(char asciiChar) {
     switch (asciiChar) {
         case '1':
             return ACTIVATE;
@@ -2289,7 +2289,7 @@ char OpenBCI_32bit_Class::getYesOrNoForAsciiChar(char asciiChar) {
  * @return [char] - Byte number value of acsii character, defaults to 0
  * @author AJ Keller (@pushtheworldllc)
  */
-char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
+char OpenBCI_32bit_Library_Class::getGainForAsciiChar(char asciiChar) {
 
     char output = 0x00;
 
@@ -2308,7 +2308,7 @@ char OpenBCI_32bit_Class::getGainForAsciiChar(char asciiChar) {
  * @return [char] - Byte number value of acsii character, defaults to 0
  * @author AJ Keller (@pushtheworldllc)
  */
-char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
+char OpenBCI_32bit_Library_Class::getNumberForAsciiChar(char asciiChar) {
     if (asciiChar < '0' || asciiChar > '9') {
         asciiChar = '0';
     }
@@ -2324,7 +2324,7 @@ char OpenBCI_32bit_Class::getNumberForAsciiChar(char asciiChar) {
  * @param `setting` - [byte] - The byte you need a setting for....
  * @returns - [byte] - Retuns the proper byte for the input setting, defualts to 0
  */
-byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
+byte OpenBCI_32bit_Library_Class::getDefaultChannelSettingForSetting(byte setting) {
     switch (setting) {
         case POWER_DOWN:
             return NO;
@@ -2347,7 +2347,7 @@ byte OpenBCI_32bit_Class::getDefaultChannelSettingForSetting(byte setting) {
  * @param `setting` - [byte] - The byte you need a setting for....
  * @returns - [char] - Retuns the proper ascii char for the input setting, defaults to '0'
  */
-char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) {
+char OpenBCI_32bit_Library_Class::getDefaultChannelSettingForSettingAscii(byte setting) {
     switch (setting) {
         case GAIN_SET: // Special case where GAIN_SET needs to be shifted first
             return (ADS_GAIN24 >> 4) + '0';
@@ -2362,7 +2362,7 @@ char OpenBCI_32bit_Class::getDefaultChannelSettingForSettingAscii(byte setting) 
  * @param `channelNumber` - [byte] - The channel number
  * @return [byte] - Constrained channel number
  */
-char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
+char OpenBCI_32bit_Library_Class::getConstrainedChannelNumber(byte channelNumber) {
     return constrain(channelNumber - 1, 0, OPENBCI_NUMBER_OF_CHANNELS_DAISY - 1);
 }
 
@@ -2371,7 +2371,7 @@ char OpenBCI_32bit_Class::getConstrainedChannelNumber(byte channelNumber) {
  * @param `channelNumber` - [byte] - The channel number
  * @return [byte] - Constrained channel number
  */
-char OpenBCI_32bit_Class::getTargetSSForConstrainedChannelNumber(byte channelNumber) {
+char OpenBCI_32bit_Library_Class::getTargetSSForConstrainedChannelNumber(byte channelNumber) {
     // Is channelNumber in the range of default [0,7]
     if (channelNumber < OPENBCI_NUMBER_OF_CHANNELS_DEFAULT) {
         return BOARD_ADS;
@@ -2385,7 +2385,7 @@ char OpenBCI_32bit_Class::getTargetSSForConstrainedChannelNumber(byte channelNum
  * @param `channelSettingsArray` - [byte **] - Takes a two dimensional array of
  *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 6 elements
  */
-void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]) {
+void OpenBCI_32bit_Library_Class::resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]) {
     // Loop through all channels
     for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
         channelSettingsArray[i][POWER_DOWN]     = getDefaultChannelSettingForSetting(POWER_DOWN);       // on = NO, off = YES
@@ -2407,7 +2407,7 @@ void OpenBCI_32bit_Class::resetChannelSettingsArrayToDefault(byte channelSetting
  * @param `channelSettingsArray` - [byte **] - A two dimensional array of
  *          length OPENBCI_NUMBER_OF_CHANNELS_DAISY by 2 elements
  */
-void OpenBCI_32bit_Class::resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]) {
+void OpenBCI_32bit_Library_Class::resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]) {
     // Loop through all channels
     for (int i = 0; i < OPENBCI_NUMBER_OF_CHANNELS_DAISY; i++) {
         leadOffArray[i][PCHAN] = OFF;
@@ -2415,4 +2415,4 @@ void OpenBCI_32bit_Class::resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI
     }
 }
 
-OpenBCI_32bit_Class board;
+OpenBCI_32bit_Library_Class board;

@@ -8,14 +8,14 @@
 
 #include <DSPI.h>
 #include <Arduino.h>
-#include "OpenBCI_32Bit_Definitions.h"
+#include "OpenBCI_32Bit_Library_Definitions.h"
 
 
-class OpenBCI_32bit_Class {
+class OpenBCI_32bit_Library_Class {
 
 public:
     // Start up functions
-    OpenBCI_32bit_Class();
+    OpenBCI_32bit_Library_Class();
     void begin(void);
     void beginDebug(void);
     char readOneSerialChar(void);
@@ -203,6 +203,6 @@ public:
 };
 
 // This let's us call into the class from within the library if necessary
-extern OpenBCI_32bit_Class board;
+extern OpenBCI_32bit_Library_Class board;
 
 #endif
