@@ -8,7 +8,7 @@
 
 #include <DSPI.h>
 #include <Arduino.h>
-#include "OpenBCI_32Bit_Library_Definitions.h"
+#include "OpenBCI_32bit_Library_Definitions.h"
 
 
 class OpenBCI_32bit_Library_Class {

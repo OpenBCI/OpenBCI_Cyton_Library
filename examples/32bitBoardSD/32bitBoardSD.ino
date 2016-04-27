@@ -1,11 +1,11 @@
 #include <DSPI.h>
 #include <EEPROM.h>
-#include <OpenBCI_32bit.h>
-#include <OpenBCI_32bit_Definitions.h>
+#include <OpenBCI_32bit_Library.h>
+#include <OpenBCI_32bit_Library_Definitions.h>
 
 void setup() {
   // Bring up the OpenBCI Board
-  board.beginDebug();
+  board.begin();
 }
 
 void loop() {
@@ -22,8 +22,6 @@ void loop() {
   if (board.isSerialAvailableForRead()) {
     char newChar = board.readOneSerialChar();
     boolean cmd_recognized = false;
-    // Send to SD first
-    sd.processChar(newChar);
     // Send to Board
     board.processChar(newChar);
   }
