@@ -62,6 +62,8 @@ public:
     void changeChannelLeadOffDetect(byte N);
     void configureLeadOffDetection(byte amplitudeCode, byte freqCode);
 
+    boolean waitForNewChannelData(void);
+
     // Variables
     boolean daisy;
     boolean sniffMode;

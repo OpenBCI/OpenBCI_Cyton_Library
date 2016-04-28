@@ -11,10 +11,18 @@ void setup() {
 void loop() {
   if (board.streaming) {
     // Wait for the ADS to signal it's ready with new data
-    while (!board.isADSDataAvailable()) {}
+    while (board.waitForNewChannelData()) {
+        // Could do tiny maintiance tasks here
+    }
 
     // Read from the ADS(s) and store data into
     board.updateChannelData();
+
+    // Check to see if accel has new data
+    if(board.LIS3DH_DataAvailable()){
+        // Get new accel data
+        board.LIS3DH_updateAxisData();
+    }
 
     // Verify the SD file is open
     if(SDfileOpen) {

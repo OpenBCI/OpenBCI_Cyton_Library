@@ -11,7 +11,7 @@ void setup() {
 void loop() {
   if (board.streaming) {
     // Wait for the ADS to signal it's ready with new data
-    while (!board.isADSDataAvailable()) {}
+    while (board.waitForNewChannelData()) {}
 
     // Read from the ADS(s) and store data into
     board.updateChannelData();

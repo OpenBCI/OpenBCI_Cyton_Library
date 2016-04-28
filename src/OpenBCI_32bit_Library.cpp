@@ -1684,6 +1684,14 @@ void OpenBCI_32bit_Library_Class::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
  * @description Query to see if data is available from the ADS1299...
  * @return - [bool] - TRUE if data is available
  */
+boolean OpenBCI_32bit_Library_Class::waitForNewChannelData(void) {
+    return !isADSDataAvailable();
+}
+
+/**
+ * @description Query to see if data is available from the ADS1299...
+ * @return - [bool] - TRUE if data is available
+ */
 boolean OpenBCI_32bit_Library_Class::isADSDataAvailable(void) {
     return (!(digitalRead(ADS_DRDY)));
 }

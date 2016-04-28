@@ -12,9 +12,11 @@ void setup() {
 
 void loop() {
 
+  // The main dependency of this single threaded microcontroller is to
+  //  stream data from the ADS.
   if (board.streaming) {
     // Wait for the ADS to signal it's ready with new data
-    while (!board.isADSDataAvailable()) {}
+    while (board.waitForNewChannelData()) {}
 
     // Read from the ADS(s) and store data into
     board.updateChannelData();
@@ -23,6 +25,9 @@ void loop() {
     if(board.LIS3DH_DataAvailable()){
         // Get new accel data
         board.LIS3DH_updateAxisData();
+
+        // Tell the SD_Card_Stuff.ino to add accel data in the next write to SD
+        addAccelToSD = true;
     }
 
     // Send standard packet with channel data and accel data
