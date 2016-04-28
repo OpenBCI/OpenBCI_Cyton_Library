@@ -885,13 +885,20 @@ boolean OpenBCI_32bit_Library_Class::smellDaisy(void){ // check if daisy present
 
 void OpenBCI_32bit_Library_Class::removeDaisy(void){
     if(daisyPresent){
+        // Daisy removed
         SDATAC(DAISY_ADS);
         RESET(DAISY_ADS);
         STANDBY(DAISY_ADS);
         daisyPresent = false;
-        if(!isRunning) Serial0.println("daisy removed");
+        if(!isRunning) {
+            Serial0.println("daisy removed");
+            sendEOT();
+        }
     }else{
-        if(!isRunning) Serial0.println("no daisy to remove!");
+        if(!isRunning) {
+            Serial0.println("no daisy to remove!");
+            sendEOT();
+        }
     }
 }
 

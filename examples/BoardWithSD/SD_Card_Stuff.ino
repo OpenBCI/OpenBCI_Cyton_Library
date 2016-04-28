@@ -48,7 +48,7 @@ prog_char stopStamp[] PROGMEM = {  "%STOP AT\n"};      // used to stamp SD recor
 prog_char startStamp[] PROGMEM = {  "%START AT\n"};    // used to stamp SD record when started by PC
 
 
-boolean sdProcessChar(char character) {
+char sdProcessChar(char character) {
 
     switch (character) {
         case 'A': // 5min
@@ -70,7 +70,7 @@ boolean sdProcessChar(char character) {
             break;
         case 's':
             if(SDfileOpen) {
-                stampSD(ACTIVATE);  
+                stampSD(ACTIVATE);
             }
             break;
         case 'b':
@@ -79,8 +79,9 @@ boolean sdProcessChar(char character) {
             }
             break;
         default:
-            return false;
+            break;
     }
+    return character;
 
 }
 
