@@ -19,9 +19,9 @@ void loop() {
     board.updateChannelData();
 
     // Check to see if accel has new data
-    if(board.LIS3DH_DataAvailable()){
+    if(board.accelHasNewData()){
         // Get new accel data
-        board.LIS3DH_updateAxisData();
+        board.accelUpdateAxisData();
     }
 
     // Verify the SD file is open

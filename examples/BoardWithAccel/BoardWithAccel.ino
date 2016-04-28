@@ -22,9 +22,9 @@ void loop() {
     board.updateChannelData();
 
     // Check to see if accel has new data
-    if(board.LIS3DH_DataAvailable()){
+    if(board.accelHasNewData()){
         // Get new accel data
-        board.LIS3DH_updateAxisData();
+        board.accelUpdateAxisData();
 
         // Tell the SD_Card_Stuff.ino to add accel data in the next write to SD
         addAccelToSD = true;

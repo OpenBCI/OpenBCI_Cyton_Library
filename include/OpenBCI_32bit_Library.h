@@ -26,6 +26,9 @@ public:
 
     boolean isSerialAvailableForRead(void);
 
+    boolean accelHasNewData(void);
+    void accelUpdateAxisData(void);
+
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
 
     void channelSettingsArraySetForAll(void);

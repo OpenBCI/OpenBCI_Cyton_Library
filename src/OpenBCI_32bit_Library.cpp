@@ -307,6 +307,22 @@ boolean OpenBCI_32bit_Library_Class::processChar(char character) {
 }
 
 /**
+ * @description Reads a status register to see if there is new accelerometer
+ *  data.
+ * @returns {boolean} true if the accelerometer has new data.
+ */
+boolean OpenBCI_32bit_Library_Class::accelHasNewData(void) {
+    return LIS3DH_DataAvailable();
+}
+
+/**
+ * @description Reads from the accelerometer to get new X, Y, and Z data.
+ */
+void OpenBCI_32bit_Library_Class::accelUpdateAxisData(void) {
+    LIS3DH_updateAxisData();
+}
+
+/**
 * @description: This is a function that is called once and confiures all pins on
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
