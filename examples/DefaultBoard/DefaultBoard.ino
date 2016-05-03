@@ -12,6 +12,9 @@ boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file 
 void setup() {
   // Bring up the OpenBCI Board
   board.begin();
+
+  // Notify the board we want to use accel data
+  board.useAccel = true;
 }
 
 void loop() {

@@ -18,12 +18,15 @@ You just opened your OpenBCI (congrats!) and want to get started programming the
 5. Hack and make awesome stuff!
 
 ## General Overview
+Your needs dictate what you need to include! This saves a ton of precious memory space!
 
-### Includes Needed
+### Pre-setup
 
-Your needs dictate what libraries you need to include!
+#### Default OpenBCI with SD Card Functionality
 
-To use the SD card:
+In order to use the SD card write functionality, you must not only include the file `SD_Card_Stuff.ino` located in examples/DefaultBoard, you must include the following:
+
+Headers:
 ```Arduino
 #include <OBCI32_SD.h>
 #include <DSPI.h>
@@ -32,14 +35,71 @@ To use the SD card:
 #include <OpenBCI_32bit_Library_Definitions.h>
 ```
 
-To use the board without the SD card:
+Variables used by `SD_Card_Stuff.ino`:
+```Arduino
+boolean addAccelToSD = false;
+boolean addAuxToSD = false;
+boolean SDfileOpen = false;
+```
+
+#### Bare OpenBCI Board with no SD card
+
+Headers:
 ```Arduino
 #include <DSPI.h>
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32bit_Library_Definitions.h>
 ```
 
-### Definitions Needed for SD card
+You do not need to declare any variables...
 
+### setup()
 
-### Setup() Function
+#### Accel (default)
+```Arduino
+void setup() {
+  board.begin(); // Bring up the OpenBCI Board
+  board.useAccel = true; // Notify the board we want to use accel data, this effects `::sendChannelData()`
+}
+```
+
+#### Aux
+```Arduino
+void setup() {
+  board.begin(); // Bring up the OpenBCI Board
+  board.useAux = true; // Notify the board we want to use aux data, this effects `::sendChannelData()`
+}
+```
+
+#### Bare board
+```Arduino
+void setup() {
+  board.begin(); // Bring up the OpenBCI Board
+}
+```
+
+## loop()
+We will start with the basics here, and work our way up... The loop function can be thought of as the meat and core executor of the OpenBCI_32bit_Library functionality. Keep in mind the main purpose of this library is to stream data from the ADS1299 to the computer, that's our focus, everything takes a back seat to that.
+
+A bare board, not using the SD, accel, or aux data must have the following:
+```Arduino
+void loop() {
+
+  if (board.streaming) {
+    // Wait for the ADS to signal it's ready with new data
+    while (board.waitForNewChannelData()) {}
+
+    // Read from the ADS(s) and store data into
+    board.updateChannelData();
+
+    // Send standard packet with channel data
+    board.sendChannelData();
+  }
+
+  // Check the serial port for new data
+  if (board.isSerialAvailableForRead()) {
+    // Read one char and process it
+    board.processChar(board.readOneSerialChar());
+  }
+}
+```

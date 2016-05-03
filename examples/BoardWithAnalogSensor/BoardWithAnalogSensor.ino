@@ -6,10 +6,8 @@ void setup() {
   // Bring up the OpenBCI Board
   board.begin();
 
-  // Notify the board we want to use accel data
+  // Notify the board we want to use aux data, this effects `::sendChannelData()`
   board.useAux = true;
-
-  //analogReference(INTERNAL);
 }
 
 void loop() {
