@@ -73,10 +73,15 @@ public:
     boolean streaming;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
+    boolean isProcessingIncomingTime;
+    boolean isProcessingIncomingPacketType;
+    boolean isProcessingMultibyteMsg;
 
     int boardType;
     int numberOfIncomingSettingsProcessedChannel;
     int numberOfIncomingSettingsProcessedLeadOff;
+    int numberOfIncomingBytesProcessedTime;
+    char streamPacketType;
     char currentChannelSetting;
     HardwareSerial *_serial;
 
@@ -204,6 +209,15 @@ public:
 // LIS3DH
     int DRDYpinValue;
     int lastDRDYpinValue;
+
+    // Time sync Variables
+    unsigned long timeOffset;
+    unsigned long timeSetCharArrived;
+    unsigned long timeComputer;
+    unsigned long timeCurrent;
+    // Time sync Methods
+    unsigned long   timeGet(void);
+    void            timeSet(void);
 
 };
 

@@ -314,13 +314,12 @@
 #define OPENBCI_CHANNEL_MAX_NUMBER_8    'c'
 #define OPENBCI_CHANNEL_MAX_NUMBER_16   'C'
 
-/** Triggers */
-#define OPENBCI_TRIGGER '`'
+/** Set Packet Type */
+#define OPENBCI_PACKET_TYPE_SET '/'
 
 /** Sync Clocks */
-#define OPENBCI_SYNC_CLOCK_SERVER_DATA '<'
-#define OPENBCI_SYNC_CLOCK_START '>'
-#define OPENBCI_SYNC_CLOCK_STOP '.'
+#define OPENBCI_TIME_SET '<'
+#define OPENBCI_TIME_SEND '>'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
@@ -349,8 +348,6 @@
 
 #define OPENBCI_TIME_OUT_MS_1 1
 #define OPENBCI_TIME_OUT_MS_3 3
-
-#define OPENBCI_STREAM_PACKET_EOT "AJ"
 
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL 8
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF 5

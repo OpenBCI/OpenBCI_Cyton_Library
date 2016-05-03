@@ -1,4 +1,3 @@
-
 /*
 OpenBCI 32bit Library
 Place the containing folder into your libraries folder insdie the arduino folder in your Documents folder
@@ -19,13 +18,20 @@ OpenBCI_32bit_Library_Class::OpenBCI_32bit_Library_Class() {
     daisyPresent = false;
     streaming = false;
     sniffMode = false;
-    useAccel = true;
+    useAccel = false;
     useAux = false;
     isProcessingIncomingSettingsChannel = false;
     isProcessingIncomingSettingsLeadOff = false;
+    isProcessingIncomingTime = false;
+    isProcessingIncomingPacketType = false;
+    isProcessingMultibyteMsg = false;
     numberOfIncomingSettingsProcessedChannel = 0;
     numberOfIncomingSettingsProcessedLeadOff = 0;
+    numberOfIncomingBytesProcessedTime = 0;
     currentChannelSetting = 0;
+    timeOffset = 0;
+    timeSetCharArrived = 0;
+    streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
 }
 
 /**
@@ -101,10 +107,17 @@ boolean OpenBCI_32bit_Library_Class::processChar(char character) {
     if (sniffMode && Serial1) {
         Serial1.print("pC: "); Serial1.println(character);
     }
-    if (isProcessingIncomingSettingsChannel) {
-        processIncomingChannelSettings(character);
-    } else if (isProcessingIncomingSettingsLeadOff) {
-        processIncomingLeadOffSettings(character);
+
+    if (isProcessingMultibyteMsg) {
+        if (isProcessingIncomingSettingsChannel) {
+            processIncomingChannelSettings(character);
+        } else if (isProcessingIncomingSettingsLeadOff) {
+            processIncomingLeadOffSettings(character);
+        } else if (isProcessingIncomingTime) {
+            timeSet(character);
+        } else if (isProcessingIncomingPacketType) {
+            setStreamPacketType(character);
+        }
     } else { // Normal...
         switch (character){
             //TURN CHANNELS ON/OFF COMMANDS
@@ -229,12 +242,14 @@ boolean OpenBCI_32bit_Library_Class::processChar(char character) {
 
             // CHANNEL SETTING COMMANDS
             case OPENBCI_CHANNEL_CMD_SET:  // This is the first byte that tells us to expect more commands
+                isProcessingMultibyteMsg = true;
                 isProcessingIncomingSettingsChannel = true;
                 numberOfIncomingSettingsProcessedChannel = 1;
                 break;
 
             // LEAD OFF IMPEDANCE DETECTION COMMANDS
             case OPENBCI_CHANNEL_IMPEDANCE_SET:
+                isProcessingMultibyteMsg = true;
                 isProcessingIncomingSettingsLeadOff = true;
                 numberOfIncomingSettingsProcessedLeadOff = 1;
                 break;
@@ -298,6 +313,27 @@ boolean OpenBCI_32bit_Library_Class::processChar(char character) {
                     sendEOT();
                     delay(20);
                 }
+                break;
+
+            // TIME SYNC
+            case OPENBCI_TIME_SET:
+                // Tell this function we are entering a special case
+                isProcessingMultibyteMsg = true;
+                // Tell this function which case that is
+                isProcessingIncomingTime = true;
+
+                // Reset the number of bytes processed
+                numberOfIncomingBytesProcessedTime = 0;
+
+                // Grab the current time
+                timeSetCharArrived = timeGet();
+
+            // PACKET SET TYPE
+            case OPENBCI_PACKET_TYPE_SET:
+                // Tell this function we are entering a special case
+                isProcessingMultibyteMsg = true;
+                // Tell this function which case that is
+                isProcessingIncomingPacketType = true;
                 break;
             default:
                 return false;
@@ -510,6 +546,7 @@ void OpenBCI_32bit_Library_Class::processIncomingChannelSettings(char character)
                 numberOfIncomingSettingsProcessedChannel = 0;
 
                 // put flag back down
+                isProcessingMultibyteMsg = false;
                 isProcessingIncomingSettingsChannel = false;
 
             }
@@ -531,6 +568,7 @@ void OpenBCI_32bit_Library_Class::processIncomingChannelSettings(char character)
         numberOfIncomingSettingsProcessedChannel = 0;
 
         // put flag back down
+        isProcessingMultibyteMsg = false;
         isProcessingIncomingSettingsChannel = false;
     }
 }
@@ -582,7 +620,7 @@ void OpenBCI_32bit_Library_Class::sendChannelData(){
         }
     }
 
-    Serial0.write(0xF0);
+    Serial0.write(0xF0 | streamPacketType);
 
     sampleCounter++;
 }
@@ -2444,6 +2482,54 @@ void OpenBCI_32bit_Library_Class::resetLeadOffArrayToDefault(byte leadOffArray[]
         leadOffArray[i][PCHAN] = OFF;
         leadOffArray[i][NCHAN] = OFF;
     }
+}
+
+/**
+ * @description Used to change the current packet type
+ * @param {char} - The type of stream packet to send
+ */
+void OpenBCI_32bit_Library_Class::setStreamPacketType(char newPacketType) {
+    switch (newPacketType) {
+        case OPENBCI_PACKET_TYPE_TIME_SYNCED:
+            streamPacketType = (char)OPENBCI_PACKET_TYPE_TIME_SYNCED;
+            break;
+        case OPENBCI_PACKET_TYPE_V3:
+        default:
+            streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
+            break;
+    }
+    isProcessingMultibyteMsg = false;
+    isProcessingIncomingPacketType = false;
+}
+
+/**
+ * @description This starts the time syncing process
+ */
+void OpenBCI_32bit_Library_Class::timeSet(char newTimeByte) {
+    // If this is the first byte we are processing then reset the timeNewOffset holder
+    if (numberOfIncomingBytesProcessedTime == 0) {
+        timeComputer = 0;
+    }
+
+    timeComputer = timeComputer & (newTimeByte << (numberOfIncomingBytesProcessedTime * 8));
+
+    numberOfIncomingBytesProcessedTime++;
+
+    if (numberOfIncomingBytesProcessedTime == 4) {
+        isProcessingMultibyteMsg = false;
+        isProcessingIncomingTime = false;
+        timeCurrent = timeGet();
+
+        // You like magic?
+        timeOffset = (timeComputer + (timeCurrent - timeSetCharArrived)) - timeCurrent;
+
+        // Send back the current time.
+        Serial0.write('>'); Serial0.print(timeGet());
+    }
+}
+
+unsigned long OpenBCI_32bit_Library_Class::timeGet() {
+    return millis() + timeOffset;
 }
 
 OpenBCI_32bit_Library_Class board;
