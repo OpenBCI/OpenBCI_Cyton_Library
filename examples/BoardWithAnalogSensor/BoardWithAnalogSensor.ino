@@ -7,7 +7,9 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use accel data
-  board.useAccel = true;
+  board.useAux = true;
+
+  //analogReference(INTERNAL);
 }
 
 void loop() {
@@ -21,13 +23,12 @@ void loop() {
     // Read from the ADS(s) and store data into
     board.updateChannelData();
 
-    // Check to see if accel has new data
-    if(board.accelHasNewData()){
-        // Get new accel data
-        board.accelUpdateAxisData();
-    }
+    // Read from the analog sensor and store auxilary position 0
+    // take a reading from the ADC. Result range from 0 to 1023
+    board.auxData[0] = analogRead(A7);
 
     // Send standard packet with channel data and accel data
+    //  includes aux data because we set told the board to add it
     board.sendChannelData();
   }
 

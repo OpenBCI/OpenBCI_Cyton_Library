@@ -10,7 +10,7 @@
 
 #define OVER_DIM 20 // make room for up to 20 write-time overruns
 
-boolean SDfileOpen = false;
+
 char fileSize = '0';  // SD file size indicator
 int blockCounter = 0;
 
@@ -89,18 +89,18 @@ char sdProcessChar(char character) {
 boolean setupSDcard(char limit){
 
   if(!cardInit){
-       if(!card.init(SPI_FULL_SPEED, SD_SS)) {
-      Serial0.println("initialization failed. Things to check:");
-      Serial0.println("* is a card is inserted?");
+      if(!card.init(SPI_FULL_SPEED, SD_SS)) {
+        Serial0.println("initialization failed. Things to check:");
+        Serial0.println("* is a card is inserted?");
       //    card.init(SPI_FULL_SPEED, SD_SS);
       }
       else{
-      Serial0.println("Wiring is correct and a card is present.");
-      cardInit = true;
+        Serial0.println("Wiring is correct and a card is present.");
+        cardInit = true;
       }
       if (!volume.init(card)) { // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
-      Serial0.println("Could not find FAT16/FAT32 partition. Make sure you've formatted the card");
-      return fileIsOpen;
+        Serial0.println("Could not find FAT16/FAT32 partition. Make sure you've formatted the card");
+        return fileIsOpen;
       }
    }
 
@@ -155,7 +155,7 @@ boolean setupSDcard(char limit){
       byteCounter = 0;  // counter from 0 - 512
       blockCounter = 0; // counter from 0 - BLOCK_COUNT;
      if(fileIsOpen == true){  // send corresponding file name to controlling program
-       Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);sendEOT();
+       Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);Serial.print("$$$");
      }
      return fileIsOpen;
 }
@@ -167,7 +167,7 @@ boolean closeSDfile(){
     openfile.close();
     board.csHigh(SD_SS);  // release the spi
     fileIsOpen = false;
-    if(!is_running){ // verbosity. this also gets insterted as footer in openFile
+    if(!board.streaming){ // verbosity. this also gets insterted as footer in openFile
       Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println("mS"); delay(10);
       Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS"); delay(10);
       Serial0.print("Min write time: ");Serial0.print(minWriteTime); Serial0.println(" uS"); delay(10);

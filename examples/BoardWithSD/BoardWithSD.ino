@@ -1,7 +1,13 @@
+#include <OBCI32_SD.h>
 #include <DSPI.h>
 #include <EEPROM.h>
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32bit_Library_Definitions.h>
+
+// Booleans Required for SD_Card_Stuff.ino
+boolean addAccelToSD = false; // On writeDataToSDcard() call adds Accel data to SD card write
+boolean addAuxToSD = false; // On writeDataToSDCard() call adds Aux data to SD card write
+boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file open
 
 void setup() {
   // Bring up the OpenBCI Board
