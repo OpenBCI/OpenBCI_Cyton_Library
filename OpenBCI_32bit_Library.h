@@ -218,6 +218,7 @@ public:
     // Time sync Methods
     unsigned long   timeGet(void);
     void            timeSet(void);
+    void            timeSendSyncSetPacket(void);
 
 };
 

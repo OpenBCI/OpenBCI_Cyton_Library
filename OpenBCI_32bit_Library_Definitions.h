@@ -319,7 +319,7 @@
 
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
-#define OPENBCI_TIME_SEND '>'
+#define OPENBCI_TIME_LATCH '>'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
@@ -341,10 +341,11 @@
 #define OPENBCI_LEAD_OFF_FREQUENCY_HZ 31
 
 /** Raw data packet types/codes */
-#define OPENBCI_PACKET_TYPE_RAW_AUX         3 // 0011
 #define OPENBCI_PACKET_TYPE_V3              0 // 0000
 #define OPENBCI_PACKET_TYPE_TIME_SYNCED     1 // 0001
-#define OPENBCI_PACKET_TYPE_USER_DEFINED    2 // 0010
+#define OPENBCI_PACKET_TYPE_TIME_SET        2 // 0010
+#define OPENBCI_PACKET_TYPE_USER_DEFINED    3 // 0011
+#define OPENBCI_PACKET_TYPE_RAW_AUX         4 // 0100
 
 #define OPENBCI_TIME_OUT_MS_1 1
 #define OPENBCI_TIME_OUT_MS_3 3

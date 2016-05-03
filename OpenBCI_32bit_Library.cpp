@@ -417,7 +417,7 @@ void OpenBCI_32bit_Library_Class::boardReset(void) {
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-    Serial0.println("1.0");
+    Serial0.println("v2");
     sendEOT();
 }
 
@@ -624,6 +624,27 @@ void OpenBCI_32bit_Library_Class::sendChannelData(){
 
     sampleCounter++;
 }
+
+void OpenBCI_32bit_Library_Class::timeSendSyncSetPacket(void) {
+
+    Serial0.print("A");
+    // 1 byte sent
+
+    for (int i = 0; i < 27; i++) {
+        Serial0.write(0);
+    }
+    // 28 bytes sent
+
+    timeCurrent = timeGet();
+    for (int j = 3; j > 0; j--) {
+        Serial0.write(timeCurrent >> (j*8));
+    }
+    // 32 bytes sent
+
+    Serial0.write(0xF2);
+    // 33 bytes sent
+}
+
 
 void OpenBCI_32bit_Library_Class::writeAuxData(){
     for(int i=0; i<3; i++){
@@ -2524,7 +2545,7 @@ void OpenBCI_32bit_Library_Class::timeSet(char newTimeByte) {
         timeOffset = (timeComputer + (timeCurrent - timeSetCharArrived)) - timeCurrent;
 
         // Send back the current time.
-        Serial0.write('>'); Serial0.print(timeGet());
+        sendTimeSyncSetPacket();
     }
 }
 
