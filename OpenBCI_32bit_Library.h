@@ -49,6 +49,7 @@ public:
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
 
     void sendAStreamPacketToTheHost(void);
+    void setStreamPacketType(char newPacketType);
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
     void streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
@@ -217,7 +218,7 @@ public:
     unsigned long timeCurrent;
     // Time sync Methods
     unsigned long   timeGet(void);
-    void            timeSet(void);
+    void            timeSet(char character);
     void            timeSendSyncSetPacket(void);
 
 };

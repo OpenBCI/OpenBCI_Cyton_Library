@@ -326,7 +326,7 @@ boolean OpenBCI_32bit_Library_Class::processChar(char character) {
                 numberOfIncomingBytesProcessedTime = 0;
 
                 // Grab the current time
-                timeSetCharArrived = timeGet();
+                timeSetCharArrived = millis();
 
             // PACKET SET TYPE
             case OPENBCI_PACKET_TYPE_SET:
@@ -417,7 +417,7 @@ void OpenBCI_32bit_Library_Class::boardReset(void) {
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-    Serial0.println("v2");
+    Serial0.println("Firmware: v2");
     sendEOT();
 }
 
@@ -630,13 +630,14 @@ void OpenBCI_32bit_Library_Class::timeSendSyncSetPacket(void) {
     Serial0.print("A");
     // 1 byte sent
 
+    byte zero = 0x00;
     for (int i = 0; i < 27; i++) {
-        Serial0.write(0);
+        Serial0.write(zero);
     }
     // 28 bytes sent
 
     timeCurrent = timeGet();
-    for (int j = 3; j > 0; j--) {
+    for (int j = 3; j >= 0; j--) {
         Serial0.write(timeCurrent >> (j*8));
     }
     // 32 bytes sent
@@ -2529,23 +2530,42 @@ void OpenBCI_32bit_Library_Class::setStreamPacketType(char newPacketType) {
 void OpenBCI_32bit_Library_Class::timeSet(char newTimeByte) {
     // If this is the first byte we are processing then reset the timeNewOffset holder
     if (numberOfIncomingBytesProcessedTime == 0) {
-        timeComputer = 0;
+        timeComputer = newTimeByte;
+        timeComputer = timeComputer << 8;
+        // Serial0.print("timeComputer (init): "); Serial0.println(timeComputer,HEX);
+    } else {
+        timeComputer = timeComputer | (newTimeByte & 0x000000FF);
+        if (numberOfIncomingBytesProcessedTime < 3) {
+            timeComputer = timeComputer << 8;
+        }
     }
 
-    timeComputer = timeComputer & (newTimeByte << (numberOfIncomingBytesProcessedTime * 8));
+    // Serial0.print("timeComputer: "); Serial0.println(timeComputer,HEX);
+    if (sniffMode && Serial1) {
+        Serial1.print("timeComputer: "); Serial1.println(timeComputer,HEX);
+    }
 
     numberOfIncomingBytesProcessedTime++;
 
     if (numberOfIncomingBytesProcessedTime == 4) {
         isProcessingMultibyteMsg = false;
         isProcessingIncomingTime = false;
-        timeCurrent = timeGet();
+        timeCurrent = millis();
 
-        // You like magic?
+        // Serial0.print("timeCurrent (pre sync): "); Serial0.println(timeCurrent,HEX);
+        if (sniffMode && Serial1) {
+            Serial1.print("timeCurrent (pre sync): "); Serial1.println(timeCurrent,HEX);
+        }
+
+        // calculate new offset
         timeOffset = (timeComputer + (timeCurrent - timeSetCharArrived)) - timeCurrent;
 
         // Send back the current time.
-        sendTimeSyncSetPacket();
+        timeSendSyncSetPacket();
+        // Serial0.print("timeCurrent (post sync):  "); Serial0.println(timeGet(),HEX);
+        if (sniffMode && Serial1) {
+            Serial1.print("timeCurrent (post sync):  "); Serial1.println(timeGet(),HEX);
+        }
     }
 }
 
