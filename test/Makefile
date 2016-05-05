@@ -116,9 +116,9 @@ arduino_mock_all.a : ArduinoMockAll.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-unittest.o : $(TEST_DIR)/unittest.cpp \
+unittest.o : $(TEST_DIR)/unittest.cc \
 				$(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(TEST_DIR)/unittest.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(TEST_DIR)/unittest.cc
 
 unittest : unittest.o \
 				gmock_main.a  \

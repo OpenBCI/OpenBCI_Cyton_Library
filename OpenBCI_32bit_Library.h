@@ -84,7 +84,7 @@ public:
     int numberOfIncomingBytesProcessedTime;
     char streamPacketType;
     char currentChannelSetting;
-    HardwareSerial *_serial;
+    // HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
