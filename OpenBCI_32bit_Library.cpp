@@ -635,8 +635,6 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     ADS_writeChannelData();       // 24 bytes
 
-    writeTimeCurrent(); // 4 bytes
-
     if (accelHasNewData()) {
         accelUpdateAxisData();
         // Send later...
@@ -659,6 +657,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
             break;
     }
 
+    writeTimeCurrent(); // 4 bytes
+
     Serial0.write(OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xF4
 
     sampleCounter++;
@@ -672,9 +672,9 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     ADS_writeChannelData();       // 24 bytes
 
-    writeTimeCurrent(); // 4 bytes
-
     Serial0.write(auxData[0]); // 2 bytes of aux data
+
+    writeTimeCurrent(); // 4 bytes
 
     Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xF5
 
