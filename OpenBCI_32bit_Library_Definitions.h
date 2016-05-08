@@ -14,7 +14,15 @@
 #define OPENBCI_BAUD_RATE 115200
 
 // File transmissions
-#define OPENBCI_EOT "$$$"
+#define OPENBCI_BOP 0x41 // Begining of stream packet
+#define OPENBCI_EOP_STND_ACCEL 0xF0 // End of standard stream packet
+#define OPENBCI_EOP_STND_RAW_AUX 0xF1 // End of stream packet with raw packet
+#define OPENBCI_EOP_USER_DEFINED 0xF2 // End of stream packet, user defined
+#define OPENBCI_EOP_TIME_SET 0xF3 // End of time set stream packet
+#define OPENBCI_EOP_TIME_SYNCED_ACCEL 0xF4 // End of time syned stream packet
+#define OPENBCI_EOP_TIME_SYNCED_RAW_AUX 0xF5 // End of time syned stream packet
+
+#define ZERO 0x00 // useful
 
 //PIN CONNECTIONS
 #define ADS_DRDY 	    9   // ADS data ready pin
@@ -188,6 +196,9 @@
 #define RATE_1600HZ_LP	0x80  //(b10000000)	// 1600Hz sample rate in low-power mode
 #define RATE_1250HZ_N	0x90  //(b10010000)	// 1250Hz sample rate in normal mode
 #define RATE_5000HZ_LP	0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
+#define ACCEL_AXIS_X    0x00 // x axis
+#define ACCEL_AXIS_Y    0x01 // y axis
+#define ACCEL_AXIS_Z    0x02 // z axis
 
 // OPENBCI_COMMANDS
 /** Turning channels off */
@@ -352,5 +363,10 @@
 
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL 8
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF 5
+
+#define OPENBCI_NUMBER_OF_BYTES_AUX 6
+
+#define OPENBCI_FIRMWARE_VERSION_V1 1
+#define OPENBCI_FIRMWARE_VERSION_V2 1
 
 #endif

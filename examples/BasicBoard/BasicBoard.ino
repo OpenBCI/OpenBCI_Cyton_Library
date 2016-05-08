@@ -16,8 +16,12 @@ void loop() {
     // Read from the ADS(s) and store data into
     board.updateChannelData();
 
-    // Send standard packet with channel data
-    board.sendChannelData();
+    if (board.timeSynced) {
+        board.sendChannelDataWithTimeAndRawAux();
+    } else {
+        // Send standard packet with channel data
+        board.sendChannelDataWithRawAux();
+    }
   }
 
   // Check the serial port for new data

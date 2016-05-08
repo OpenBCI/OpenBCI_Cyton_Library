@@ -38,12 +38,22 @@ void loop() {
 
     // Verify the SD file is open
     if(SDfileOpen) {
-        // Write to the SD card
+        // Write to the SD card, writes aux data
         writeDataToSDcard(board.sampleCounter);
     }
 
-    // Send standard packet with channel data
-    board.sendChannelData();
+
+    if (board.timeSynced) {
+        // Send time synced packet with channel data, current board time, and an accel reading
+        //  X axis is sent on sampleCounter % 10 == 0
+        //  Y axis is sent on sampleCounter % 10 == 1
+        //  Z axis is sent on sampleCounter % 10 == 2
+        board.sendChannelDataWithTimeAndAccel();
+    } else {
+        // Send standard packet with channel data
+        board.sendChannelDataWithAccel();
+    }
+
   }
 
   // Check the serial port for new data

@@ -28,7 +28,10 @@ public:
 
     boolean accelHasNewData(void);
     void accelUpdateAxisData(void);
+    void accelWriteAxisData(void);
 
+    void writeTimeCurrent(void);
+    void writeZeroAux(void);
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
 
     void channelSettingsArraySetForAll(void);
@@ -48,7 +51,11 @@ public:
     void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
 
-    void sendAStreamPacketToTheHost(void);
+    void sendChannelDataWithAccel(void);
+    void sendChannelDataWithRawAux(void);
+    void sendChannelDataWithTimeAndAccel(void);
+    void sendChannelDataWithTimeAndRawAux(void);
+
     void setStreamPacketType(char newPacketType);
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
@@ -56,6 +63,7 @@ public:
     void streamSafeSetAllChannelsToDefault(void);
     void streamSafeReportAllChannelDefaults(void);
     void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
+    void streamSafeTimeSendSyncSetPacket(void);
     void streamStart(void);
     void streamStop(void);
 
@@ -72,9 +80,10 @@ public:
     boolean daisy;
     boolean sniffMode;
     boolean streaming;
+    boolean timeSynced;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
-    boolean isProcessingIncomingTime;
+    // boolean isProcessingIncomingTime;
     boolean isProcessingIncomingPacketType;
     boolean isProcessingMultibyteMsg;
 
@@ -191,6 +200,7 @@ public:
     boolean LIS3DH_DataAvailable(void); // check LIS3DH STATUS_REG2
     void LIS3DH_readAllRegs(void);
     void LIS3DH_writeAxisData(void);
+    void LIS3DH_writeAxisDataForAxis(uint8_t axis);
     void LIS3DH_updateAxisData(void);
 
     void csLow(int);

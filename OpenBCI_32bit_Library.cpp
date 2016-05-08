@@ -17,12 +17,12 @@ OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
     boardType = OUTPUT_NOTHING;
     daisyPresent = false;
     streaming = false;
+    timeSynced = false;
     sniffMode = false;
     useAccel = false;
     useAux = false;
     isProcessingIncomingSettingsChannel = false;
     isProcessingIncomingSettingsLeadOff = false;
-    isProcessingIncomingTime = false;
     isProcessingIncomingPacketType = false;
     isProcessingMultibyteMsg = false;
     numberOfIncomingSettingsProcessedChannel = 0;
@@ -113,8 +113,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
             processIncomingChannelSettings(character);
         } else if (isProcessingIncomingSettingsLeadOff) {
             processIncomingLeadOffSettings(character);
-        } else if (isProcessingIncomingTime) {
-            timeSet(character);
         } else if (isProcessingIncomingPacketType) {
             setStreamPacketType(character);
         }
@@ -317,16 +315,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // TIME SYNC
             case OPENBCI_TIME_SET:
-                // Tell this function we are entering a special case
-                isProcessingMultibyteMsg = true;
-                // Tell this function which case that is
-                isProcessingIncomingTime = true;
-
-                // Reset the number of bytes processed
-                numberOfIncomingBytesProcessedTime = 0;
-
-                // Grab the current time
-                timeSetCharArrived = millis();
+                // Send time Packet
+                streamSafeTimeSendSyncSetPacket();
 
             // PACKET SET TYPE
             case OPENBCI_PACKET_TYPE_SET:
@@ -356,6 +346,13 @@ boolean OpenBCI_32bit_Library::accelHasNewData(void) {
  */
 void OpenBCI_32bit_Library::accelUpdateAxisData(void) {
     LIS3DH_updateAxisData();
+}
+
+/**
+ * @description Reads from the accelerometer to get new X, Y, and Z data.
+ */
+void OpenBCI_32bit_Library::accelWriteAxisData(void) {
+    LIS3DH_writeAxisData();
 }
 
 /**
@@ -600,12 +597,97 @@ void OpenBCI_32bit_Library::printAllRegisters(){
     }
 }
 
+void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
+
+    Serial0.write(OPENBCI_BOP); // 0x41
+
+    Serial0.write(sampleCounter); // 1 byte
+
+    ADS_writeChannelData(); // 24 bytes
+
+    accelWriteAxisData(); // 6 bytes
+
+    Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xF0
+
+    sampleCounter++;
+}
+
+void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
+
+    Serial0.print(OPENBCI_BOP);
+
+    Serial0.write(sampleCounter); // 1 byte
+
+    ADS_writeChannelData();       // 24 bytes
+
+    writeAuxData();         // 6 bytes of aux data
+
+    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1
+
+    sampleCounter++;
+}
+
+void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
+
+    Serial0.print(OPENBCI_BOP);
+
+    Serial0.write(sampleCounter); // 1 byte
+
+    ADS_writeChannelData();       // 24 bytes
+
+    writeTimeCurrent(); // 4 bytes
+
+    if (accelHasNewData()) {
+        accelUpdateAxisData();
+        // Send later...
+    }
+
+    // send two bytes of either accel data or blank
+    switch (sampleCounter % 10) {
+        case ACCEL_AXIS_X:
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
+            break;
+        case ACCEL_AXIS_Y:
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
+            break;
+        case ACCEL_AXIS_Z:
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
+            break;
+        default:
+            Serial0.write(ZERO); // high byte
+            Serial0.write(ZERO); // low byte
+            break;
+    }
+
+    Serial0.write(OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xF4
+
+    sampleCounter++;
+}
+
+void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
+
+    Serial0.print(OPENBCI_BOP);
+
+    Serial0.write(sampleCounter); // 1 byte
+
+    ADS_writeChannelData();       // 24 bytes
+
+    writeTimeCurrent(); // 4 bytes
+
+    Serial0.write(auxData[0]); // 2 bytes of aux data
+
+    Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xF5
+
+    sampleCounter++;
+}
+
 /**
  * @description Writes channel data, aux data, and footer to serial port
+ *      This is the old way to send channel data. Must keep for portability...
  */
-void OpenBCI_32bit_Library::sendChannelData(){
+void OpenBCI_32bit_Library::sendChannelData(void) {
 
-    Serial0.print("A");
+    Serial0.print(OPENBCI_BOP);
 
     Serial0.write(sampleCounter); // 1 byte
     ADS_writeChannelData();       // 24 bytes
@@ -614,20 +696,47 @@ void OpenBCI_32bit_Library::sendChannelData(){
     } else if(useAccel){        // or
         LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
     } else{
-        byte zero = 0x00;
         for(int i=0; i<6; i++){
-            Serial0.write(zero);
+            Serial0.write(ZERO`);
         }
     }
 
-    Serial0.write(0xF0 | streamPacketType);
+    Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xF0
 
     sampleCounter++;
 }
 
+/**
+ * @description Send a stream packet to the Driver with the current time.
+ */
 void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
 
-    Serial0.print("A");
+    // Set global object for time syncing
+    timeSynced = true;
+
+    Serial0.print(OPENBCI_BOP);
+    // 1 byte sent
+
+    for (int i = 0; i < 27; i++) {
+        Serial0.write(ZERO);
+    }
+    // 28 bytes sent
+
+    writeTimeCurrent(); // 4 bytes
+    // 32 bytes sent
+
+    Serial0.write(OPENBCI_EOP_TIME_SET); // 0xF3
+    // 33 bytes sent
+}
+
+
+
+/**
+ * @description Send a stream packet to the Driver with the current time.
+ */
+void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
+
+    Serial0.print(OPENBCI_BOP);
     // 1 byte sent
 
     byte zero = 0x00;
@@ -636,13 +745,13 @@ void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
     }
     // 28 bytes sent
 
-    timeCurrent = timeGet();
+    timeCurrent = millis(); // serialize the number, placing the MSB in lower packets
     for (int j = 3; j >= 0; j--) {
         Serial0.write(timeCurrent >> (j*8));
     }
     // 32 bytes sent
 
-    Serial0.write(0xF2);
+    Serial0.write(OPENBCI_EOP_TIME_SET); // 0xF2
     // 33 bytes sent
 }
 
@@ -916,6 +1025,26 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
     }
 
     setChannelsToDefault();
+
+    // Restart stream if need be
+    if (wasStreaming) {
+        streamStart();
+    }
+}
+
+/**
+ * @description Pause streaming, send current time, and resume.
+ * @author AJ Keller (@pushtheworldllc)
+ */
+void OpenBCI_32bit_Library::streamSafeTimeSendSyncSetPacket(void) {
+    boolean wasStreaming = streaming;
+
+    // Stop streaming if you are currently streaming
+    if (streaming) {
+        streamStop();
+    }
+
+    timeSendSyncSetPacket();
 
     // Restart stream if need be
     if (wasStreaming) {
@@ -2168,6 +2297,13 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisData(void){
         Serial0.write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
         axisData[i] = 0;
     }
+}
+
+void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxis(uint8_t axis) {
+    if (axis > 2) axis = 0;
+    Serial0.write(highByte(axisData[axis])); // write 16 bit axis data MSB first
+    Serial0.write(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+    axisData[axis] = 0;
 }
 
 byte OpenBCI_32bit_Library::LIS3DH_read(byte reg){

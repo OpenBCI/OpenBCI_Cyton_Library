@@ -27,8 +27,13 @@ void loop() {
         board.accelUpdateAxisData();
     }
 
-    // Send standard packet with channel data and accel data
-    board.sendChannelData();
+    // Send standard packet with channel data
+    if (board.timeSynced) {
+        board.sendChannelDataWithTimeAndAccel();
+    } else {
+        board.sendChannelDataWithAccel();
+    }
+
   }
 
   // Check the serial port for new data
