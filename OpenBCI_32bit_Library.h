@@ -11,11 +11,11 @@
 #include "OpenBCI_32bit_Library_Definitions.h"
 
 
-class OpenBCI_32bit_Library_Class {
+class OpenBCI_32bit_Library {
 
 public:
     // Start up functions
-    OpenBCI_32bit_Library_Class();
+    OpenBCI_32bit_Library();
     void begin(void);
     void beginDebug(void);
     char readOneSerialChar(void);
@@ -85,7 +85,7 @@ public:
     boolean isProcessingIncomingSettingsLeadOff;
     // boolean isProcessingIncomingTime;
     boolean isProcessingIncomingPacketType;
-    boolean isProcessingMultibyteMsg;
+    boolean isProcessingMultibyteMsg(void);
 
     int boardType;
     int numberOfIncomingSettingsProcessedChannel;
@@ -111,6 +111,7 @@ public:
     boolean useAccel;
     boolean useAux;
     void initialize(void);
+    void initializeVariables(void);
     void printAllRegisters(void);
     void sendChannelData(void); // send the current data with sample number
 
@@ -227,13 +228,13 @@ public:
     unsigned long timeComputer;
     unsigned long timeCurrent;
     // Time sync Methods
-    unsigned long   timeGet(void);
-    void            timeSet(char character);
+    // unsigned long   timeGet(void);
+    // void            timeSet(char character);
     void            timeSendSyncSetPacket(void);
 
 };
 
 // This let's us call into the class from within the library if necessary
-extern OpenBCI_32bit_Library_Class board;
+extern OpenBCI_32bit_Library board;
 
 #endif

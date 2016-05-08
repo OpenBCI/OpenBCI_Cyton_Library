@@ -16,22 +16,10 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
     boardType = OUTPUT_NOTHING;
     daisyPresent = false;
-    streaming = false;
-    timeSynced = false;
     sniffMode = false;
     useAccel = false;
     useAux = false;
-    isProcessingIncomingSettingsChannel = false;
-    isProcessingIncomingSettingsLeadOff = false;
-    isProcessingIncomingPacketType = false;
-    isProcessingMultibyteMsg = false;
-    numberOfIncomingSettingsProcessedChannel = 0;
-    numberOfIncomingSettingsProcessedLeadOff = 0;
-    numberOfIncomingBytesProcessedTime = 0;
-    currentChannelSetting = 0;
-    timeOffset = 0;
-    timeSetCharArrived = 0;
-    streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
+    initializeVariables();
 }
 
 /**
@@ -99,6 +87,10 @@ void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
     }
 }
 
+boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
+    return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || isProcessingIncomingPacketType;
+}
+
 /**
  * @description Process one char at a time from serial port
  * @return {bool} - True if the command was recognized, false if not
@@ -108,10 +100,19 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         Serial1.print("pC: "); Serial1.println(character);
     }
 
-    if (isProcessingMultibyteMsg) {
+    if (isProcessingMultibyteMsg()) {
+        if (sniffMode && Serial1) {
+            Serial1.print("Multibyte msg: ");
+        }
         if (isProcessingIncomingSettingsChannel) {
+            if (sniffMode && Serial1) {
+                Serial1.println("channel");
+            }
             processIncomingChannelSettings(character);
         } else if (isProcessingIncomingSettingsLeadOff) {
+            if (sniffMode && Serial1) {
+                Serial1.println("Lead-off");
+            }
             processIncomingLeadOffSettings(character);
         } else if (isProcessingIncomingPacketType) {
             setStreamPacketType(character);
@@ -240,15 +241,14 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // CHANNEL SETTING COMMANDS
             case OPENBCI_CHANNEL_CMD_SET:  // This is the first byte that tells us to expect more commands
-                isProcessingMultibyteMsg = true;
                 isProcessingIncomingSettingsChannel = true;
                 numberOfIncomingSettingsProcessedChannel = 1;
                 break;
 
             // LEAD OFF IMPEDANCE DETECTION COMMANDS
             case OPENBCI_CHANNEL_IMPEDANCE_SET:
-                isProcessingMultibyteMsg = true;
                 isProcessingIncomingSettingsLeadOff = true;
+                Serial0.println("First char");
                 numberOfIncomingSettingsProcessedLeadOff = 1;
                 break;
 
@@ -320,8 +320,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // PACKET SET TYPE
             case OPENBCI_PACKET_TYPE_SET:
-                // Tell this function we are entering a special case
-                isProcessingMultibyteMsg = true;
                 // Tell this function which case that is
                 isProcessingIncomingPacketType = true;
                 break;
@@ -456,7 +454,20 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
  */
 void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
+    if (character == OPENBCI_CHANNEL_IMPEDANCE_LATCH && numberOfIncomingSettingsProcessedLeadOff == OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF) {
+        // We failed somehow and should just abort
+        // reset numberOfIncomingSettingsProcessedLeadOff
+        numberOfIncomingSettingsProcessedLeadOff = 0;
 
+        // put flag back down
+        isProcessingIncomingSettingsLeadOff = false;
+
+        if (!streaming) {
+            Serial0.print("Lead off failure: too few chars"); sendEOT();
+        }
+
+        return;
+    }
     switch (numberOfIncomingSettingsProcessedLeadOff) {
         case 1: // channel number
             currentChannelSetting = getChannelCommandForAsciiChar(character);
@@ -472,6 +483,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
                 if (!streaming) {
                     Serial0.print("Err: 5th char not ");
                     Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                    sendEOT();
                 }
                 // We failed somehow and should just abort
                 // reset numberOfIncomingSettingsProcessedLeadOff
@@ -483,14 +495,26 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
             }
             break;
         default: // should have exited
+            if (!streaming) {
+                Serial0.print("Err: 5th char not ");
+                Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                sendEOT();
+            }
+            // We failed somehow and should just abort
+            // reset numberOfIncomingSettingsProcessedLeadOff
+            numberOfIncomingSettingsProcessedLeadOff = 0;
+
+            // put flag back down
+            isProcessingIncomingSettingsLeadOff = false;
             return;
     }
 
     // increment the number of bytes processed
     numberOfIncomingSettingsProcessedLeadOff++;
 
-    if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF + 1)) {
+    if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF)) {
         // We are done processing lead off settings...
+        Serial0.println("Done");
 
         // Set lead off settings
         streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
@@ -510,6 +534,20 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
  */
 void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
+    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
+        // We failed somehow and should just abort
+        // reset numberOfIncomingSettingsProcessedLeadOff
+        numberOfIncomingSettingsProcessedChannel = 0;
+
+        // put flag back down
+        isProcessingIncomingSettingsChannel = false;
+
+        if (!streaming) {
+            Serial0.print("Too few chars"); sendEOT();
+        }
+
+        return;
+    }
     switch (numberOfIncomingSettingsProcessedChannel) {
         case 1: // channel number
             currentChannelSetting = getChannelCommandForAsciiChar(character);
@@ -537,26 +575,36 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
                 if (!streaming) {
                     Serial0.print("Err: 8th char not ");
                     Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
+                    sendEOT();
                 }
                 // We failed somehow and should just abort
                 // reset numberOfIncomingSettingsProcessedLeadOff
                 numberOfIncomingSettingsProcessedChannel = 0;
 
                 // put flag back down
-                isProcessingMultibyteMsg = false;
                 isProcessingIncomingSettingsChannel = false;
 
             }
             break;
         default: // should have exited
+            if (!streaming) {
+                Serial0.print("Too many chars"); sendEOT();
+            }
+            // We failed somehow and should just abort
+            // reset numberOfIncomingSettingsProcessedLeadOff
+            numberOfIncomingSettingsProcessedChannel = 0;
+
+            // put flag back down
+            isProcessingIncomingSettingsChannel = false;
             return;
     }
 
     // increment the number of bytes processed
     numberOfIncomingSettingsProcessedChannel++;
 
-    if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL + 1)) {
+    if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL)) {
         // We are done processing channel settings...
+        Serial0.println("Done c");
 
         // Set channel settings
         streamSafeChannelSettingsForChannel(currentChannelSetting + 1, channelSettings[currentChannelSetting][POWER_DOWN], channelSettings[currentChannelSetting][GAIN_SET], channelSettings[currentChannelSetting][INPUT_TYPE_SET], channelSettings[currentChannelSetting][BIAS_SET], channelSettings[currentChannelSetting][SRB2_SET], channelSettings[currentChannelSetting][SRB1_SET]);
@@ -565,7 +613,6 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         numberOfIncomingSettingsProcessedChannel = 0;
 
         // put flag back down
-        isProcessingMultibyteMsg = false;
         isProcessingIncomingSettingsChannel = false;
     }
 }
@@ -584,6 +631,21 @@ void OpenBCI_32bit_Library::initialize(){
     initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
 }
 
+void OpenBCI_32bit_Library::initializeVariables(void) {
+    streaming = false;
+    timeSynced = false;
+    isProcessingIncomingSettingsChannel = false;
+    isProcessingIncomingSettingsLeadOff = false;
+    isProcessingIncomingPacketType = false;
+    numberOfIncomingSettingsProcessedChannel = 0;
+    numberOfIncomingSettingsProcessedLeadOff = 0;
+    numberOfIncomingBytesProcessedTime = 0;
+    currentChannelSetting = 0;
+    timeOffset = 0;
+    timeSetCharArrived = 0;
+    streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
+}
+
 void OpenBCI_32bit_Library::printAllRegisters(){
     if(!isRunning){
         Serial0.println("\nBoard ADS Registers");
@@ -599,7 +661,7 @@ void OpenBCI_32bit_Library::printAllRegisters(){
 
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
-    Serial0.write(OPENBCI_BOP); // 0x41
+    Serial0.write('A'); // 0x41
 
     Serial0.write(sampleCounter); // 1 byte
 
@@ -614,22 +676,28 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
-    Serial0.print(OPENBCI_BOP);
+    int numBytes = 0;
 
-    Serial0.write(sampleCounter); // 1 byte
+    numBytes = Serial0.write('A'); // 1 byte
+
+    numBytes += Serial0.write(sampleCounter); // 1 byte
 
     ADS_writeChannelData();       // 24 bytes
+    numBytes += 24;
+    writeAuxData();         // 6 bytes
+    numBytes += 6;
+    numBytes += Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1 - 1 byte
 
-    writeAuxData();         // 6 bytes of aux data
-
-    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1
+    if (sniffMode && Serial1) {
+        Serial1.print("Wrote "); Serial1.print(numBytes); Serial1.println(" bytes");
+    }
 
     sampleCounter++;
 }
 
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
-    Serial0.print(OPENBCI_BOP);
+    Serial0.write('A');
 
     Serial0.write(sampleCounter); // 1 byte
 
@@ -652,8 +720,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
             break;
         default:
-            Serial0.write(ZERO); // high byte
-            Serial0.write(ZERO); // low byte
+            Serial0.write((byte)0x00); // high byte
+            Serial0.write((byte)0x00); // low byte
             break;
     }
 
@@ -666,7 +734,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
-    Serial0.print(OPENBCI_BOP);
+    Serial0.print('A');
 
     Serial0.write(sampleCounter); // 1 byte
 
@@ -687,7 +755,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
  */
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
-    Serial0.print(OPENBCI_BOP);
+    Serial0.print('A');
 
     Serial0.write(sampleCounter); // 1 byte
     ADS_writeChannelData();       // 24 bytes
@@ -697,7 +765,7 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
         LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
     } else{
         for(int i=0; i<6; i++){
-            Serial0.write(ZERO`);
+            Serial0.write((byte)0x00);
         }
     }
 
@@ -714,11 +782,11 @@ void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
     // Set global object for time syncing
     timeSynced = true;
 
-    Serial0.print(OPENBCI_BOP);
+    Serial0.print('A');
     // 1 byte sent
 
     for (int i = 0; i < 27; i++) {
-        Serial0.write(ZERO);
+        Serial0.write((byte)0x00);
     }
     // 28 bytes sent
 
@@ -729,38 +797,18 @@ void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
     // 33 bytes sent
 }
 
-
-
-/**
- * @description Send a stream packet to the Driver with the current time.
- */
-void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
-
-    Serial0.print(OPENBCI_BOP);
-    // 1 byte sent
-
-    byte zero = 0x00;
-    for (int i = 0; i < 27; i++) {
-        Serial0.write(zero);
-    }
-    // 28 bytes sent
-
-    timeCurrent = millis(); // serialize the number, placing the MSB in lower packets
-    for (int j = 3; j >= 0; j--) {
-        Serial0.write(timeCurrent >> (j*8));
-    }
-    // 32 bytes sent
-
-    Serial0.write(OPENBCI_EOP_TIME_SET); // 0xF2
-    // 33 bytes sent
-}
-
-
 void OpenBCI_32bit_Library::writeAuxData(){
     for(int i=0; i<3; i++){
         Serial0.write(highByte(auxData[i])); // write 16 bit axis data MSB first
         Serial0.write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
         auxData[i] = 0;   // reset auxData bytes to 0
+    }
+}
+
+void OpenBCI_32bit_Library::writeTimeCurrent(void) {
+    timeCurrent = millis(); // serialize the number, placing the MSB in lower packets
+    for (int j = 3; j >= 0; j--) {
+        Serial0.write(timeCurrent >> (j*8));
     }
 }
 
@@ -892,6 +940,8 @@ void OpenBCI_32bit_Library::initialize_ads(){
     }
     verbosity = false;      // when verbosity is true, there will be Serial feedback
     firstDataPacket = true;
+
+    streaming = false;
 }
 
 //////////////////////////////////////////////
@@ -2656,57 +2706,55 @@ void OpenBCI_32bit_Library::setStreamPacketType(char newPacketType) {
             streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
             break;
     }
-    isProcessingMultibyteMsg = false;
     isProcessingIncomingPacketType = false;
 }
 
-/**
- * @description This starts the time syncing process
- */
-void OpenBCI_32bit_Library::timeSet(char newTimeByte) {
-    // If this is the first byte we are processing then reset the timeNewOffset holder
-    if (numberOfIncomingBytesProcessedTime == 0) {
-        timeComputer = newTimeByte;
-        timeComputer = timeComputer << 8;
-        // Serial0.print("timeComputer (init): "); Serial0.println(timeComputer,HEX);
-    } else {
-        timeComputer = timeComputer | (newTimeByte & 0x000000FF);
-        if (numberOfIncomingBytesProcessedTime < 3) {
-            timeComputer = timeComputer << 8;
-        }
-    }
-
-    // Serial0.print("timeComputer: "); Serial0.println(timeComputer,HEX);
-    if (sniffMode && Serial1) {
-        Serial1.print("timeComputer: "); Serial1.println(timeComputer,HEX);
-    }
-
-    numberOfIncomingBytesProcessedTime++;
-
-    if (numberOfIncomingBytesProcessedTime == 4) {
-        isProcessingMultibyteMsg = false;
-        isProcessingIncomingTime = false;
-        timeCurrent = millis();
-
-        // Serial0.print("timeCurrent (pre sync): "); Serial0.println(timeCurrent,HEX);
-        if (sniffMode && Serial1) {
-            Serial1.print("timeCurrent (pre sync): "); Serial1.println(timeCurrent,HEX);
-        }
-
-        // calculate new offset
-        timeOffset = (timeComputer + (timeCurrent - timeSetCharArrived)) - timeCurrent;
-
-        // Send back the current time.
-        timeSendSyncSetPacket();
-        // Serial0.print("timeCurrent (post sync):  "); Serial0.println(timeGet(),HEX);
-        if (sniffMode && Serial1) {
-            Serial1.print("timeCurrent (post sync):  "); Serial1.println(timeGet(),HEX);
-        }
-    }
-}
-
-unsigned long OpenBCI_32bit_Library::timeGet() {
-    return millis() + timeOffset;
-}
+// /**
+//  * @description This starts the time syncing process
+//  */
+// void OpenBCI_32bit_Library::timeSet(char newTimeByte) {
+//     // If this is the first byte we are processing then reset the timeNewOffset holder
+//     if (numberOfIncomingBytesProcessedTime == 0) {
+//         timeComputer = newTimeByte;
+//         timeComputer = timeComputer << 8;
+//         // Serial0.print("timeComputer (init): "); Serial0.println(timeComputer,HEX);
+//     } else {
+//         timeComputer = timeComputer | (newTimeByte & 0x000000FF);
+//         if (numberOfIncomingBytesProcessedTime < 3) {
+//             timeComputer = timeComputer << 8;
+//         }
+//     }
+//
+//     // Serial0.print("timeComputer: "); Serial0.println(timeComputer,HEX);
+//     if (sniffMode && Serial1) {
+//         Serial1.print("timeComputer: "); Serial1.println(timeComputer,HEX);
+//     }
+//
+//     numberOfIncomingBytesProcessedTime++;
+//
+//     if (numberOfIncomingBytesProcessedTime == 4) {
+//         isProcessingIncomingTime = false;
+//         timeCurrent = millis();
+//
+//         // Serial0.print("timeCurrent (pre sync): "); Serial0.println(timeCurrent,HEX);
+//         if (sniffMode && Serial1) {
+//             Serial1.print("timeCurrent (pre sync): "); Serial1.println(timeCurrent,HEX);
+//         }
+//
+//         // calculate new offset
+//         timeOffset = (timeComputer + (timeCurrent - timeSetCharArrived)) - timeCurrent;
+//
+//         // Send back the current time.
+//         timeSendSyncSetPacket();
+//         // Serial0.print("timeCurrent (post sync):  "); Serial0.println(timeGet(),HEX);
+//         if (sniffMode && Serial1) {
+//             Serial1.print("timeCurrent (post sync):  "); Serial1.println(timeGet(),HEX);
+//         }
+//     }
+// }
+//
+// unsigned long OpenBCI_32bit_Library::timeGet() {
+//     return millis() + timeOffset;
+// }
 
 OpenBCI_32bit_Library board;
