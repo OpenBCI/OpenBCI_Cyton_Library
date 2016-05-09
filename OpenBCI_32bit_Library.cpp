@@ -248,7 +248,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
             // LEAD OFF IMPEDANCE DETECTION COMMANDS
             case OPENBCI_CHANNEL_IMPEDANCE_SET:
                 isProcessingIncomingSettingsLeadOff = true;
-                Serial0.println("First char");
                 numberOfIncomingSettingsProcessedLeadOff = 1;
                 break;
 
@@ -454,7 +453,7 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
  */
 void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
-    if (character == OPENBCI_CHANNEL_IMPEDANCE_LATCH && numberOfIncomingSettingsProcessedLeadOff == OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF) {
+    if (character == OPENBCI_CHANNEL_IMPEDANCE_LATCH && numberOfIncomingSettingsProcessedLeadOff < OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF - 1) {
         // We failed somehow and should just abort
         // reset numberOfIncomingSettingsProcessedLeadOff
         numberOfIncomingSettingsProcessedLeadOff = 0;
@@ -496,8 +495,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
             break;
         default: // should have exited
             if (!streaming) {
-                Serial0.print("Err: 5th char not ");
-                Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                Serial0.print("Err: too many chars ");
                 sendEOT();
             }
             // We failed somehow and should just abort
@@ -514,8 +512,10 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
     if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF)) {
         // We are done processing lead off settings...
-        Serial0.println("Done");
 
+        if (!streaming) {
+            Serial0.print("Lead off set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+        }
         // Set lead off settings
         streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
 
@@ -534,7 +534,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
  */
 void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
-    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
+    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel < OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
         // We failed somehow and should just abort
         // reset numberOfIncomingSettingsProcessedLeadOff
         numberOfIncomingSettingsProcessedChannel = 0;
@@ -571,6 +571,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
             channelSettings[currentChannelSetting][SRB1_SET] = getNumberForAsciiChar(character);
             break;
         case 8: // 'X' latch
+        Serial0.print("8th char: "); Serial0.println(character); sendEOT();
             if (character != OPENBCI_CHANNEL_CMD_LATCH) {
                 if (!streaming) {
                     Serial0.print("Err: 8th char not ");
@@ -583,7 +584,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
                 // put flag back down
                 isProcessingIncomingSettingsChannel = false;
-
+                return;
             }
             break;
         default: // should have exited
@@ -602,9 +603,12 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     // increment the number of bytes processed
     numberOfIncomingSettingsProcessedChannel++;
 
-    if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL)) {
+    if (numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL + 1) {
         // We are done processing channel settings...
-        Serial0.println("Done c");
+
+        if (!streaming) {
+            Serial0.print("Channel set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+        }
 
         // Set channel settings
         streamSafeChannelSettingsForChannel(currentChannelSetting + 1, channelSettings[currentChannelSetting][POWER_DOWN], channelSettings[currentChannelSetting][GAIN_SET], channelSettings[currentChannelSetting][INPUT_TYPE_SET], channelSettings[currentChannelSetting][BIAS_SET], channelSettings[currentChannelSetting][SRB2_SET], channelSettings[currentChannelSetting][SRB1_SET]);
