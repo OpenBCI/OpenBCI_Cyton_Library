@@ -18,6 +18,7 @@ public:
     OpenBCI_32bit_Library();
     void begin(void);
     void beginDebug(void);
+    boolean beginSecondarySerial(void);
     char readOneSerialChar(void);
 
     void writeSerial(char *data, int len);
@@ -210,6 +211,7 @@ public:
     //
     boolean boardBegin(void);
     boolean boardBeginDebug(void);
+    boolean boardBeginDebug(int);
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
     void sendEOT(void);

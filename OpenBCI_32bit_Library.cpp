@@ -51,6 +51,14 @@ void OpenBCI_32bit_Library::beginDebug(void) {
     }
 }
 
+/**
+* @description: The function the OpenBCI board will call in setup. This sets up the hardware serial port on D11 and D12
+* @author: AJ Keller (@pushtheworldllc)
+*/
+boolean OpenBCI_32bit_Library::beginSecondarySerial(void) {
+    // Bring the board up
+    return boardBeginDebug(OPENBCI_BAUD_RATE);
+}
 
 
 /**
@@ -365,7 +373,8 @@ boolean OpenBCI_32bit_Library::boardBegin(void) {
     pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
     // chill for a bit
-    delay(1000);
+    // TODO: See the result of removing this
+    // delay(1000);
 
     // Do a soft reset
     boardReset();
@@ -385,8 +394,27 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
     // Initalize the serial debug port
     Serial1.begin(OPENBCI_BAUD_RATE);
 
+    // TODO: See the result of removing this
     // chill for a bit
-    delay(1000);
+    // delay(1000);
+
+    // Do a soft reset
+    boardReset();
+
+    return true;
+}
+
+/**
+* @description: This is a function that is called once and confiures the Pic to run in secondary serial mode
+* @param baudRate {int} - The baudRate you want the secondary serial port to run at.
+* @author: AJ Keller (@pushtheworldllc)
+*/
+boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
+    // Initalize the serial port baud rate
+    Serial0.begin(OPENBCI_BAUD_RATE);
+
+    // Initalize the serial debug port
+    Serial1.begin(baudRate);
 
     // Do a soft reset
     boardReset();
@@ -589,14 +617,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
             break;
         default: // should have exited
             if (!streaming) {
-                Serial0.print("Too many chars"); sendEOT();
+                Serial0.print("Overflow! Char e"); sendEOT();
             }
-            // We failed somehow and should just abort
-            // reset numberOfIncomingSettingsProcessedLeadOff
-            numberOfIncomingSettingsProcessedChannel = 0;
-
-            // put flag back down
-            isProcessingIncomingSettingsChannel = false;
             return;
     }
 
@@ -633,6 +655,7 @@ void OpenBCI_32bit_Library::initialize(){
     spi.setMode(DSPI_MODE0);  // default to SD card mode!
     initialize_ads(); // hard reset ADS, set pin directions
     initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
+    initializeVariables();
 }
 
 void OpenBCI_32bit_Library::initializeVariables(void) {
