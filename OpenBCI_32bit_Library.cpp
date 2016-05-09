@@ -562,7 +562,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
  */
 void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
-    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel < OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
+    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel < OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL-1) {
         // We failed somehow and should just abort
         // reset numberOfIncomingSettingsProcessedLeadOff
         numberOfIncomingSettingsProcessedChannel = 0;
@@ -625,7 +625,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     // increment the number of bytes processed
     numberOfIncomingSettingsProcessedChannel++;
 
-    if (numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL + 1) {
+    if (numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
         // We are done processing channel settings...
 
         if (!streaming) {
