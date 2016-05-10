@@ -109,18 +109,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
     }
 
     if (isProcessingMultibyteMsg()) {
-        if (sniffMode && Serial1) {
-            Serial1.print("Multibyte msg: ");
-        }
         if (isProcessingIncomingSettingsChannel) {
-            if (sniffMode && Serial1) {
-                Serial1.println("channel");
-            }
             processIncomingChannelSettings(character);
         } else if (isProcessingIncomingSettingsLeadOff) {
-            if (sniffMode && Serial1) {
-                Serial1.println("Lead-off");
-            }
             processIncomingLeadOffSettings(character);
         } else if (isProcessingIncomingPacketType) {
             setStreamPacketType(character);
@@ -268,7 +259,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
                 break;
             case OPENBCI_CHANNEL_DEFAULT_ALL_REPORT:  // report the default settings
                 reportDefaultChannelSettings();
-                sendEOT();
                 break;
 
 
@@ -315,8 +305,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
             case OPENBCI_MISC_QUERY_REGISTER_SETTINGS:
                 if (!streaming) {
                     printAllRegisters(); // print the ADS and accelerometer register values
-                    sendEOT();
-                    delay(20);
                 }
                 break;
 
@@ -544,6 +532,11 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
         if (!streaming) {
             Serial0.print("Lead off set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
         }
+
+        if (sniffMode && Serial1) {
+            Serial1.print("Lead off set for  "); Serial1.println(currentChannelSetting + 1);
+        }
+
         // Set lead off settings
         streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
 
@@ -599,7 +592,6 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
             channelSettings[currentChannelSetting][SRB1_SET] = getNumberForAsciiChar(character);
             break;
         case 8: // 'X' latch
-        Serial0.print("8th char: "); Serial0.println(character); sendEOT();
             if (character != OPENBCI_CHANNEL_CMD_LATCH) {
                 if (!streaming) {
                     Serial0.print("Err: 8th char not ");
@@ -630,6 +622,10 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
         if (!streaming) {
             Serial0.print("Channel set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+        }
+
+        if (sniffMode && Serial1) {
+            Serial1.print("Channel settings set for  "); Serial1.println(currentChannelSetting + 1);
         }
 
         // Set channel settings
@@ -683,6 +679,7 @@ void OpenBCI_32bit_Library::printAllRegisters(){
         }
         Serial0.println("\nLIS3DH Registers");
         LIS3DH_readAllRegs();
+        sendEOT();
     }
 }
 
@@ -703,21 +700,15 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
-    int numBytes = 0;
+    Serial0.write('A'); // 1 byte
 
-    numBytes = Serial0.write('A'); // 1 byte
-
-    numBytes += Serial0.write(sampleCounter); // 1 byte
+    Serial0.write(sampleCounter); // 1 byte
 
     ADS_writeChannelData();       // 24 bytes
-    numBytes += 24;
-    writeAuxData();         // 6 bytes
-    numBytes += 6;
-    numBytes += Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1 - 1 byte
 
-    if (sniffMode && Serial1) {
-        Serial1.print("Wrote "); Serial1.print(numBytes); Serial1.println(" bytes");
-    }
+    writeAuxData();         // 6 bytes
+
+    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1 - 1 byte
 
     sampleCounter++;
 }
@@ -730,20 +721,15 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     ADS_writeChannelData();       // 24 bytes
 
-    if (accelHasNewData()) {
-        accelUpdateAxisData();
-        // Send later...
-    }
-
     // send two bytes of either accel data or blank
     switch (sampleCounter % 10) {
-        case ACCEL_AXIS_X:
+        case ACCEL_AXIS_X: // 0
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
             break;
-        case ACCEL_AXIS_Y:
+        case ACCEL_AXIS_Y: // 1
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
             break;
-        case ACCEL_AXIS_Z:
+        case ACCEL_AXIS_Z: // 2
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
             break;
         default:
@@ -767,7 +753,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     ADS_writeChannelData();       // 24 bytes
 
-    Serial0.write(auxData[0]); // 2 bytes of aux data
+    Serial0.write(highByte(auxData[0])); // 2 bytes of aux data
+    Serial0.write(lowByte(auxData[0]));
 
     writeTimeCurrent(); // 4 bytes
 
@@ -1160,7 +1147,7 @@ void OpenBCI_32bit_Library::streamStop(){
 boolean OpenBCI_32bit_Library::smellDaisy(void){ // check if daisy present
     boolean isDaisy = false;
     byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
-    if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX);}
+    if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX); sendEOT();}
     if(setting == ADS_ID) {isDaisy = true;} // should read as 0x3E
     return isDaisy;
 }
@@ -1266,6 +1253,7 @@ void OpenBCI_32bit_Library::reportDefaultChannelSettings(void){
     Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
     Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
+    sendEOT();
 }
 
 /**
@@ -2134,6 +2122,7 @@ byte OpenBCI_32bit_Library::ADS_getDeviceID(int targetSS) {      // simple hello
     if(verbosity){            // verbosity otuput
         Serial0.print("On Board ADS ID ");
         printHex(data); Serial0.println();
+        sendEOT();
     }
     return data;
 }
@@ -2292,6 +2281,7 @@ void OpenBCI_32bit_Library::WREG(byte _address, byte _value, int target_SS) { //
         Serial0.print("Register ");
         printHex(_address);
         Serial0.println(" modified.");
+        sendEOT();
     }
 }
 
@@ -2309,6 +2299,7 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
         printHex(_address); Serial0.print(" to ");
         printHex(_address + _numRegistersMinusOne);
         Serial0.println(" modified");
+        sendEOT();
     }
 }
 

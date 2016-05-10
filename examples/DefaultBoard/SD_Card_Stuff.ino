@@ -93,71 +93,85 @@ boolean setupSDcard(char limit){
         Serial0.println("initialization failed. Things to check:");
         Serial0.println("* is a card is inserted?");
       //    card.init(SPI_FULL_SPEED, SD_SS);
-      }
-      else{
+      } else {
         Serial0.println("Wiring is correct and a card is present.");
         cardInit = true;
       }
       if (!volume.init(card)) { // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
         Serial0.println("Could not find FAT16/FAT32 partition. Make sure you've formatted the card");
+        board.sendEOT();
         return fileIsOpen;
       }
    }
 
   // use limit to determine file size
   switch(limit){
-  case 'h':
-    BLOCK_COUNT = 50; break;
-  case 'a':
-    BLOCK_COUNT = 512; break;
-  case 'A':
-    BLOCK_COUNT = BLOCK_5MIN; break;
-  case 'S':
-    BLOCK_COUNT = BLOCK_15MIN; break;
-  case 'F':
-    BLOCK_COUNT = BLOCK_30MIN; break;
-  case 'G':
-    BLOCK_COUNT = BLOCK_1HR; break;
-  case 'H':
-    BLOCK_COUNT = BLOCK_2HR; break;
-  case 'J':
-    BLOCK_COUNT = BLOCK_4HR; break;
-  case 'K':
-    BLOCK_COUNT = BLOCK_12HR; break;
-  case 'L':
-    BLOCK_COUNT = BLOCK_24HR; break;
-  default: Serial0.println("invalid BLOCK count"); return fileIsOpen; break;
+    case 'h':
+      BLOCK_COUNT = 50; break;
+    case 'a':
+      BLOCK_COUNT = 512; break;
+    case 'A':
+      BLOCK_COUNT = BLOCK_5MIN; break;
+    case 'S':
+      BLOCK_COUNT = BLOCK_15MIN; break;
+    case 'F':
+      BLOCK_COUNT = BLOCK_30MIN; break;
+    case 'G':
+      BLOCK_COUNT = BLOCK_1HR; break;
+    case 'H':
+      BLOCK_COUNT = BLOCK_2HR; break;
+    case 'J':
+      BLOCK_COUNT = BLOCK_4HR; break;
+    case 'K':
+      BLOCK_COUNT = BLOCK_12HR; break;
+    case 'L':
+      BLOCK_COUNT = BLOCK_24HR; break;
+    default:
+      Serial0.println("invalid BLOCK count");
+      board.sendEOT(); // Write end of transmission because we exit here
+      return fileIsOpen;
   }
 
-    incrementFileCounter();
-    openvol = root.openRoot(volume);
-    openfile.remove(root, currentFileName); // if the file is over-writing, let it!
+  incrementFileCounter();
+  openvol = root.openRoot(volume);
+  openfile.remove(root, currentFileName); // if the file is over-writing, let it!
 
-      if (!openfile.createContiguous(root, currentFileName, BLOCK_COUNT*512UL)) {
-      Serial0.print("createfdContiguous fail"); cardInit = false;
-      }//else{Serial0.print("got contiguous file...");delay(1);}
-      // get the location of the file's blocks
-      if (!openfile.contiguousRange(&bgnBlock, &endBlock)) {
-      Serial0.print("get contiguousRange fail"); cardInit = false;
-      }//else{Serial0.print("got file range...");delay(1);}
-      // grab the Cache
-      pCache = (uint8_t*)volume.cacheClear();
-      // tell card to setup for multiple block write with pre-erase
-      if (!card.erase(bgnBlock, endBlock)){ Serial0.println("erase block fail"); cardInit = false;
-      }//else{Serial0.print("erased...");delay(1);}
-      if (!card.writeStart(bgnBlock, BLOCK_COUNT)){ Serial0.println("writeStart fail"); cardInit = false;
-      }else{ fileIsOpen = true; delay(1);}
-      board.csHigh(SD_SS);  // release the spi
-      // initialize write-time overrun error counter and min/max wirte time benchmarks
-      overruns = 0;
-      maxWriteTime = 0;
-      minWriteTime = 65000;
-      byteCounter = 0;  // counter from 0 - 512
-      blockCounter = 0; // counter from 0 - BLOCK_COUNT;
-     if(fileIsOpen == true){  // send corresponding file name to controlling program
-       Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);Serial.print("$$$");
-     }
-     return fileIsOpen;
+  if (!openfile.createContiguous(root, currentFileName, BLOCK_COUNT*512UL)) {
+    Serial0.print("createfdContiguous fail");
+    cardInit = false;
+  }//else{Serial0.print("got contiguous file...");delay(1);}
+  // get the location of the file's blocks
+  if (!openfile.contiguousRange(&bgnBlock, &endBlock)) {
+    Serial0.print("get contiguousRange fail");
+    cardInit = false;
+  }//else{Serial0.print("got file range...");delay(1);}
+  // grab the Cache
+  pCache = (uint8_t*)volume.cacheClear();
+  // tell card to setup for multiple block write with pre-erase
+  if (!card.erase(bgnBlock, endBlock)){
+    Serial0.println("erase block fail");
+    cardInit = false;
+  }//else{Serial0.print("erased...");delay(1);}
+  if (!card.writeStart(bgnBlock, BLOCK_COUNT)){
+    Serial0.println("writeStart fail");
+    cardInit = false;
+  } else{
+    fileIsOpen = true;
+    delay(1);
+  }
+  board.csHigh(SD_SS);  // release the spi
+  // initialize write-time overrun error counter and min/max wirte time benchmarks
+  overruns = 0;
+  maxWriteTime = 0;
+  minWriteTime = 65000;
+  byteCounter = 0;  // counter from 0 - 512
+  blockCounter = 0; // counter from 0 - BLOCK_COUNT;
+  if(fileIsOpen == true){  // send corresponding file name to controlling program
+    Serial0.print("Corresponding SD file ");
+    Serial0.println(currentFileName);
+  }
+  board.sendEOT();
+  return fileIsOpen;
 }
 
 boolean closeSDfile(){
@@ -179,9 +193,13 @@ boolean closeSDfile(){
           Serial0.print(over[i].block); Serial0.print(','); Serial0.println(over[i].micro);
         }
       }
+      board.sendEOT();
     }
   }else{
-    Serial0.println("no open file to close");
+    if(!board.streaming) {
+      Serial0.println("no open file to close");
+      board.sendEOT();
+    }
   }
   delay(100); // cool down
   return fileIsOpen;
@@ -236,7 +254,12 @@ void writeCache(){
     if(blockCounter > BLOCK_COUNT) return;
     uint32_t tw = micros();  // start block write timer
     board.csLow(SD_SS);  // take spi
-    if(!card.writeData(pCache)) {Serial0.println("block write fail");}   // write the block
+    if(!card.writeData(pCache)) {
+      if (!streaming)
+        Serial0.println("block write fail");
+        board.sendEOT();
+      }
+    }   // write the block
     board.csHigh(SD_SS);  // release spi
     tw = micros() - tw;      // stop block write timer
     if (tw > maxWriteTime) maxWriteTime = tw;  // check for max write time

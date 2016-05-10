@@ -4,7 +4,7 @@
 
 void setup() {
   // Bring up the OpenBCI Board
-  board.begin();
+  board.beginDebug();
 }
 
 void loop() {
