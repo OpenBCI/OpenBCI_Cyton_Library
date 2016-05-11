@@ -202,10 +202,10 @@ boolean closeSDfile(){
     board.csHigh(SD_SS);  // release the spi
     fileIsOpen = false;
     if(!board.streaming){ // verbosity. this also gets insterted as footer in openFile
-      Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println("mS"); delay(10);
-      Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS"); delay(10);
-      Serial0.print("Min write time: ");Serial0.print(minWriteTime); Serial0.println(" uS"); delay(10);
-      Serial0.print("Overruns: "); Serial0.print(overruns); Serial0.println(); delay(10);
+      Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println(" mS"); //delay(10);
+      Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS"); //delay(10);
+      Serial0.print("Min write time: ");Serial0.print(minWriteTime); Serial0.println(" uS"); //delay(10);
+      Serial0.print("Overruns: "); Serial0.print(overruns); Serial0.println(); //delay(10);
       if (overruns) {
         uint8_t n = overruns > OVER_DIM ? OVER_DIM : overruns;
         Serial0.println("fileBlock,micros");
@@ -217,11 +217,11 @@ boolean closeSDfile(){
     }
   }else{
     if(!board.streaming) {
-      Serial0.println("no open file to close");
+      Serial0.println("No open file to close");
       board.sendEOT();
     }
   }
-  delay(100); // cool down
+  // delay(100); // cool down
   return fileIsOpen;
 }
 
