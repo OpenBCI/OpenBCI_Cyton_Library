@@ -15,12 +15,12 @@
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
-#define OPENBCI_EOP_STND_ACCEL 0xF0 // End of standard stream packet
-#define OPENBCI_EOP_STND_RAW_AUX 0xF1 // End of stream packet with raw packet
-#define OPENBCI_EOP_USER_DEFINED 0xF2 // End of stream packet, user defined
-#define OPENBCI_EOP_TIME_SET 0xF3 // End of time set stream packet
-#define OPENBCI_EOP_TIME_SYNCED_ACCEL 0xF4 // End of time syned stream packet
-#define OPENBCI_EOP_TIME_SYNCED_RAW_AUX 0xF5 // End of time syned stream packet
+#define OPENBCI_EOP_STND_ACCEL 0xC0 // End of standard stream packet
+#define OPENBCI_EOP_STND_RAW_AUX 0xC1 // End of stream packet with raw packet
+#define OPENBCI_EOP_USER_DEFINED 0xC2 // End of stream packet, user defined
+#define OPENBCI_EOP_TIME_SET 0xC3 // End of time set stream packet
+#define OPENBCI_EOP_TIME_SYNCED_ACCEL 0xC4 // End of time syned stream packet
+#define OPENBCI_EOP_TIME_SYNCED_RAW_AUX 0xC5 // End of time syned stream packet
 
 //PIN CONNECTIONS
 #define ADS_DRDY 	    9   // ADS data ready pin

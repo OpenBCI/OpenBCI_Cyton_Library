@@ -693,7 +693,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
     accelWriteAxisData(); // 6 bytes
 
-    Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xF0
+    Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xC0
 
     sampleCounter++;
 }
@@ -722,25 +722,28 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     ADS_writeChannelData();       // 24 bytes
 
     // send two bytes of either accel data or blank
-    switch (sampleCounter % 10) {
-        case ACCEL_AXIS_X: // 0
-            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
-            break;
-        case ACCEL_AXIS_Y: // 1
-            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
-            break;
-        case ACCEL_AXIS_Z: // 2
-            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
-            break;
-        default:
-            Serial0.write((byte)0x00); // high byte
-            Serial0.write((byte)0x00); // low byte
-            break;
-    }
+    // switch (sampleCounter % 10) {
+        // case ACCEL_AXIS_X: // 0
+        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
+        //     break;
+        // case ACCEL_AXIS_Y: // 1
+        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
+        //     break;
+        // case ACCEL_AXIS_Z: // 2
+        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
+        //     break;
+    //     default:
+    //         Serial0.write((byte)0x00); // high byte
+    //         Serial0.write((byte)0x00); // low byte
+    //         break;
+    // }
+
+    Serial0.write((byte)0x00); // high byte
+    Serial0.write((byte)0x00);
 
     writeTimeCurrent(); // 4 bytes
 
-    Serial0.write(OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xF4
+    Serial0.write((byte)OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xF4
 
     sampleCounter++;
 }
@@ -802,7 +805,7 @@ void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
     for (int i = 0; i < 27; i++) {
         Serial0.write((byte)0x00);
     }
-    // 28 bytes sent
+    // 27 bytes sent
 
     writeTimeCurrent(); // 4 bytes
     // 32 bytes sent
@@ -820,9 +823,9 @@ void OpenBCI_32bit_Library::writeAuxData(){
 }
 
 void OpenBCI_32bit_Library::writeTimeCurrent(void) {
-    timeCurrent = millis(); // serialize the number, placing the MSB in lower packets
+    uint32_t newTime = millis(); // serialize the number, placing the MSB in lower packets
     for (int j = 3; j >= 0; j--) {
-        Serial0.write(timeCurrent >> (j*8));
+        Serial0.write(newTime >> (j*8));
     }
 }
 
