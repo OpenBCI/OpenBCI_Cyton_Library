@@ -7,14 +7,20 @@
 //	Joel Added Daisy Functionality Fall 2014
 //
 
-#ifndef _____OpenBCI_32bit_Definitions_h
-#define _____OpenBCI_32bit_Definitions_h
+#ifndef _____OpenBCI_32bit_Library_Definitions_h
+#define _____OpenBCI_32bit_Library_Definitions_h
 
 // The default baud rate
 #define OPENBCI_BAUD_RATE 115200
 
 // File transmissions
-#define OPENBCI_EOT "$$$"
+#define OPENBCI_BOP 'A' // Begining of stream packet
+#define OPENBCI_EOP_STND_ACCEL 0xC0 // End of standard stream packet
+#define OPENBCI_EOP_STND_RAW_AUX 0xC1 // End of stream packet with raw packet
+#define OPENBCI_EOP_USER_DEFINED 0xC2 // End of stream packet, user defined
+#define OPENBCI_EOP_TIME_SET 0xC3 // End of time set stream packet
+#define OPENBCI_EOP_TIME_SYNCED_ACCEL 0xC4 // End of time syned stream packet
+#define OPENBCI_EOP_TIME_SYNCED_RAW_AUX 0xC5 // End of time syned stream packet
 
 //PIN CONNECTIONS
 #define ADS_DRDY 	    9   // ADS data ready pin
@@ -188,6 +194,9 @@
 #define RATE_1600HZ_LP	0x80  //(b10000000)	// 1600Hz sample rate in low-power mode
 #define RATE_1250HZ_N	0x90  //(b10010000)	// 1250Hz sample rate in normal mode
 #define RATE_5000HZ_LP	0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
+#define ACCEL_AXIS_X    0x00 // x axis
+#define ACCEL_AXIS_Y    0x01 // y axis
+#define ACCEL_AXIS_Z    0x02 // z axis
 
 // OPENBCI_COMMANDS
 /** Turning channels off */
@@ -314,13 +323,12 @@
 #define OPENBCI_CHANNEL_MAX_NUMBER_8    'c'
 #define OPENBCI_CHANNEL_MAX_NUMBER_16   'C'
 
-/** Triggers */
-#define OPENBCI_TRIGGER '`'
+/** Set Packet Type */
+#define OPENBCI_PACKET_TYPE_SET '/'
 
 /** Sync Clocks */
-#define OPENBCI_SYNC_CLOCK_SERVER_DATA '<'
-#define OPENBCI_SYNC_CLOCK_START '>'
-#define OPENBCI_SYNC_CLOCK_STOP '.'
+#define OPENBCI_TIME_SET '<'
+#define OPENBCI_TIME_LATCH '>'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
@@ -342,15 +350,22 @@
 #define OPENBCI_LEAD_OFF_FREQUENCY_HZ 31
 
 /** Raw data packet types/codes */
-#define OPENBCI_PACKET_TYPE_RAW_AUX         3 // 0011
 #define OPENBCI_PACKET_TYPE_V3              0 // 0000
 #define OPENBCI_PACKET_TYPE_TIME_SYNCED     1 // 0001
-#define OPENBCI_PACKET_TYPE_USER_DEFINED    2 // 0010
+#define OPENBCI_PACKET_TYPE_TIME_SET        2 // 0010
+#define OPENBCI_PACKET_TYPE_USER_DEFINED    3 // 0011
+#define OPENBCI_PACKET_TYPE_RAW_AUX         4 // 0100
 
 #define OPENBCI_TIME_OUT_MS_1 1
 #define OPENBCI_TIME_OUT_MS_3 3
 
-#define OPENBCI_STREAM_PACKET_EOT "AJ"
+#define OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL 9
+#define OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF 5
+
+#define OPENBCI_NUMBER_OF_BYTES_AUX 6
+
+#define OPENBCI_FIRMWARE_VERSION_V1 1
+#define OPENBCI_FIRMWARE_VERSION_V2 1
 
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL 8
 #define OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF 5

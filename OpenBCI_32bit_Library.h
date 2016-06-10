@@ -8,16 +8,17 @@
 
 #include <DSPI.h>
 #include <Arduino.h>
-#include "OpenBCI_32Bit_Definitions.h"
+#include "OpenBCI_32bit_Library_Definitions.h"
 
 
-class OpenBCI_32bit_Class {
+class OpenBCI_32bit_Library {
 
 public:
     // Start up functions
-    OpenBCI_32bit_Class();
+    OpenBCI_32bit_Library();
     void begin(void);
     void beginDebug(void);
+    boolean beginSecondarySerial(void);
     char readOneSerialChar(void);
 
     void writeSerial(char *data, int len);
@@ -26,6 +27,12 @@ public:
 
     boolean isSerialAvailableForRead(void);
 
+    boolean accelHasNewData(void);
+    void accelUpdateAxisData(void);
+    void accelWriteAxisData(void);
+
+    void writeTimeCurrent(void);
+    void writeZeroAux(void);
     void activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
 
     void channelSettingsArraySetForAll(void);
@@ -45,13 +52,19 @@ public:
     void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
 
-    void sendAStreamPacketToTheHost(void);
+    void sendChannelDataWithAccel(void);
+    void sendChannelDataWithRawAux(void);
+    void sendChannelDataWithTimeAndAccel(void);
+    void sendChannelDataWithTimeAndRawAux(void);
+
+    void setStreamPacketType(char newPacketType);
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
     void streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
     void streamSafeSetAllChannelsToDefault(void);
     void streamSafeReportAllChannelDefaults(void);
     void streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
+    void streamSafeTimeSendSyncSetPacket(void);
     void streamStart(void);
     void streamStop(void);
 
@@ -62,18 +75,26 @@ public:
     void changeChannelLeadOffDetect(byte N);
     void configureLeadOffDetection(byte amplitudeCode, byte freqCode);
 
+    boolean waitForNewChannelData(void);
+
     // Variables
     boolean daisy;
     boolean sniffMode;
     boolean streaming;
+    boolean timeSynced;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
+    // boolean isProcessingIncomingTime;
+    boolean isProcessingIncomingPacketType;
+    boolean isProcessingMultibyteMsg(void);
 
     int boardType;
     int numberOfIncomingSettingsProcessedChannel;
     int numberOfIncomingSettingsProcessedLeadOff;
+    int numberOfIncomingBytesProcessedTime;
+    char streamPacketType;
     char currentChannelSetting;
-    HardwareSerial *_serial;
+    // HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);
@@ -91,6 +112,7 @@ public:
     boolean useAccel;
     boolean useAux;
     void initialize(void);
+    void initializeVariables(void);
     void printAllRegisters(void);
     void sendChannelData(void); // send the current data with sample number
 
@@ -180,6 +202,7 @@ public:
     boolean LIS3DH_DataAvailable(void); // check LIS3DH STATUS_REG2
     void LIS3DH_readAllRegs(void);
     void LIS3DH_writeAxisData(void);
+    void LIS3DH_writeAxisDataForAxis(uint8_t axis);
     void LIS3DH_updateAxisData(void);
 
     void csLow(int);
@@ -188,6 +211,7 @@ public:
     //
     boolean boardBegin(void);
     boolean boardBeginDebug(void);
+    boolean boardBeginDebug(int);
     void boardReset(void);
     void ledFlash(int numberOfFlashes);
     void sendEOT(void);
@@ -200,9 +224,19 @@ public:
     int DRDYpinValue;
     int lastDRDYpinValue;
 
+    // Time sync Variables
+    unsigned long timeOffset;
+    unsigned long timeSetCharArrived;
+    unsigned long timeComputer;
+    unsigned long timeCurrent;
+    // Time sync Methods
+    // unsigned long   timeGet(void);
+    // void            timeSet(char character);
+    void            timeSendSyncSetPacket(void);
+
 };
 
 // This let's us call into the class from within the library if necessary
-extern OpenBCI_32bit_Class board;
+extern OpenBCI_32bit_Library board;
 
 #endif
