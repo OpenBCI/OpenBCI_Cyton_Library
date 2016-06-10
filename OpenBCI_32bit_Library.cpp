@@ -95,6 +95,11 @@ void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
     }
 }
 
+/**
+ * @description While processing incoming multi byte messages these will turn
+ *  true.
+ * @return {boolean} - True if processing a message and false otherwise
+ */
 boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
     return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || isProcessingIncomingPacketType;
 }
