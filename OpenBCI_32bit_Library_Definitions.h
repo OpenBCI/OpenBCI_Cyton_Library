@@ -328,7 +328,7 @@
 
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
-#define OPENBCI_TIME_LATCH '>'
+#define OPENBCI_TIME_STOP '>'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
