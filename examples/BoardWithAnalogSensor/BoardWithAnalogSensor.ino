@@ -21,12 +21,12 @@ void loop() {
     // Read from the ADS(s) and store data into
     board.updateChannelData();
 
-    // Read from the analog sensor and store auxilary position 0
+    // Read from the analog sensor and store auxiliary position 0
     // take a reading from the ADC. Result range from 0 to 1023
     board.auxData[0] = analogRead(A7);
 
     // Send standard packet with channel data and accel data
-    //  includes aux data because we set told the board to add it
+    //  includes aux data because we set `useAux` in setup() 
     board.sendChannelData();
   }
 

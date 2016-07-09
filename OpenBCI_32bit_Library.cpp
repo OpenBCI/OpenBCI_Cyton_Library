@@ -69,7 +69,11 @@ boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
     if (Serial0.available()) {
         return true;
     } else {
-        return false;
+        if (sniffMode && Serial1.available()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -81,6 +85,10 @@ boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
 char OpenBCI_32bit_Library::readOneSerialChar(void) {
     if (Serial0.available()) {
         return Serial0.read();
+    } else if (Serial1.available()) {
+        return Serial1.read();
+    } else {
+        return 0x00;
     }
 }
 
@@ -439,7 +447,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-    Serial0.println("Firmware: v2");
+    Serial0.println("Firmware: v2.0.0");
     sendEOT();
 }
 
@@ -708,6 +716,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
     Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xC0
 
     sampleCounter++;
+
 }
 
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
@@ -734,28 +743,25 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     ADS_writeChannelData();       // 24 bytes
 
     // send two bytes of either accel data or blank
-    // switch (sampleCounter % 10) {
-        // case ACCEL_AXIS_X: // 0
-        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
-        //     break;
-        // case ACCEL_AXIS_Y: // 1
-        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
-        //     break;
-        // case ACCEL_AXIS_Z: // 2
-        //     LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
-        //     break;
-    //     default:
-    //         Serial0.write((byte)0x00); // high byte
-    //         Serial0.write((byte)0x00); // low byte
-    //         break;
-    // }
-
-    Serial0.write((byte)0x00); // high byte
-    Serial0.write((byte)0x00);
+    switch (sampleCounter % 10) {
+        case ACCEL_AXIS_X: // 0
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
+            break;
+        case ACCEL_AXIS_Y: // 1
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
+            break;
+        case ACCEL_AXIS_Z: // 2
+            LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
+            break;
+        default:
+            Serial0.write((byte)0x00); // high byte
+            Serial0.write((byte)0x00); // low byte
+            break;
+    }
 
     writeTimeCurrent(); // 4 bytes
 
-    Serial0.write((byte)OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xF4
+    Serial0.write(OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xC4
 
     sampleCounter++;
 }
@@ -776,6 +782,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
     Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xF5
 
     sampleCounter++;
+
 }
 
 /**
@@ -811,8 +818,8 @@ void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
     // Set global object for time syncing
     timeSynced = true;
 
-    Serial0.print('A');
     // 1 byte sent
+    Serial0.write('A'); // 0x41
 
     for (int i = 0; i < 27; i++) {
         Serial0.write((byte)0x00);
