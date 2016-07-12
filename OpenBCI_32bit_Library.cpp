@@ -323,7 +323,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // TIME SYNC
             case OPENBCI_TIME_SET:
-                // Send time Packet
+                // Set flag to send time packet
+                sendTimeSyncUpPacket = true;
+                timeSynced = true;
                 streamSafeTimeSendSyncSetPacket();
                 break;
 
@@ -676,6 +678,7 @@ void OpenBCI_32bit_Library::initialize(){
 
 void OpenBCI_32bit_Library::initializeVariables(void) {
     streaming = false;
+    sendTimeSyncUpPacket = false;
     timeSynced = false;
     isProcessingIncomingSettingsChannel = false;
     isProcessingIncomingSettingsLeadOff = false;
@@ -761,7 +764,12 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     writeTimeCurrent(); // 4 bytes
 
-    Serial0.write(OPENBCI_EOP_TIME_SYNCED_ACCEL); // 0xC4
+    if (sendTimeSyncUpPacket) {
+        sendTimeSyncUpPacket = false;
+        Serial0.write(OPENBCI_EOP_ACCEL_TIME_SET); // 0xC3
+    } else {
+        Serial0.write(OPENBCI_EOP_ACCEL_TIME_SYNCED); // 0xC4
+    }
 
     sampleCounter++;
 }
@@ -779,7 +787,12 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     writeTimeCurrent(); // 4 bytes
 
-    Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xC5
+    if (sendTimeSyncUpPacket) {
+        sendTimeSyncUpPacket = false;
+        Serial0.write(OPENBCI_EOP_RAW_AUX_TIME_SET); // 0xC5
+    } else {
+        Serial0.write(OPENBCI_EOP_RAW_AUX_TIME_SYNCED); // 0xC6
+    }
 
     sampleCounter++;
 
