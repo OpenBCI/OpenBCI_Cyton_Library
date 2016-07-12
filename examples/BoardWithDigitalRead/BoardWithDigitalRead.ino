@@ -3,11 +3,14 @@
 #include <OpenBCI_32Bit_Library_Definitions.h>
 
 void setup() {
-  // Bring up the OpenBCI Board
-  board.begin();
+    // Bring up the OpenBCI Board
+    board.begin();
 
-  // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAux = true;
+    // Notify the board we want to use aux data, this effects `::sendChannelData()`
+    board.useAux = true;
+
+    // Set pin to input A0-A5 can be digital input
+    pinMode(17, INPUT);
 }
 
 void loop() {
@@ -23,7 +26,7 @@ void loop() {
 
         // Read from the analog sensor and store auxiliary position 0
         // take a reading from the ADC. Result range from 0 to 1023
-        board.auxData[0] = analogRead(A7);
+        board.auxData[0] = digitalRead(17);
 
         // Send standard packet with channel data and accel data
         //  includes aux data because we set `useAux` in setup()

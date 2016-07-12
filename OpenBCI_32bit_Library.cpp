@@ -277,12 +277,12 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
 
             // DAISY MODULE COMMANDS
-            case 'c':  // use 8 channel mode
+            case OPENBCI_CHANNEL_MAX_NUMBER_8:  // use 8 channel mode
                 if(daisyPresent){
                     removeDaisy();
                 }
                 break;
-            case 'C':  // use 16 channel mode
+            case OPENBCI_CHANNEL_MAX_NUMBER_16:  // use 16 channel mode
                 if(daisyPresent == false){
                     attachDaisy();
                 }
@@ -779,7 +779,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     writeTimeCurrent(); // 4 bytes
 
-    Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xF5
+    Serial0.write(OPENBCI_EOP_TIME_SYNCED_RAW_AUX); // 0xC5
 
     sampleCounter++;
 
