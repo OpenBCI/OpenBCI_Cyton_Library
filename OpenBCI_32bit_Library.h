@@ -82,6 +82,7 @@ public:
     boolean sniffMode;
     boolean streaming;
     boolean timeSynced;
+    boolean sendTimeSyncUpPacket;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
     // boolean isProcessingIncomingTime;
