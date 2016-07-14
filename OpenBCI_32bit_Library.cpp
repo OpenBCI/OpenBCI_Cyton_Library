@@ -326,7 +326,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
                 // Set flag to send time packet
                 sendTimeSyncUpPacket = true;
                 timeSynced = true;
-                streamSafeTimeSendSyncSetPacket();
                 break;
 
             case OPENBCI_TIME_STOP:
@@ -823,29 +822,6 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
     sampleCounter++;
 }
 
-/**
- * @description Send a stream packet to the Driver with the current time.
- */
-void OpenBCI_32bit_Library::timeSendSyncSetPacket(void) {
-
-    // Set global object for time syncing
-    timeSynced = true;
-
-    // 1 byte sent
-    Serial0.write('A'); // 0x41
-
-    for (int i = 0; i < 27; i++) {
-        Serial0.write((byte)0x00);
-    }
-    // 27 bytes sent
-
-    writeTimeCurrent(); // 4 bytes
-    // 32 bytes sent
-
-    Serial0.write(OPENBCI_EOP_TIME_SET); // 0xC3
-    // 33 bytes sent
-}
-
 void OpenBCI_32bit_Library::writeAuxData(){
     for(int i=0; i<3; i++){
         Serial0.write(highByte(auxData[i])); // write 16 bit axis data MSB first
@@ -1124,26 +1100,6 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
     }
 
     setChannelsToDefault();
-
-    // Restart stream if need be
-    if (wasStreaming) {
-        streamStart();
-    }
-}
-
-/**
- * @description Pause streaming, send current time, and resume.
- * @author AJ Keller (@pushtheworldllc)
- */
-void OpenBCI_32bit_Library::streamSafeTimeSendSyncSetPacket(void) {
-    boolean wasStreaming = streaming;
-
-    // Stop streaming if you are currently streaming
-    if (streaming) {
-        streamStop();
-    }
-
-    timeSendSyncSetPacket();
 
     // Restart stream if need be
     if (wasStreaming) {
