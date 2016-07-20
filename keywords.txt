@@ -11,15 +11,22 @@ board	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-begin		             KEYWORD2
-beginDebug		KEYWORD2
-readOneSerialChar	     KEYWORD2
-writeSerial	             KEYWORD2
-isADSDataAvailable       KEYWORD2
-isSerialAvailableForRead KEYWORD2
-processChar              KEYWORD2
-updateChannelData        KEYWORD2
-sendChannelData          KEYWORD2
+accelHasNewData                     KEYWORD2
+accelUpdateAxisData                 KEYWORD2
+begin                               KEYWORD2
+beginDebug		                    KEYWORD2
+isADSDataAvailable                  KEYWORD2
+isSerialAvailableForRead            KEYWORD2
+processChar                         KEYWORD2
+readOneSerialChar                   KEYWORD2
+sendChannelData                     KEYWORD2
+sendChannelDataWithAccel            KEYWORD2
+sendChannelDataWithRawAux           KEYWORD2
+sendChannelDataWithTimeAndAccel     KEYWORD2
+sendChannelDataWithTimeAndRawAux    KEYWORD2
+updateChannelData                   KEYWORD2
+waitForNewChannelData               KEYWORD2
+writeSerial	                        KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
