@@ -324,13 +324,22 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
             // TIME SYNC
             case OPENBCI_TIME_SET:
                 // Set flag to send time packet
-                sendTimeSyncUpPacket = true;
+                if (streaming) {
+                    sendTimeSyncUpPacket = true;
+                } else {
+                    Serial0.print("Time stamp ON");
+                    sendEOT();
+                }
                 timeSynced = true;
                 break;
 
             case OPENBCI_TIME_STOP:
                 // Stop the Sync
                 timeSynced = false;
+                if (!streaming) {
+                    Serial0.print("Time stamp OFF");
+                    sendEOT();
+                }
                 break;
 
             // PACKET SET TYPE
