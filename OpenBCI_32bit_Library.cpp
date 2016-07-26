@@ -23,16 +23,28 @@ OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
 }
 
 /**
-* @description: The function the OpenBCI board will call in setup
+* @description: The function the OpenBCI board will call in setup.
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::begin(void) {
     // Bring the board up
-    boardBegin();// ? ledFlash(2) : ledFlash(10);
+    boardBegin();
 }
 
 /**
-* @description: The function the OpenBCI board will call in setup
+* @description: The function the OpenBCI board will call in setup. Turns sniff mode
+*  on and allows you to tap into the serial port that is broken out on the OpenBCI
+*  32bit board. You must alter this file:
+*   On Mac:
+*     `/Users/username/Documents/Arduino/hardware/chipkit-core/pic32/variants/openbci/Board_Defs.h`
+*   On Windows:
+*     `C:\Users\username\Documents\Arduino\hardware\chipkit-core\pic32\variants\openbci\Board_Defs.h`
+* Specifically lines `311` and `313` from `7` and `10` to `11` and `12` for
+*   `_SER1_TX_PIN` and `_SER1_RX_PIN` respectively. Check out this sweet gif if
+*   you are a visual person http://g.recordit.co/3jH01sMD6Y.gif
+*  You will need to reflash your board! But now you can connect to pins `11`
+*    `12` via a FTDI serial port driver, really any serial to USB driver would
+*    work. Remember to use 3V3, 115200 baud, and have a common ground!
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::beginDebug(void) {
@@ -62,8 +74,9 @@ boolean OpenBCI_32bit_Library::beginSecondarySerial(void) {
 
 
 /**
-* @description: called in every loop function
-* @return: [boolean] - If there is data ready to be read
+* @description Called in every `loop()` and checks both `Serial0` and `Serial1`
+*  if `sniffMode` is `true`.
+* @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
     if (Serial0.available()) {
@@ -78,14 +91,18 @@ boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
 }
 
 /**
-* @description: called in every loop function, returns a char of the data if
-*                 the data is not recognized
-* @return: [char] - The character's not processed
+* @description If `isSerialAvailableForRead()` is `true` then this function is
+*  called. Reads from `Serial0` first and foremost, which comes from the RFduino.
+*  If `sniffMode` is true and `Serial0` didn't have any data, we will try to
+*  read from `Serial1`. If both are not available then we will return a `0x00`
+*  which is NOT a command that the system will recognize, aka this function has
+*  many safe guards.
+* @returns {char} - The character from the serial port.
 */
 char OpenBCI_32bit_Library::readOneSerialChar(void) {
     if (Serial0.available()) {
         return Serial0.read();
-    } else if (Serial1.available()) {
+    } else if (sniffMode && Serial1.available()) {
         return Serial1.read();
     } else {
         return 0x00;
@@ -113,8 +130,11 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 }
 
 /**
- * @description Process one char at a time from serial port
- * @return {bool} - True if the command was recognized, false if not
+ * @description Process one char at a time from serial port. This is the main
+ *  command processor for the OpenBCI system. Considered mission critical for
+ *  normal operation.
+ * @param `character` {char} - The character to process.
+ * @return {boolean} - `true` if the command was recognized, `false` if not
  */
 boolean OpenBCI_32bit_Library::processChar(char character) {
     if (sniffMode && Serial1) {
@@ -358,14 +378,15 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 /**
  * @description Reads a status register to see if there is new accelerometer
  *  data.
- * @returns {boolean} true if the accelerometer has new data.
+ * @returns {boolean} `true` if the accelerometer has new data.
  */
 boolean OpenBCI_32bit_Library::accelHasNewData(void) {
     return LIS3DH_DataAvailable();
 }
 
 /**
- * @description Reads from the accelerometer to get new X, Y, and Z data.
+ * @description Reads from the accelerometer to get new X, Y, and Z data. Updates
+ *  the global array `axisData`.
  */
 void OpenBCI_32bit_Library::accelUpdateAxisData(void) {
     LIS3DH_updateAxisData();
@@ -1951,16 +1972,16 @@ void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 }
 
 /**
- * @description Query to see if data is available from the ADS1299...
- * @return - [bool] - TRUE if data is available
+ * @description Check status register to see if data is available from the ADS1299.
+ * @returns {boolean} - `true` if data is available
  */
 boolean OpenBCI_32bit_Library::waitForNewChannelData(void) {
     return !isADSDataAvailable();
 }
 
 /**
- * @description Query to see if data is available from the ADS1299...
- * @return - [bool] - TRUE if data is available
+ * @description Check status register to see if data is available from the ADS1299.
+ * @returns {boolean} - `true` if data is available
  */
 boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
     return (!(digitalRead(ADS_DRDY)));

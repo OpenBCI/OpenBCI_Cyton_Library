@@ -106,4 +106,84 @@ void loop() {
 
 ## System Overview
 
-If you send a packet from the Pic32 to the Device RFduino and you start it with 0x41, write 31 bytes, and follow with 0xFx (where x can be 0-F hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming. 
+If you send a packet from the Pic32 to the Device RFduino and you start it with 0x41, write 31 bytes, and follow with 0xFx (where x can be 0-F hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
+
+# Reference Guide
+
+## Functions
+
+### accelHasNewData()
+
+Reads a status register to see if there is new accelerometer data.
+
+**_Returns_** {boolean}
+
+`true` if the accelerometer has new data.
+
+### accelUpdateAxisData()
+
+Reads from the accelerometer to get new X, Y, and Z data. Updates the global array `axisData`.
+
+### begin()
+
+The function the OpenBCI board will call in `setup()`.
+
+### beginDebug()
+
+The function the OpenBCI board will call in setup. Turns sniff mode on and allows you to tap into the serial port that is broken out on the OpenBCI 32bit board.
+
+You must alter `Board_Defs.h` file located:
+
+On Mac:    
+`/Users/username/Documents/Arduino/hardware/chipkit-core/pic32/variants/openbci/Board_Defs.h`
+On Windows:
+
+`C:\Users\username\Documents\Arduino\hardware\chipkit-core\pic32\variants\openbci\Board_Defs.h`
+
+Specifically lines `311` and `313`, change `7` and `10` to `11` and `12` for `_SER1_TX_PIN` and `_SER1_RX_PIN` respectively. Check out this sweet gif if you are a visual person http://g.recordit.co/3jH01sMD6Y.gif
+
+You will need to reflash your board! But now you can connect to pins `11` (`TX`) and `12` (`RX`) via any 3V3 serial to USB driver. Remember to use 3V3, 115200 baud, and have a common ground!
+
+### isSerialAvailableForRead()
+
+Called in every `loop()` and checks both `Serial0` and `Serial1` if `sniffMode` is `true`.
+
+**_Returns_** {boolean}
+
+`true` if there is data ready to be read.
+
+### processChar(character)
+
+Process one char at a time from serial port. This is the main command processor for the OpenBCI system. Considered mission critical for normal operation.
+
+**_character_** {char}
+
+The character to process.
+
+**_Returns_** {boolean}
+
+`true` if the command was recognized, `false` if not.
+
+### readOneSerialChar()
+
+If `isSerialAvailableForRead()` is `true` then this function is called. Reads from `Serial0` first and foremost, which comes from the RFduino. If `sniffMode` is true and `Serial0` didn't have any data, we will try to read from `Serial1`. If both are not available then we will return a `0x00` which is NOT a command that the system will recognize, aka this function has many safe guards.
+
+**_Returns_** {char}
+
+The character from the serial port.
+
+### sendChannelData
+### sendChannelDataWithAccel
+### sendChannelDataWithRawAux
+### sendChannelDataWithTimeAndAccel
+### sendChannelDataWithTimeAndRawAux
+### updateChannelData
+### waitForNewChannelData()
+
+Check status register to see if data is available from the ADS1299.
+
+**_Returns_** {boolean}
+
+`true` if data is available.
+
+### writeSerial             
