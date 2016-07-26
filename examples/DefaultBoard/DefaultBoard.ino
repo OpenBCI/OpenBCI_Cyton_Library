@@ -1,5 +1,5 @@
-#include <OBCI32_SD.h>
 #include <DSPI.h>
+#include <OBCI32_SD.h>
 #include <EEPROM.h>
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32bit_Library_Definitions.h>
