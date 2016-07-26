@@ -23,16 +23,28 @@ OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
 }
 
 /**
-* @description: The function the OpenBCI board will call in setup
+* @description: The function the OpenBCI board will call in setup.
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::begin(void) {
     // Bring the board up
-    boardBegin();// ? ledFlash(2) : ledFlash(10);
+    boardBegin();
 }
 
 /**
-* @description: The function the OpenBCI board will call in setup
+* @description: The function the OpenBCI board will call in setup. Turns sniff mode
+*  on and allows you to tap into the serial port that is broken out on the OpenBCI
+*  32bit board. You must alter this file:
+*   On Mac:
+*     `/Users/username/Documents/Arduino/hardware/chipkit-core/pic32/variants/openbci/Board_Defs.h`
+*   On Windows:
+*     `C:\Users\username\Documents\Arduino\hardware\chipkit-core\pic32\variants\openbci\Board_Defs.h`
+* Specifically lines `311` and `313` from `7` and `10` to `11` and `12` for
+*   `_SER1_TX_PIN` and `_SER1_RX_PIN` respectively. Check out this sweet gif if
+*   you are a visual person http://g.recordit.co/3jH01sMD6Y.gif
+*  You will need to reflash your board! But now you can connect to pins `11`
+*    `12` via a FTDI serial port driver, really any serial to USB driver would
+*    work. Remember to use 3V3, 115200 baud, and have a common ground!
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::beginDebug(void) {
@@ -62,8 +74,9 @@ boolean OpenBCI_32bit_Library::beginSecondarySerial(void) {
 
 
 /**
-* @description: called in every loop function
-* @return: [boolean] - If there is data ready to be read
+* @description Called in every `loop()` and checks both `Serial0` and `Serial1`
+*  if `sniffMode` is `true`.
+* @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
     if (Serial0.available()) {
@@ -78,14 +91,18 @@ boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
 }
 
 /**
-* @description: called in every loop function, returns a char of the data if
-*                 the data is not recognized
-* @return: [char] - The character's not processed
+* @description If `isSerialAvailableForRead()` is `true` then this function is
+*  called. Reads from `Serial0` first and foremost, which comes from the RFduino.
+*  If `sniffMode` is true and `Serial0` didn't have any data, we will try to
+*  read from `Serial1`. If both are not available then we will return a `0x00`
+*  which is NOT a command that the system will recognize, aka this function has
+*  many safe guards.
+* @returns {char} - The character from the serial port.
 */
 char OpenBCI_32bit_Library::readOneSerialChar(void) {
     if (Serial0.available()) {
         return Serial0.read();
-    } else if (Serial1.available()) {
+    } else if (sniffMode && Serial1.available()) {
         return Serial1.read();
     } else {
         return 0x00;
@@ -94,7 +111,7 @@ char OpenBCI_32bit_Library::readOneSerialChar(void) {
 
 /**
 * @description Public function for sending data to the PC
-* @param data [char *] - The data you want to send
+* @param data {char *} - The data you want to send
 * @author AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
@@ -113,8 +130,11 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 }
 
 /**
- * @description Process one char at a time from serial port
- * @return {bool} - True if the command was recognized, false if not
+ * @description Process one char at a time from serial port. This is the main
+ *  command processor for the OpenBCI system. Considered mission critical for
+ *  normal operation.
+ * @param `character` {char} - The character to process.
+ * @return {boolean} - `true` if the command was recognized, `false` if not
  */
 boolean OpenBCI_32bit_Library::processChar(char character) {
     if (sniffMode && Serial1) {
@@ -296,14 +316,12 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // STREAM DATA AND FILTER COMMANDS
             case OPENBCI_STREAM_START:  // stream data
-                // if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
                 if(useAccel){
                     enable_accel(RATE_25HZ);
                 }      // fire up the accelerometer if you want it
                 streamStart(); // turn on the fire hose
                 break;
             case OPENBCI_STREAM_STOP:  // stop streaming data
-                // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
                 if(useAccel){
                     disable_accel();
                 }  // shut down the accelerometer if you're using it
@@ -358,14 +376,15 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 /**
  * @description Reads a status register to see if there is new accelerometer
  *  data.
- * @returns {boolean} true if the accelerometer has new data.
+ * @returns {boolean} `true` if the accelerometer has new data.
  */
 boolean OpenBCI_32bit_Library::accelHasNewData(void) {
     return LIS3DH_DataAvailable();
 }
 
 /**
- * @description Reads from the accelerometer to get new X, Y, and Z data.
+ * @description Reads from the accelerometer to get new X, Y, and Z data. Updates
+ *  the global array `axisData`.
  */
 void OpenBCI_32bit_Library::accelUpdateAxisData(void) {
     LIS3DH_updateAxisData();
@@ -714,6 +733,12 @@ void OpenBCI_32bit_Library::printAllRegisters(){
     }
 }
 
+/**
+ * @description Writes channel data and `axisData` array to serial port in
+ *  the correct stream packet format.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
     Serial0.write('A'); // 0x41
@@ -730,6 +755,12 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
 }
 
+/**
+ * @description Writes channel data and `auxData` array to serial port in
+ *  the correct stream packet format.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See `OpenBCI_32bit_Library_Definitions.h`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
     Serial0.write('A'); // 1 byte
@@ -740,11 +771,25 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
     writeAuxData();         // 6 bytes
 
-    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1 - 1 byte
+    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xC1 - 1 byte
 
     sampleCounter++;
 }
 
+/**
+ * @description Writes channel data, `axisData` array, and 4 byte unsigned time
+ *  stamp in ms to serial port in the correct stream packet format.
+ *
+ *  `axisData` will be split up and sent on the samples with `sampleCounter` of
+ *   7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
+ *
+ *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+ *   getting a time sync set `<` command) then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket`
+ *      to `false`.
+ *  Else if `sendTimeSyncUpPacket` is `false` then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     Serial0.write('A');
@@ -755,13 +800,13 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     // send two bytes of either accel data or blank
     switch (sampleCounter % 10) {
-        case ACCEL_AXIS_X: // 0
+        case ACCEL_AXIS_X: // 7
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
             break;
-        case ACCEL_AXIS_Y: // 1
+        case ACCEL_AXIS_Y: // 8
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
             break;
-        case ACCEL_AXIS_Z: // 2
+        case ACCEL_AXIS_Z: // 9
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
             break;
         default:
@@ -782,6 +827,17 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     sampleCounter++;
 }
 
+/**
+ * @description Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned
+ *  time stamp in ms to serial port in the correct stream packet format.
+ *
+ *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+ *   getting a time sync set `<` command) then:
+ *      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket`
+ *      to `false`.
+ *  Else if `sendTimeSyncUpPacket` is `false` then:
+ *      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     Serial0.print('A');
@@ -807,8 +863,16 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 }
 
 /**
- * @description Writes channel data, aux data, and footer to serial port
- *      This is the old way to send channel data. Must keep for portability...
+ * @description Writes channel data, aux data, and footer to serial port. This
+ *  is the old way to send channel data. Based on global variables `useAux`
+ *  and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
+ *
+ *  If `useAccel` is `true` then sends data from `axisData` array and sets the
+ *    contents of `axisData` to `0`.
+ *  If `useAux` is `true` then sends data from `auxData` array and sets the
+ *   contents of `auxData` to `0`.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
  */
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
@@ -1951,16 +2015,16 @@ void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 }
 
 /**
- * @description Query to see if data is available from the ADS1299...
- * @return - [bool] - TRUE if data is available
+ * @description Check status register to see if data is available from the ADS1299.
+ * @returns {boolean} - `true` if data is available
  */
 boolean OpenBCI_32bit_Library::waitForNewChannelData(void) {
     return !isADSDataAvailable();
 }
 
 /**
- * @description Query to see if data is available from the ADS1299...
- * @return - [bool] - TRUE if data is available
+ * @description Check status register to see if data is available from the ADS1299.
+ * @returns {boolean} - `true` if data is available
  */
 boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
     return (!(digitalRead(ADS_DRDY)));

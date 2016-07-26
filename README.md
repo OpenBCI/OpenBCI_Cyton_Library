@@ -106,4 +106,153 @@ void loop() {
 
 ## System Overview
 
-If you send a packet from the Pic32 to the Device RFduino and you start it with 0x41, write 31 bytes, and follow with 0xFx (where x can be 0-F hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming. 
+If you send a packet from the Pic32 to the Device RFduino and you start it with 0x41, write 31 bytes, and follow with 0xFx (where x can be 0-F hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
+
+# Reference Guide
+
+## Functions
+
+### accelHasNewData()
+
+Reads a status register to see if there is new accelerometer data.
+
+**_Returns_** {boolean}
+
+`true` if the accelerometer has new data.
+
+### accelUpdateAxisData()
+
+Reads from the accelerometer to get new X, Y, and Z data. Updates the global array `axisData`.
+
+### begin()
+
+The function the OpenBCI board will call in `setup()`.
+
+### beginDebug()
+
+The function the OpenBCI board will call in setup. Turns sniff mode on and allows you to tap into the serial port that is broken out on the OpenBCI 32bit board.
+
+You must alter `Board_Defs.h` file located:
+
+On Mac:    
+`/Users/username/Documents/Arduino/hardware/chipkit-core/pic32/variants/openbci/Board_Defs.h`
+On Windows:
+
+`C:\Users\username\Documents\Arduino\hardware\chipkit-core\pic32\variants\openbci\Board_Defs.h`
+
+Specifically lines `311` and `313`, change `7` and `10` to `11` and `12` for `_SER1_TX_PIN` and `_SER1_RX_PIN` respectively. Check out this sweet gif if you are a visual person http://g.recordit.co/3jH01sMD6Y.gif
+
+You will need to reflash your board! But now you can connect to pins `11` (`TX`) and `12` (`RX`) via any 3V3 serial to USB driver. Remember to use 3V3, 115200 baud, and have a common ground!
+
+### isSerialAvailableForRead()
+
+Called in every `loop()` and checks both `Serial0` and `Serial1` if `sniffMode` is `true`.
+
+**_Returns_** {boolean}
+
+`true` if there is data ready to be read.
+
+### processChar(character)
+
+Process one char at a time from serial port. This is the main command processor for the OpenBCI system. Considered mission critical for normal operation.
+
+**_character_** {char}
+
+The character to process.
+
+**_Returns_** {boolean}
+
+`true` if the command was recognized, `false` if not.
+
+### readOneSerialChar()
+
+If `isSerialAvailableForRead()` is `true` then this function is called. Reads from `Serial0` first and foremost, which comes from the RFduino. If `sniffMode` is true and `Serial0` didn't have any data, we will try to read from `Serial1`. If both are not available then we will return a `0x00` which is NOT a command that the system will recognize, aka this function has many safe guards.
+
+**_Returns_** {char}
+
+The character from the serial port.
+
+### sendChannelData()
+
+Writes channel data, aux data, and footer to serial port. This is the old way to send channel data. Based on global variables `useAux` and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
+
+If `useAccel` is `true` then sends data from `axisData` array and sets the contents of `axisData` to `0`.
+
+If `useAux` is `true` then sends data from `auxData` array and sets the contents of `auxData` to `0`.
+
+Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
+
+### sendChannelDataWithAccel()
+
+Writes channel data and `axisData` array to serial port in the correct stream packet format.
+
+Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
+
+### sendChannelDataWithRawAux()
+
+Writes channel data and `auxData` array to serial port in the correct stream packet format.
+
+Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See Constants below for more info.
+
+### sendChannelDataWithTimeAndAccel()
+
+Writes channel data, `axisData` array, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
+
+`axisData` will be split up and sent on the samples with `sampleCounter` of 7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
+
+If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
+    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
+
+Else if `sendTimeSyncUpPacket` is `false` then:
+    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+
+### sendChannelDataWithTimeAndRawAux()
+
+Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
+
+If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
+    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
+Else if `sendTimeSyncUpPacket` is `false` then:
+    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+
+### updateChannelData()
+
+Called when the board ADS1299 has new data available. If there is a daisy module attached, that data is also fetched here.
+
+### waitForNewChannelData()
+
+Check status register to see if data is available from the ADS1299.
+
+**_Returns_** {boolean}
+
+`true` if data is available.  
+
+## Constants
+
+### OPENBCI_EOP_STND_ACCEL
+
+`0xC0` - End of standard stream packet.
+
+### OPENBCI_EOP_STND_RAW_AUX
+
+`0xC1` - End of stream packet with raw packet.
+
+### OPENBCI_EOP_USER_DEFINED
+
+`0xC2` - End of stream packet, user defined.
+
+### OPENBCI_EOP_ACCEL_TIME_SET
+
+`0xC3` - End of time sync up with accelerometer stream packet.
+
+### OPENBCI_EOP_ACCEL_TIME_SYNCED
+
+`0xC4` - End of time synced stream packet.
+
+### OPENBCI_EOP_RAW_AUX_TIME_SET
+
+`0xC5` - End of time sync up stream packet.
+
+### OPENBCI_EOP_RAW_AUX_TIME_SYNCED
+
+`0xC6` - End of time synced stream packet.
