@@ -172,9 +172,28 @@ If `isSerialAvailableForRead()` is `true` then this function is called. Reads fr
 
 The character from the serial port.
 
-### sendChannelData
-### sendChannelDataWithAccel
-### sendChannelDataWithRawAux
+### sendChannelData()
+
+Writes channel data, aux data, and footer to serial port. This is the old way to send channel data. Based on global variables `useAux` and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
+
+If `useAccel` is `true` then sends data from `axisData` array and sets the contents of `axisData` to `0`.
+
+If `useAux` is `true` then sends data from `auxData` array and sets the contents of `auxData` to `0`.
+
+Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
+
+### sendChannelDataWithAccel()
+
+Writes channel data and `axisData` array to serial port in the correct stream packet format.
+
+Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
+
+### sendChannelDataWithRawAux()
+
+Writes channel data and `auxData` array to serial port in the correct stream packet format.
+
+Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See Constants below for more info.
+
 ### sendChannelDataWithTimeAndAccel
 ### sendChannelDataWithTimeAndRawAux
 ### updateChannelData
@@ -186,4 +205,34 @@ Check status register to see if data is available from the ADS1299.
 
 `true` if data is available.
 
-### writeSerial             
+### writeSerial     
+
+## Constants
+
+### OPENBCI_EOP_STND_ACCEL
+
+`0xC0` - End of standard stream packet.
+
+### OPENBCI_EOP_STND_RAW_AUX
+
+`0xC1` - End of stream packet with raw packet.
+
+### OPENBCI_EOP_USER_DEFINED
+
+`0xC2` - End of stream packet, user defined.
+
+### OPENBCI_EOP_ACCEL_TIME_SET
+
+`0xC3` - End of time sync up with accelerometer stream packet.
+
+### OPENBCI_EOP_ACCEL_TIME_SYNCED
+
+`0xC4` - End of time synced stream packet.
+
+### OPENBCI_EOP_RAW_AUX_TIME_SET
+
+`0xC5` - End of time sync up stream packet.
+
+### OPENBCI_EOP_RAW_AUX_TIME_SYNCED
+
+`0xC6` - End of time synced stream packet.

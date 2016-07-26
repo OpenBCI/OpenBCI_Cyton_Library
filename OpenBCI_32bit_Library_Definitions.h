@@ -15,13 +15,13 @@
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
-#define OPENBCI_EOP_STND_ACCEL 0xC0 // End of standard stream packet
-#define OPENBCI_EOP_STND_RAW_AUX 0xC1 // End of stream packet with raw packet
-#define OPENBCI_EOP_USER_DEFINED 0xC2 // End of stream packet, user defined
-#define OPENBCI_EOP_ACCEL_TIME_SET 0xC3 // End of time sync up with accel stream packet
-#define OPENBCI_EOP_ACCEL_TIME_SYNCED 0xC4 // End of time syned stream packet
-#define OPENBCI_EOP_RAW_AUX_TIME_SET 0xC5 // End of time sync up stream packet
-#define OPENBCI_EOP_RAW_AUX_TIME_SYNCED 0xC6 // End of time syned stream packet
+#define OPENBCI_EOP_STND_ACCEL          0xC0 // End of standard stream packet
+#define OPENBCI_EOP_STND_RAW_AUX        0xC1 // End of stream packet with raw packet
+#define OPENBCI_EOP_USER_DEFINED        0xC2 // End of stream packet, user defined
+#define OPENBCI_EOP_ACCEL_TIME_SET      0xC3 // End of time sync up with accel stream packet
+#define OPENBCI_EOP_ACCEL_TIME_SYNCED   0xC4 // End of time synced stream packet
+#define OPENBCI_EOP_RAW_AUX_TIME_SET    0xC5 // End of time sync up stream packet
+#define OPENBCI_EOP_RAW_AUX_TIME_SYNCED 0xC6 // End of time synced stream packet
 
 //PIN CONNECTIONS
 #define ADS_DRDY 	    9   // ADS data ready pin
@@ -195,9 +195,9 @@
 #define RATE_1600HZ_LP	0x80  //(b10000000)	// 1600Hz sample rate in low-power mode
 #define RATE_1250HZ_N	0x90  //(b10010000)	// 1250Hz sample rate in normal mode
 #define RATE_5000HZ_LP	0x90  //(b10010000)	// 5000Hz sample rate in low-power mode
-#define ACCEL_AXIS_X    0x00 // x axis
-#define ACCEL_AXIS_Y    0x01 // y axis
-#define ACCEL_AXIS_Z    0x02 // z axis
+#define ACCEL_AXIS_X    0x07 // x axis
+#define ACCEL_AXIS_Y    0x08 // y axis
+#define ACCEL_AXIS_Z    0x09 // z axis
 
 // OPENBCI_COMMANDS
 /** Turning channels off */

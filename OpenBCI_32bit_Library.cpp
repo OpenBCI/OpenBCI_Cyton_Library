@@ -735,6 +735,12 @@ void OpenBCI_32bit_Library::printAllRegisters(){
     }
 }
 
+/**
+ * @description Writes channel data and `axisData` array to serial port in
+ *  the correct stream packet format.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
     Serial0.write('A'); // 0x41
@@ -751,6 +757,12 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
 }
 
+/**
+ * @description Writes channel data and `auxData` array to serial port in
+ *  the correct stream packet format.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See `OpenBCI_32bit_Library_Definitions.h`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
     Serial0.write('A'); // 1 byte
@@ -761,7 +773,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
     writeAuxData();         // 6 bytes
 
-    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xF1 - 1 byte
+    Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xC1 - 1 byte
 
     sampleCounter++;
 }
@@ -828,8 +840,16 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 }
 
 /**
- * @description Writes channel data, aux data, and footer to serial port
- *      This is the old way to send channel data. Must keep for portability...
+ * @description Writes channel data, aux data, and footer to serial port. This
+ *  is the old way to send channel data. Based on global variables `useAux`
+ *  and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
+ *
+ *  If `useAccel` is `true` then sends data from `axisData` array and sets the
+ *    contents of `axisData` to `0`.
+ *  If `useAux` is `true` then sends data from `auxData` array and sets the
+ *   contents of `auxData` to `0`.
+ *
+ *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
  */
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
