@@ -111,7 +111,7 @@ char OpenBCI_32bit_Library::readOneSerialChar(void) {
 
 /**
 * @description Public function for sending data to the PC
-* @param data [char *] - The data you want to send
+* @param data {char *} - The data you want to send
 * @author AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
@@ -316,7 +316,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // STREAM DATA AND FILTER COMMANDS
             case OPENBCI_STREAM_START:  // stream data
-                sampleCounter = 0;
                 if(useAccel){
                     enable_accel(RATE_25HZ);
                 }      // fire up the accelerometer if you want it
@@ -778,10 +777,11 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 }
 
 /**
- * @description Writes channel data, `axisData` array, and time stamp to serial
- *  port in the correct stream packet format.
+ * @description Writes channel data, `axisData` array, and 4 byte unsigned time
+ *  stamp in ms to serial port in the correct stream packet format.
  *
  *  `axisData` will be split up and sent on the samples with `sampleCounter` of
+ *   7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
  *
  *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
  *   getting a time sync set `<` command) then:
@@ -827,6 +827,17 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     sampleCounter++;
 }
 
+/**
+ * @description Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned
+ *  time stamp in ms to serial port in the correct stream packet format.
+ *
+ *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+ *   getting a time sync set `<` command) then:
+ *      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket`
+ *      to `false`.
+ *  Else if `sendTimeSyncUpPacket` is `false` then:
+ *      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
     Serial0.print('A');
@@ -1994,6 +2005,7 @@ void OpenBCI_32bit_Library::changeInputType(byte inputCode){
 // Start continuous data acquisition
 void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 {
+    sampleCounter = 0;
     firstDataPacket = true;
     RDATAC(BOTH_ADS); // enter Read Data Continuous mode
     delay(1);

@@ -26,7 +26,6 @@ sendChannelDataWithTimeAndAccel     KEYWORD2
 sendChannelDataWithTimeAndRawAux    KEYWORD2
 updateChannelData                   KEYWORD2
 waitForNewChannelData               KEYWORD2
-writeSerial	                        KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

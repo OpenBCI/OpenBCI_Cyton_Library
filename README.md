@@ -196,28 +196,36 @@ Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See Constants below for more info.
 
 ### sendChannelDataWithTimeAndAccel()
 
-Writes channel data, `axisData` array, and time stamp to serial
- *  port in the correct stream packet format.
- *
- *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
- *   getting a time sync set `<` command) then:
- *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket`
- *      to `false`.
- *  Else if `sendTimeSyncUpPacket` is `false` then:
- *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
- *
+Writes channel data, `axisData` array, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
 
-### sendChannelDataWithTimeAndRawAux
-### updateChannelData
+`axisData` will be split up and sent on the samples with `sampleCounter` of 7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
+
+If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
+    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
+
+Else if `sendTimeSyncUpPacket` is `false` then:
+    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+
+### sendChannelDataWithTimeAndRawAux()
+
+Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
+
+If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
+    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
+Else if `sendTimeSyncUpPacket` is `false` then:
+    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+
+### updateChannelData()
+
+Called when the board ADS1299 has new data available. If there is a daisy module attached, that data is also fetched here.
+
 ### waitForNewChannelData()
 
 Check status register to see if data is available from the ADS1299.
 
 **_Returns_** {boolean}
 
-`true` if data is available.
-
-### writeSerial     
+`true` if data is available.  
 
 ## Constants
 
