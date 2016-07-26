@@ -194,7 +194,19 @@ Writes channel data and `auxData` array to serial port in the correct stream pac
 
 Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See Constants below for more info.
 
-### sendChannelDataWithTimeAndAccel
+### sendChannelDataWithTimeAndAccel()
+
+Writes channel data, `axisData` array, and time stamp to serial
+ *  port in the correct stream packet format.
+ *
+ *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+ *   getting a time sync set `<` command) then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket`
+ *      to `false`.
+ *  Else if `sendTimeSyncUpPacket` is `false` then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+ *
+
 ### sendChannelDataWithTimeAndRawAux
 ### updateChannelData
 ### waitForNewChannelData()

@@ -316,14 +316,13 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
             // STREAM DATA AND FILTER COMMANDS
             case OPENBCI_STREAM_START:  // stream data
-                // if(SDfileOpen) stampSD(ACTIVATE);                     // time stamp the start time
+                sampleCounter = 0;
                 if(useAccel){
                     enable_accel(RATE_25HZ);
                 }      // fire up the accelerometer if you want it
                 streamStart(); // turn on the fire hose
                 break;
             case OPENBCI_STREAM_STOP:  // stop streaming data
-                // if(SDfileOpen) stampSD(DEACTIVATE);       // time stamp the stop time
                 if(useAccel){
                     disable_accel();
                 }  // shut down the accelerometer if you're using it
@@ -778,6 +777,19 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
     sampleCounter++;
 }
 
+/**
+ * @description Writes channel data, `axisData` array, and time stamp to serial
+ *  port in the correct stream packet format.
+ *
+ *  `axisData` will be split up and sent on the samples with `sampleCounter` of
+ *
+ *  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+ *   getting a time sync set `<` command) then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket`
+ *      to `false`.
+ *  Else if `sendTimeSyncUpPacket` is `false` then:
+ *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+ */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     Serial0.write('A');
@@ -788,13 +800,13 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
     // send two bytes of either accel data or blank
     switch (sampleCounter % 10) {
-        case ACCEL_AXIS_X: // 0
+        case ACCEL_AXIS_X: // 7
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
             break;
-        case ACCEL_AXIS_Y: // 1
+        case ACCEL_AXIS_Y: // 8
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
             break;
-        case ACCEL_AXIS_Z: // 2
+        case ACCEL_AXIS_Z: // 9
             LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
             break;
         default:
@@ -1982,7 +1994,6 @@ void OpenBCI_32bit_Library::changeInputType(byte inputCode){
 // Start continuous data acquisition
 void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 {
-    sampleCounter = 0;
     firstDataPacket = true;
     RDATAC(BOTH_ADS); // enter Read Data Continuous mode
     delay(1);
