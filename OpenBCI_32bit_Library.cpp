@@ -604,16 +604,15 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
  */
 void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
-    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel < OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL-1) {
+    if (character == OPENBCI_CHANNEL_CMD_LATCH && numberOfIncomingSettingsProcessedChannel < OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL - 1) {
         // We failed somehow and should just abort
-        // reset numberOfIncomingSettingsProcessedLeadOff
         numberOfIncomingSettingsProcessedChannel = 0;
 
         // put flag back down
         isProcessingIncomingSettingsChannel = false;
 
         if (!streaming) {
-            Serial0.print("Too few chars"); sendEOT();
+            Serial0.print("Channel setting failure: too few chars"); sendEOT();
         }
 
         return;
@@ -643,30 +642,35 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         case 8: // 'X' latch
             if (character != OPENBCI_CHANNEL_CMD_LATCH) {
                 if (!streaming) {
-                    Serial0.print("Err: 8th char not ");
+                    Serial0.print("Err: 9th char not ");
                     Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
                     sendEOT();
                 }
                 // We failed somehow and should just abort
-                // reset numberOfIncomingSettingsProcessedLeadOff
                 numberOfIncomingSettingsProcessedChannel = 0;
 
                 // put flag back down
                 isProcessingIncomingSettingsChannel = false;
-                return;
+
             }
             break;
         default: // should have exited
             if (!streaming) {
-                Serial0.print("Overflow! Char e"); sendEOT();
+                Serial0.print("Err: too many chars");
+                sendEOT();
             }
+            // We failed somehow and should just abort
+            numberOfIncomingSettingsProcessedChannel = 0;
+
+            // put flag back down
+            isProcessingIncomingSettingsChannel = false;
             return;
     }
 
     // increment the number of bytes processed
     numberOfIncomingSettingsProcessedChannel++;
 
-    if (numberOfIncomingSettingsProcessedChannel == OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL) {
+    if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL)) {
         // We are done processing channel settings...
 
         if (!streaming) {
@@ -674,13 +678,13 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         }
 
         if (sniffMode && Serial1) {
-            Serial1.print("Channel settings set for  "); Serial1.println(currentChannelSetting + 1);
+            Serial1.print("Channel set for  "); Serial1.println(currentChannelSetting + 1);
         }
 
         // Set channel settings
         streamSafeChannelSettingsForChannel(currentChannelSetting + 1, channelSettings[currentChannelSetting][POWER_DOWN], channelSettings[currentChannelSetting][GAIN_SET], channelSettings[currentChannelSetting][INPUT_TYPE_SET], channelSettings[currentChannelSetting][BIAS_SET], channelSettings[currentChannelSetting][SRB2_SET], channelSettings[currentChannelSetting][SRB1_SET]);
 
-        // reset numberOfIncomingSettingsProcessedChannel
+        // Reset
         numberOfIncomingSettingsProcessedChannel = 0;
 
         // put flag back down
