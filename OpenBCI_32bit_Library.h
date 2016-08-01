@@ -14,6 +14,7 @@
 class OpenBCI_32bit_Library {
 
 public:
+
     // Start up functions
     OpenBCI_32bit_Library();
     void begin(void);

@@ -14,7 +14,7 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 /***************************************************/
 // CONSTRUCTOR
 OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
-    boardType = OUTPUT_NOTHING;
+    boardType = OPENBCI_BOARD_MODE_DEFAULT;
     daisyPresent = false;
     sniffMode = false;
     useAccel = false;
