@@ -12,32 +12,31 @@ void setup() {
 
 void loop() {
 
-    // The main dependency of this single threaded microcontroller is to
-    //  stream data from the ADS.
-    if (board.streaming) {
-        // Wait for the ADS to signal it's ready with new data
-        while (board.waitForNewChannelData()) {}
+  // The main dependency of this single threaded microcontroller is to
+  //  stream data from the ADS.
+  if (board.streaming) {
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-        // Read from the ADS(s) and store data into
-        board.updateChannelData();
+      // Read from the analog sensor and store auxiliary position 0
+      // take a reading from the ADC. Result range from 0 to 1023
+      board.auxData[0] = analogRead(A7);
 
-        // Read from the analog sensor and store auxiliary position 0
-        // take a reading from the ADC. Result range from 0 to 1023
-        board.auxData[0] = analogRead(A7);
-
-        // Send standard packet with channel data and accel data
-        //  includes aux data because we set `useAux` in setup()
-        if (board.timeSynced) {
-            board.sendChannelDataWithTimeAndRawAux();
-        } else {
-            // Send standard packet with channel data
-            board.sendChannelDataWithRawAux();
-        }
+      // Send standard packet with channel data and accel data
+      //  includes aux data because we set `useAux` in setup()
+      if (board.timeSynced) {
+        board.sendChannelDataWithTimeAndRawAux();
+      } else {
+        // Send standard packet with channel data
+        board.sendChannelDataWithRawAux();
+      }
     }
+  }
 
-    // Check the serial port for new data
-    if (board.isSerialAvailableForRead()) {
+  // Check the serial port for new data
+  if (board.hasDataSerial0()) {
     // Read one char and process it
-    board.processChar(board.readOneSerialChar());
-    }
+    board.processChar(board.getCharSerial0());
+  }
 }

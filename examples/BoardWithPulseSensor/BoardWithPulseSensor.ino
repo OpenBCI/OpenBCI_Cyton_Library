@@ -1,6 +1,6 @@
 /*
  *  Built by Joel Murphy from code made by Push The World LLC based on code made for OpenBCI by Joel, Conor, Luke, and Leif.
- *  
+ *
  */
 
 
@@ -50,23 +50,21 @@ void loop() {
   // The main dependency of this single threaded microcontroller is to
   //  stream data from the ADS.
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {}
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
+      // Read from the PulseSensor and store auxilary position 0
+      // take a reading from the ADC. Result range from 0 to 1023
+      getPulse();
 
-    // Read from the PulseSensor and store auxilary position 0
-    // take a reading from the ADC. Result range from 0 to 1023
-    getPulse();
-
-    // Send standard packet with channel data and accel data
-    //  includes aux data because we set told the board to add it
-    board.sendChannelData();
+      // Send standard packet with channel data and accel data
+      //  includes aux data because we set told the board to add it
+      board.sendChannelData();
+    }
   }
-
   // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
+  if (board.hasDataSerial0()) {
     // Read one char and process it
     board.processChar(board.readOneSerialChar());
   }

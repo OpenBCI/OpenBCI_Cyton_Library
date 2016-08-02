@@ -19,47 +19,40 @@ void setup() {
 
 void loop() {
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {
-        // Could do tiny maintiance tasks here
-    }
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
-
-    // Check to see if accel has new data
-    if(board.accelHasNewData()){
+      // Check to see if accel has new data
+      if(board.accelHasNewData()) {
         // Get new accel data
         board.accelUpdateAxisData();
 
         // Tell the SD_Card_Stuff.ino to add accel data in the next write to SD
         addAccelToSD = true; // Set false after writeDataToSDcard()
-    }
+      }
 
-    // Verify the SD file is open
-    if(SDfileOpen) {
+      // Verify the SD file is open
+      if(SDfileOpen) {
         // Write to the SD card, writes aux data
         writeDataToSDcard(board.sampleCounter);
-    }
-
-
-    if (board.timeSynced) {
+      }
+      if (board.timeSynced) {
         // Send time synced packet with channel data, current board time, and an accel reading
-        //  X axis is sent on sampleCounter % 10 == 0
-        //  Y axis is sent on sampleCounter % 10 == 1
-        //  Z axis is sent on sampleCounter % 10 == 2
+        //  X axis is sent on sampleCounter % 10 == 7
+        //  Y axis is sent on sampleCounter % 10 == 8
+        //  Z axis is sent on sampleCounter % 10 == 9
         board.sendChannelDataWithTimeAndAccel();
-    } else {
+      } else {
         // Send standard packet with channel data
         board.sendChannelDataWithAccel();
+      }
     }
-
   }
-
-  // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
-    // Read one char from the serial port
-    char newChar = board.readOneSerialChar();
+  // Check serial 0 for new data
+  if (board.hasDataSerial0()) {
+    // Read one char from the serial 0 port
+    char newChar = board.getCharSerial0();
 
     // Send to the sd library for processing
     sdProcessChar(newChar);
