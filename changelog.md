@@ -9,6 +9,10 @@
 
 * Removed `isSerialAvailableForRead`
 
+### Work In Progress
+
+* Add ability to change board mode on the fly.
+
 # 2.0.0
 
 ### Bug Fixes
