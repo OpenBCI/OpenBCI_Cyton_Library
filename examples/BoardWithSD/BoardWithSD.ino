@@ -16,26 +16,25 @@ void setup() {
 
 void loop() {
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {}
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
-
-    // Verify the SD file is open
-    if(SDfileOpen) {
+      // Verify the SD file is open
+      if(SDfileOpen) {
         // Write to the SD card
         writeDataToSDcard(board.sampleCounter);
-    }
+      }
 
-    // Send standard packet with channel data
-    board.sendChannelData();
+      // Send standard packet with channel data
+      board.sendChannelData();
+    }
   }
 
   // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
+  if (board.hasDataSerial0()) {
     // Read one char from the serial port
-    char newChar = board.readOneSerialChar();
+    char newChar = board.getCharSerial0();
 
     // Send to the sd library for processing
     sdProcessChar(newChar);

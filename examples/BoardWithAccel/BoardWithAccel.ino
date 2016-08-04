@@ -15,30 +15,28 @@ void loop() {
   // The main dependency of this single threaded microcontroller is to
   //  stream data from the ADS.
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {}
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
-
-    // Check to see if accel has new data
-    if(board.accelHasNewData()){
+      // Check to see if accel has new data
+      if(board.accelHasNewData()){
         // Get new accel data
         board.accelUpdateAxisData();
-    }
+      }
 
-    // Send standard packet with channel data
-    if (board.timeSynced) {
+      // Send standard packet with channel data
+      if (board.timeSynced) {
         board.sendChannelDataWithTimeAndAccel();
-    } else {
+      } else {
         board.sendChannelDataWithAccel();
+      }
     }
-
   }
 
   // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
+  if (board.hasDataSerial0()) {
     // Read one char and process it
-    board.processChar(board.readOneSerialChar());
+    board.processChar(board.getCharSerial0());
   }
 }

@@ -14,11 +14,12 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 /***************************************************/
 // CONSTRUCTOR
 OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
-    boardType = OUTPUT_NOTHING;
+    curBoardMode = OPENBCI_BOARD_MODE_DEFAULT;
     daisyPresent = false;
     sniffMode = false;
     useAccel = false;
     useAux = false;
+    channelDataAvailable = false;
     initializeVariables();
 }
 
@@ -27,6 +28,7 @@ OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::begin(void) {
+    curBoardMode = OPENBCI_BOARD_MODE_DEFAULT;
     // Bring the board up
     boardBegin();
 }
@@ -50,6 +52,7 @@ void OpenBCI_32bit_Library::begin(void) {
 void OpenBCI_32bit_Library::beginDebug(void) {
     // Bring the board up
     boolean started = boardBeginDebug();
+    curBoardMode = OPENBCI_BOARD_MODE_DEBUG;
 
     sniffMode = true;
 
@@ -68,26 +71,50 @@ void OpenBCI_32bit_Library::beginDebug(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 boolean OpenBCI_32bit_Library::beginSecondarySerial(void) {
-    // Bring the board up
-    return boardBeginDebug(OPENBCI_BAUD_RATE);
+    // Initalize the serial 1 port
+    Serial1.begin(OPENBCI_BAUD_RATE);
+    return true;
 }
 
 
 /**
-* @description Called in every `loop()` and checks both `Serial0` and `Serial1`
-*  if `sniffMode` is `true`.
+* @description Called in every `loop()` and checks `Serial0`
 * @returns {boolean} - `true` if there is data ready to be read
 */
-boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
+boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
     if (Serial0.available()) {
         return true;
     } else {
-        if (sniffMode && Serial1.available()) {
-            return true;
-        } else {
-            return false;
-        }
+        return false;
     }
+}
+
+/**
+* @description Called in every `loop()` and checks `Serial0`
+* @returns {boolean} - `true` if there is data ready to be read
+*/
+boolean OpenBCI_32bit_Library::hasDataSerial1(void) {
+    if (Serial1.available()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+* @description Called if `hasDataSerial0` is true, returns a char from `Serial0`
+* @returns {char} - A char from the serial port
+*/
+char OpenBCI_32bit_Library::getCharSerial0(void) {
+    return Serial0.read();
+}
+
+/**
+* @description Called if `hasDataSerial1` is true, returns a char from `Serial1`
+* @returns {char} - A char from the serial port
+*/
+char OpenBCI_32bit_Library::getCharSerial1(void) {
+    return Serial1.read();
 }
 
 /**
@@ -99,15 +126,15 @@ boolean OpenBCI_32bit_Library::isSerialAvailableForRead(void) {
 *  many safe guards.
 * @returns {char} - The character from the serial port.
 */
-char OpenBCI_32bit_Library::readOneSerialChar(void) {
-    if (Serial0.available()) {
-        return Serial0.read();
-    } else if (sniffMode && Serial1.available()) {
-        return Serial1.read();
-    } else {
-        return 0x00;
-    }
-}
+// char OpenBCI_32bit_Library::readOneSerialChar(void) {
+//     if (Serial0.available()) {
+//         return Serial0.read();
+//     } else if (sniffMode && Serial1.available()) {
+//         return Serial1.read();
+//     } else {
+//         return 0x00;
+//     }
+// }
 
 /**
 * @description Public function for sending data to the PC
@@ -126,7 +153,7 @@ void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
  * @return {boolean} - True if processing a message and false otherwise
  */
 boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
-    return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || isProcessingIncomingPacketType;
+    return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode;
 }
 
 /**
@@ -146,8 +173,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
             processIncomingChannelSettings(character);
         } else if (isProcessingIncomingSettingsLeadOff) {
             processIncomingLeadOffSettings(character);
-        } else if (isProcessingIncomingPacketType) {
-            setStreamPacketType(character);
+        } else if (settingBoardMode) {
+            processIncomingBoardMode(character);
         }
     } else { // Normal...
         switch (character){
@@ -361,9 +388,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
                 break;
 
             // PACKET SET TYPE
-            case OPENBCI_PACKET_TYPE_SET:
+            case OPENBCI_BOARD_MODE_SET:
                 // Tell this function which case that is
-                isProcessingIncomingPacketType = true;
+                settingBoardMode = true;
                 break;
 
             default:
@@ -409,9 +436,11 @@ boolean OpenBCI_32bit_Library::boardBegin(void) {
     pinMode(OPENBCI_PIN_LED, OUTPUT);
     pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
-    // chill for a bit
-    // TODO: See the result of removing this
-    // delay(1000);
+    // Startup for interrupt
+    setIntVector(_EXTERNAL_4_VECTOR, ADS_DRDY_Service); // connect interrupt to ISR
+    setIntPriority(_EXTERNAL_4_VECTOR, 4, 0); // set interrupt priority and sub priority
+    clearIntFlag(_EXTERNAL_4_IRQ); // these two need to be done together
+    setIntEnable(_EXTERNAL_4_IRQ); // clear any flags before enabing the irq
 
     // Do a soft reset
     boardReset();
@@ -431,9 +460,11 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
     // Initalize the serial debug port
     Serial1.begin(OPENBCI_BAUD_RATE);
 
-    // TODO: See the result of removing this
-    // chill for a bit
-    // delay(1000);
+    // Startup for interrupt
+    setIntVector(_EXTERNAL_4_VECTOR, ADS_DRDY_Service); // connect interrupt to ISR
+    setIntPriority(_EXTERNAL_4_VECTOR, 4, 0); // set interrupt priority and sub priority
+    clearIntFlag(_EXTERNAL_4_IRQ); // these two need to be done together
+    setIntEnable(_EXTERNAL_4_IRQ); // clear any flags before enabing the irq
 
     // Do a soft reset
     boardReset();
@@ -516,85 +547,21 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
  *                  remaining 4 bytes.
  * @param `character` - {char} - The character you want to process...
  */
-void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
+void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
 
-    if (character == OPENBCI_CHANNEL_IMPEDANCE_LATCH && numberOfIncomingSettingsProcessedLeadOff < OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF - 1) {
-        // We failed somehow and should just abort
-        // reset numberOfIncomingSettingsProcessedLeadOff
-        numberOfIncomingSettingsProcessedLeadOff = 0;
-
-        // put flag back down
-        isProcessingIncomingSettingsLeadOff = false;
-
+    if (isValidBoardType(c)) {
+        curBoardMode = c;
         if (!streaming) {
-            Serial0.print("Lead off failure: too few chars"); sendEOT();
+            Serial0.print("Success: Board type set");
+            sendEOT();
         }
-
-        return;
-    }
-    switch (numberOfIncomingSettingsProcessedLeadOff) {
-        case 1: // channel number
-            currentChannelSetting = getChannelCommandForAsciiChar(character);
-            break;
-        case 2: // pchannel setting
-            leadOffSettings[currentChannelSetting][PCHAN] = getNumberForAsciiChar(character);
-            break;
-        case 3: // nchannel setting
-            leadOffSettings[currentChannelSetting][NCHAN] = getNumberForAsciiChar(character);
-            break;
-        case 4: // 'Z' latch
-            if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
-                if (!streaming) {
-                    Serial0.print("Err: 5th char not ");
-                    Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
-                    sendEOT();
-                }
-                // We failed somehow and should just abort
-                // reset numberOfIncomingSettingsProcessedLeadOff
-                numberOfIncomingSettingsProcessedLeadOff = 0;
-
-                // put flag back down
-                isProcessingIncomingSettingsLeadOff = false;
-
-            }
-            break;
-        default: // should have exited
-            if (!streaming) {
-                Serial0.print("Err: too many chars ");
-                sendEOT();
-            }
-            // We failed somehow and should just abort
-            // reset numberOfIncomingSettingsProcessedLeadOff
-            numberOfIncomingSettingsProcessedLeadOff = 0;
-
-            // put flag back down
-            isProcessingIncomingSettingsLeadOff = false;
-            return;
-    }
-
-    // increment the number of bytes processed
-    numberOfIncomingSettingsProcessedLeadOff++;
-
-    if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF)) {
-        // We are done processing lead off settings...
-
+    } else {
         if (!streaming) {
-            Serial0.print("Lead off set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+            Serial0.print("Failure: invalid board mode");
+            sendEOT();
         }
-
-        if (sniffMode && Serial1) {
-            Serial1.print("Lead off set for  "); Serial1.println(currentChannelSetting + 1);
-        }
-
-        // Set lead off settings
-        streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
-
-        // reset numberOfIncomingSettingsProcessedLeadOff
-        numberOfIncomingSettingsProcessedLeadOff = 0;
-
-        // put flag back down
-        isProcessingIncomingSettingsLeadOff = false;
     }
+    settingBoardMode = false;
 }
 
 /**
@@ -692,6 +659,108 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     }
 }
 
+/**
+ * @description When a 'z' is found on the serial port, we jump to this function
+ *                  where we continue to read from the serial port and read the
+ *                  remaining 4 bytes.
+ * @param `character` - {char} - The character you want to process...
+ */
+void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
+
+    if (character == OPENBCI_CHANNEL_IMPEDANCE_LATCH && numberOfIncomingSettingsProcessedLeadOff < OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF - 1) {
+        // We failed somehow and should just abort
+        // reset numberOfIncomingSettingsProcessedLeadOff
+        numberOfIncomingSettingsProcessedLeadOff = 0;
+
+        // put flag back down
+        isProcessingIncomingSettingsLeadOff = false;
+
+        if (!streaming) {
+            Serial0.print("Lead off failure: too few chars"); sendEOT();
+        }
+
+        return;
+    }
+    switch (numberOfIncomingSettingsProcessedLeadOff) {
+        case 1: // channel number
+            currentChannelSetting = getChannelCommandForAsciiChar(character);
+            break;
+        case 2: // pchannel setting
+            leadOffSettings[currentChannelSetting][PCHAN] = getNumberForAsciiChar(character);
+            break;
+        case 3: // nchannel setting
+            leadOffSettings[currentChannelSetting][NCHAN] = getNumberForAsciiChar(character);
+            break;
+        case 4: // 'Z' latch
+            if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
+                if (!streaming) {
+                    Serial0.print("Err: 5th char not ");
+                    Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+                    sendEOT();
+                }
+                // We failed somehow and should just abort
+                // reset numberOfIncomingSettingsProcessedLeadOff
+                numberOfIncomingSettingsProcessedLeadOff = 0;
+
+                // put flag back down
+                isProcessingIncomingSettingsLeadOff = false;
+
+            }
+            break;
+        default: // should have exited
+            if (!streaming) {
+                Serial0.print("Err: too many chars ");
+                sendEOT();
+            }
+            // We failed somehow and should just abort
+            // reset numberOfIncomingSettingsProcessedLeadOff
+            numberOfIncomingSettingsProcessedLeadOff = 0;
+
+            // put flag back down
+            isProcessingIncomingSettingsLeadOff = false;
+            return;
+    }
+
+    // increment the number of bytes processed
+    numberOfIncomingSettingsProcessedLeadOff++;
+
+    if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF)) {
+        // We are done processing lead off settings...
+
+        if (!streaming) {
+            Serial0.print("Lead off set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+        }
+
+        if (sniffMode && Serial1) {
+            Serial1.print("Lead off set for  "); Serial1.println(currentChannelSetting + 1);
+        }
+
+        // Set lead off settings
+        streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
+
+        // reset numberOfIncomingSettingsProcessedLeadOff
+        numberOfIncomingSettingsProcessedLeadOff = 0;
+
+        // put flag back down
+        isProcessingIncomingSettingsLeadOff = false;
+    }
+}
+
+
+boolean OpenBCI_32bit_Library::isValidBoardType(char c) {
+    switch (c) {
+        case OPENBCI_BOARD_MODE_DEFAULT:
+        case OPENBCI_BOARD_MODE_DEBUG:
+        case OPENBCI_BOARD_MODE_WIFI:
+        case OPENBCI_BOARD_MODE_INPUT_ANALOG:
+        case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
+            return true;
+        default:
+            return false;
+    }
+}
+
+
 // <<<<<<<<<<<<<<<<<<<<<<<<<  BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 void OpenBCI_32bit_Library::initialize(){
@@ -707,16 +776,23 @@ void OpenBCI_32bit_Library::initialize(){
     initializeVariables();
 }
 
+// void __USER_ISR ADS_DRDY_Service() {
+void __USER_ISR ADS_DRDY_Service() {
+  clearIntFlag(_EXTERNAL_4_IRQ); // clear the irq, or else it will continually interrupt!
+  if(bitRead(PORTA,0) == 0){
+    board.channelDataAvailable = true;
+  }
+}
+
 void OpenBCI_32bit_Library::initializeVariables(void) {
     streaming = false;
     sendTimeSyncUpPacket = false;
     timeSynced = false;
     isProcessingIncomingSettingsChannel = false;
     isProcessingIncomingSettingsLeadOff = false;
-    isProcessingIncomingPacketType = false;
+    settingBoardMode = false;
     numberOfIncomingSettingsProcessedChannel = 0;
     numberOfIncomingSettingsProcessedLeadOff = 0;
-    numberOfIncomingBytesProcessedTime = 0;
     currentChannelSetting = 0;
     timeOffset = 0;
     timeSetCharArrived = 0;
@@ -2036,6 +2112,8 @@ boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
 
 // CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
 void OpenBCI_32bit_Library::updateChannelData(){
+    // this needs to be reset, or else it will constantly flag us
+    channelDataAvailable = false;
     updateBoardData();
     if(daisyPresent) {updateDaisyData();}
 }
@@ -2776,23 +2854,6 @@ void OpenBCI_32bit_Library::resetLeadOffArrayToDefault(byte leadOffArray[][OPENB
         leadOffArray[i][PCHAN] = OFF;
         leadOffArray[i][NCHAN] = OFF;
     }
-}
-
-/**
- * @description Used to change the current packet type
- * @param {char} - The type of stream packet to send
- */
-void OpenBCI_32bit_Library::setStreamPacketType(char newPacketType) {
-    switch (newPacketType) {
-        case OPENBCI_PACKET_TYPE_TIME_SYNCED:
-            streamPacketType = (char)OPENBCI_PACKET_TYPE_TIME_SYNCED;
-            break;
-        case OPENBCI_PACKET_TYPE_V3:
-        default:
-            streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
-            break;
-    }
-    isProcessingIncomingPacketType = false;
 }
 
 OpenBCI_32bit_Library board;

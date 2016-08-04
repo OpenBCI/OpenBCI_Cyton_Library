@@ -10,26 +10,30 @@
 #include <Arduino.h>
 #include "OpenBCI_32bit_Library_Definitions.h"
 
-
+void __USER_ISR ADS_DRDY_Service(void);
 class OpenBCI_32bit_Library {
 
 public:
+
     // Start up functions
     OpenBCI_32bit_Library();
-    void begin(void);
-    void beginDebug(void);
+    boolean accelHasNewData(void);
+    void    accelUpdateAxisData(void);
+    void    accelWriteAxisData(void);
+    void    begin(void);
+    void    beginDebug(void);
     boolean beginSecondarySerial(void);
-    char readOneSerialChar(void);
+    char    getCharSerial0(void);
+    char    getCharSerial1(void);
+    boolean hasDataSerial0(void);
+    boolean hasDataSerial1(void);
 
-    void writeSerial(char *data, int len);
+
+    void    writeSerial(char *data, int len);
 
     boolean isADSDataAvailable(void);
 
-    boolean isSerialAvailableForRead(void);
 
-    boolean accelHasNewData(void);
-    void accelUpdateAxisData(void);
-    void accelWriteAxisData(void);
 
     void writeTimeCurrent(void);
     void writeZeroAux(void);
@@ -46,8 +50,9 @@ public:
     void leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
 
     boolean processChar(char character);
-    void processIncomingLeadOffSettings(char character);
+    void processIncomingBoardMode(char character);
     void processIncomingChannelSettings(char character);
+    void processIncomingLeadOffSettings(char character);
 
     void resetChannelSettingsArrayToDefault(byte channelSettingsArray[][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS]);
     void resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
@@ -57,7 +62,6 @@ public:
     void sendChannelDataWithTimeAndAccel(void);
     void sendChannelDataWithTimeAndRawAux(void);
 
-    void setStreamPacketType(char newPacketType);
     void streamSafeChannelDeactivate(byte channelNumber);
     void streamSafeChannelActivate(byte channelNumber);
     void streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
@@ -85,17 +89,18 @@ public:
     boolean sendTimeSyncUpPacket;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
-    // boolean isProcessingIncomingTime;
-    boolean isProcessingIncomingPacketType;
-    boolean isProcessingMultibyteMsg(void);
+    boolean settingBoardMode;
+    volatile boolean channelDataAvailable;
 
-    int boardType;
+    boolean isProcessingMultibyteMsg(void);
+    boolean isValidBoardType(char c);
+
+    uint8_t curBoardMode;
+
     int numberOfIncomingSettingsProcessedChannel;
     int numberOfIncomingSettingsProcessedLeadOff;
-    int numberOfIncomingBytesProcessedTime;
     char streamPacketType;
     char currentChannelSetting;
-    // HardwareSerial *_serial;
 
     // Getters
     char getChannelCommandForAsciiChar(char asciiChar);

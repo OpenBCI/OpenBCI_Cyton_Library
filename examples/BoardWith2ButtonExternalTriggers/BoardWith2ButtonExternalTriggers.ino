@@ -41,51 +41,48 @@ void setup() {
 
 void loop() {
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {
-        // Could do tiny maintiance tasks here
-    }
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
-
-    leftButtonValue = digitalRead(leftButton);    // feel the left button
-    if (leftButtonValue != lastLeftButtonValue){  // if it's changed,
+      // Read the left button value
+      leftButtonValue = digitalRead(leftButton);
+      if (leftButtonValue != lastLeftButtonValue) {  // if it's changed,
         if (leftButtonValue == HIGH){    // if it's gone from LOW to HIGH
-            // 0x6220 converts to PI in GUI
-            board.auxData[0] = 0x6220;
-            addAuxToSD = true;             // add Aux Data to the SD card if it's there
+          // 0x6220 converts to PI in GUI
+          board.auxData[0] = 0x6220;
+          addAuxToSD = true;             // add Aux Data to the SD card if it's there
         }
         lastLeftButtonValue = leftButtonValue; // keep track of the changes
-    }
+      }
 
-    rightButtonValue = digitalRead(rightButton);    // feel the right button
-    if (rightButtonValue != lastRightButtonValue){  // if it's changed,
+      // Read the right button value
+      rightButtonValue = digitalRead(rightButton);
+      if (rightButtonValue != lastRightButtonValue){  // if it's changed,
         if (rightButtonValue == HIGH){    // if it's gone from LOW to HIGH
-            // 0x6220 converts to PI in GUI
-            board.auxData[1] = 0x6220;
-            addAuxToSD = true;             // add Aux Data to the SD card if it's there
+          // 0x6220 converts to PI in GUI
+          board.auxData[1] = 0x6220;
+          addAuxToSD = true;             // add Aux Data to the SD card if it's there
         }
         lastRightButtonValue = rightButtonValue; // keep track of the changes
-    }
+      }
 
-    // Verify the SD file is open
-    if(SDfileOpen) {
+      // Verify the SD file is open
+      if(SDfileOpen) {
         // Write to the SD card, writes aux data
         writeDataToSDcard(board.sampleCounter);
+      }
+
+      // Send standard packet with channel data and accel data
+      //  includes aux data because we set told the board to add it
+      board.sendChannelData();
     }
-
-
-    // Send standard packet with channel data and accel data
-    //  includes aux data because we set told the board to add it
-    board.sendChannelData();
-
   }
 
   // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
+  if (board.hasDataSerial0()) {
     // Read one char from the serial port
-    char newChar = board.readOneSerialChar();
+    char newChar = board.getCharSerial0();
 
     // Send to the sd library for processing
     sdProcessChar(newChar);

@@ -317,15 +317,20 @@
 #define OPENBCI_STREAM_STOP   's'
 
 /** Miscellaneous */
-#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS            '?'
-#define OPENBCI_MISC_SOFT_RESET                        'v'
+#define OPENBCI_MISC_QUERY_REGISTER_SETTINGS '?'
+#define OPENBCI_MISC_SOFT_RESET              'v'
 
 /** 16 Channel Commands */
 #define OPENBCI_CHANNEL_MAX_NUMBER_8    'c'
 #define OPENBCI_CHANNEL_MAX_NUMBER_16   'C'
 
 /** Set Packet Type */
-#define OPENBCI_PACKET_TYPE_SET '/'
+#define OPENBCI_BOARD_MODE_SET '/'
+#define OPENBCI_BOARD_MODE_DEFAULT '0'
+#define OPENBCI_BOARD_MODE_DEBUG '1'
+#define OPENBCI_BOARD_MODE_WIFI '2'
+#define OPENBCI_BOARD_MODE_INPUT_ANALOG '3'
+#define OPENBCI_BOARD_MODE_INPUT_DIGITAL '4'
 
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
@@ -336,6 +341,7 @@
 #define OPENBCI_NUMBER_OF_CHANNELS_DEFAULT 8
 
 /** Helpful numbers */
+#define OPENBCI_NUMBER_OF_BOARD_SETTINGS 1
 #define OPENBCI_NUMBER_OF_CHANNEL_SETTINGS 6
 #define OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS 2
 
