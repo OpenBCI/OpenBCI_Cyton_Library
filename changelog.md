@@ -3,6 +3,7 @@
 ### New Features
 
 * Add `hasDataSerial0`, `hasDataSerial1`, `getCharSerial0`, and `getCharSerial1`
+* Add `channelDataAvailable` boolean variable to check each loop to see if new data is available.
 
 ### Breaking Changes
 
