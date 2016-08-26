@@ -1,3 +1,13 @@
+# v2.0.0-rc.7
+
+### New Features
+
+* Change board types on the fly!
+
+### Breaking Changes
+
+* Removed `sniffMode` in place for `curBoardMode == OPENBCI_BOARD_MODE_DEBUG`
+
 # v2.0.0-rc.6
 
 ### New Features

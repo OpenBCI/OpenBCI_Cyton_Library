@@ -10,8 +10,9 @@
 #ifndef _____OpenBCI_32bit_Library_Definitions_h
 #define _____OpenBCI_32bit_Library_Definitions_h
 
-// The default baud rate
+// Baud rates
 #define OPENBCI_BAUD_RATE 115200
+#define OPENBCI_BAUD_RATE_WIFI 921600
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
@@ -35,6 +36,8 @@
 #define OPENBCI_PIN_LED 11
 #define OPENBCI_PIN_PGC 12
 
+#define OPENBCI_PIN_SERIAL1_TX 11
+#define OPENBCI_PIN_SERIAL1_RX 12
 
 //ADS1299 SPI Command Definition Byte Assignments
 #define _WAKEUP 0x02 // Wake-up from standby mode

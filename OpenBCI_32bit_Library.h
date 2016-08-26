@@ -22,7 +22,8 @@ public:
     void    accelWriteAxisData(void);
     void    begin(void);
     void    beginDebug(void);
-    boolean beginSecondarySerial(void);
+    void    beginSerial1(void);
+    void    beginSerial1(uint32_t);
     char    getCharSerial0(void);
     char    getCharSerial1(void);
     boolean hasDataSerial0(void);
@@ -83,12 +84,12 @@ public:
 
     // Variables
     boolean daisy;
-    boolean sniffMode;
     boolean streaming;
     boolean timeSynced;
     boolean sendTimeSyncUpPacket;
     boolean isProcessingIncomingSettingsChannel;
     boolean isProcessingIncomingSettingsLeadOff;
+    boolean isProcessingIncomingSerialPassThru;
     boolean settingBoardMode;
     volatile boolean channelDataAvailable;
 
@@ -162,6 +163,7 @@ public:
     void removeDaisy(void);
     void attachDaisy(void);
     void writeAuxData(void);
+    void writeOutput(byte);
 
     short auxData[3];           // This is user faceing
     byte regData[24];           // array is used to mirror register data

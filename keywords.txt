@@ -14,7 +14,7 @@ board	KEYWORD1
 accelHasNewData                     KEYWORD2
 accelUpdateAxisData                 KEYWORD2
 begin                               KEYWORD2
-beginDebug		                    KEYWORD2
+beginDebug		                      KEYWORD2
 getCharSerial0                      KEYWORD2
 getCharSerial1                      KEYWORD2
 hasDataSerial0                      KEYWORD2
