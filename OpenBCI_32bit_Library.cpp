@@ -148,23 +148,12 @@ char OpenBCI_32bit_Library::getCharSerial1(void) {
 // }
 
 /**
-* @description Public function for sending data to the PC
-* @param data {char *} - The data you want to send
-* @author AJ Keller (@pushtheworldllc)
-*/
-void OpenBCI_32bit_Library::writeSerial(char *data, int len) {
-  for (int i = 0; i < len; i++) {
-    Serial0.write(data[i]);
-  }
-}
-
-/**
 * @description While processing incoming multi byte messages these will turn
 *  true.
 * @return {boolean} - True if processing a message and false otherwise
 */
 boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
-  return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode;
+  return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode || settingSampleRate;
 }
 
 /**
@@ -186,6 +175,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       processIncomingLeadOffSettings(character);
     } else if (settingBoardMode) {
       processIncomingBoardMode(character);
+    } else if (settingSampleRate) {
+      processIncomingSampleRate(character);
     }
   } else { // Normal...
     switch (character){
@@ -398,10 +389,14 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         }
         break;
 
-      // PACKET SET TYPE
+      // BOARD TYPE SET TYPE
       case OPENBCI_BOARD_MODE_SET:
-        // Tell this function which case that is
         settingBoardMode = true;
+        numberOfIncomingSettingsProcessedBoardType = 0;
+        optionalArgCounter = 0;
+        break;
+      case OPENBCI_SAMPLE_RATE_SET:
+        settingSampleRate = true;
         break;
 
       default:
@@ -508,6 +503,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::boardReset(void) {
+  initializeVariables();
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
   delay(500);
 
@@ -559,37 +555,114 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
 * @param `character` - {char} - The character you want to process...
 */
 void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
+  if (c == OPENBCI_BOARD_MODE_SET) {
+    if (numberOfIncomingSettingsProcessedBoardType > 0) {
+      // did we get an optional arg?
+      int newBaud = OPENBCI_BAUD_RATE;
+      if (optionalArgCounter > 0) {
+        switch (optionalArgCounter) {
+          case 5:
+            optionalArgBuffer5[4] = '\0';
+            newBaud = atoi(optionalArgBuffer7);
+            break;
+          case 6:
+            optionalArgBuffer6[5] = '\0';
+            newBaud = atoi(optionalArgBuffer7);
+            break;
+          case 7:
+            optionalArgBuffer7[6] = '\0';
+            newBaud = atoi(optionalArgBuffer7);
+            break;
+        }
+      }
+      switch (curBoardMode) {
+        case OPENBCI_BOARD_MODE_DEBUG:
+        case OPENBCI_BOARD_MODE_BOTH_SERIAL:
+        case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
+          beginSerial1(newBaud);
+          break;
+          case OPENBCI_BOARD_MODE_DEFAULT:
+        case OPENBCI_BOARD_MODE_INPUT_ANALOG:
+        case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
+        default:
+          break;
+      }
 
-  if (isValidBoardType(c)) {
-    // pinMode(OPENBCI_PIN_LED,OUTPUT);
-    // pinMode(OPENBCI_PIN_PGC,OUTPUT);
-    switch (c) {
-      case OPENBCI_BOARD_MODE_DEFAULT:
-        break;
-      case OPENBCI_BOARD_MODE_DEBUG:
-        beginSerial1(OPENBCI_BAUD_RATE);
-        break;
-      case OPENBCI_BOARD_MODE_WIFI:
-        beginSerial1(OPENBCI_BAUD_RATE_WIFI);
-        break;
-      case OPENBCI_BOARD_MODE_INPUT_ANALOG:
-      case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
-      default:
-        break;
+      if (!streaming) {
+        Serial0.print("Success: Board type set to ");
+        Serial0.print(curBoardMode);
+        Serial0.print(" new baud is ");
+        Serial0.print(newBaud);
+        sendEOT();
+      }
+    } else if (numberOfIncomingSettingsProcessedBoardType == 0) {
+      if (!streaming) {
+        Serial0.print("Success: Current Board type set to ");
+        Serial0.print(curBoardMode);
+        sendEOT();
+      }
+    } else {
+      if (!streaming) {
+        Serial0.print("Failure: invalid board mode");
+        sendEOT();
+      }
     }
-    curBoardMode = c;
-    if (!streaming) {
-      Serial0.print("Success: Board type set to ");
-      Serial0.print(c);
-      sendEOT();
+    settingBoardMode = false;
+    return;
+  }
+
+  // This one is the board type always
+  if (numberOfIncomingSettingsProcessedBoardType == 0) {
+    if (isValidBoardType(c)) {
+      curBoardMode = c;
+      numberOfIncomingSettingsProcessedBoardType = 1;
+    } else {
+      numberOfIncomingSettingsProcessedBoardType = -1;
+    }
+  } else if (numberOfIncomingSettingsProcessedBoardType > 0) {
+    // Is there an optional arg?
+    if (isDigit(c)) {
+      // convert the incoming byte to a char
+      // and add it to the string:
+      if (optionalArgCounter < 4) {
+        optionalArgBuffer5[optionalArgCounter] = c;
+      }
+      if (optionalArgCounter < 5) {
+        optionalArgBuffer6[optionalArgCounter] = c;
+      }
+      if (optionalArgCounter < 6) {
+        optionalArgBuffer7[optionalArgCounter] = c;
+      }
+      optionalArgCounter++;
+    }
+    // numberOfIncomingSettingsProcessedBoardType++;
+  }
+}
+
+void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
+  if (isDigit(c)) {
+    uint8_t digit = c - '0';
+    if (digit <= ADS1299_SAMPLE_RATE_250) {
+      if (!streaming) {
+        curSampleRate = digit;
+        initialize();
+        Serial0.print("Success: set sample rate to ");
+        Serial0.println(curSampleRate);
+        sendEOT();
+      }
+    } else {
+      if (!streaming) {
+        Serial0.print("Failure: sample value out of bounds. ");
+        sendEOT();
+      }
     }
   } else {
     if (!streaming) {
-      Serial0.print("Failure: invalid board mode");
+      Serial0.print("Failure: invalid sample value.");
       sendEOT();
     }
   }
-  settingBoardMode = false;
+  settingSampleRate = false;
 }
 
 /**
@@ -779,10 +852,25 @@ boolean OpenBCI_32bit_Library::isValidBoardType(char c) {
   switch (c) {
     case OPENBCI_BOARD_MODE_DEFAULT:
     case OPENBCI_BOARD_MODE_DEBUG:
-    case OPENBCI_BOARD_MODE_WIFI:
+    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
+    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
     case OPENBCI_BOARD_MODE_INPUT_ANALOG:
     case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
       return true;
+    default:
+      return false;
+  }
+}
+
+boolean OpenBCI_32bit_Library::printToSerial1() {
+  switch (curBoardMode) {
+    case OPENBCI_BOARD_MODE_DEBUG:
+    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
+    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
+      return true;
+    case OPENBCI_BOARD_MODE_DEFAULT:
+    case OPENBCI_BOARD_MODE_INPUT_ANALOG:
+    case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
     default:
       return false;
   }
@@ -796,12 +884,15 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
+  // Always keep pin low or else esp will fail to boot.
+  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
   initialize_ads(); // hard reset ADS, set pin directions
   initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
-  initializeVariables();
+
 }
 
 // void __USER_ISR ADS_DRDY_Service() {
@@ -819,12 +910,15 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
   settingBoardMode = false;
+  settingSampleRate = false;
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
+  numberOfIncomingSettingsProcessedBoardType = 0;
   currentChannelSetting = 0;
   timeOffset = 0;
   timeSetCharArrived = 0;
   streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
+  curSampleRate = ADS1299_SAMPLE_RATE_250;
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -849,15 +943,28 @@ void OpenBCI_32bit_Library::printAllRegisters(){
 */
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
-  Serial0.write('A'); // 0x41
+  writeSerial('A'); // 0x41
 
-  Serial0.write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
 
   ADS_writeChannelData(); // 24 bytes
 
+  if (wifi) {
+    // Take spi
+    csLow(WIFI_SS);
+    xfer('A');
+    xfer(sampleCounter);
+    ADS_writeChannelDataSpi();
+  }
+
   accelWriteAxisData(); // 6 bytes
 
-  Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xC0
+  writeSerial(OPENBCI_EOP_STND_ACCEL); // 0xC0
+
+  if (wifi) {
+    xfer(OPENBCI_EOP_STND_ACCEL);
+    csHigh(WIFI_SS); // close SPI
+  }
 
   sampleCounter++;
 
@@ -871,15 +978,29 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
-  Serial0.write('A'); // 1 byte
+  writeSerial('A'); // 0x41
 
-  Serial0.write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
+
+  if (wifi) {
+    // Take spi
+    csLow(WIFI_SS);
+    xfer('A');
+    xfer(sampleCounter);
+    ADS_writeChannelDataSpi();
+  }
 
   ADS_writeChannelData();       // 24 bytes
 
   writeAuxData();         // 6 bytes
 
-  Serial0.write(OPENBCI_EOP_STND_RAW_AUX); // 0xC1 - 1 byte
+  writeSerial(OPENBCI_EOP_STND_RAW_AUX); // 0xC1 - 1 byte
+
+
+  if (wifi) {
+    xfer(OPENBCI_EOP_STND_ACCEL);
+    csHigh(WIFI_SS); // close SPI
+  }
 
   sampleCounter++;
 }
@@ -900,36 +1021,57 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
-  Serial0.write('A');
+  writeSerial('A'); // 0x41
 
-  Serial0.write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
 
   ADS_writeChannelData();       // 24 bytes
+
+  if (wifi) {
+    // Take spi
+    csLow(WIFI_SS);
+    xfer('A');
+    xfer(sampleCounter);
+    ADS_writeChannelDataSpi();
+  }
 
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
     case ACCEL_AXIS_X: // 7
-    LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
-    break;
+      LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_X);
+      break;
     case ACCEL_AXIS_Y: // 8
-    LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
-    break;
+      LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Y);
+      break;
     case ACCEL_AXIS_Z: // 9
-    LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
-    break;
+      LIS3DH_writeAxisDataForAxis(ACCEL_AXIS_Z);
+      break;
     default:
-    Serial0.write((byte)0x00); // high byte
-    Serial0.write((byte)0x00); // low byte
-    break;
+      writeSerial((byte)0x00); // high byte
+      writeSerial((byte)0x00); // low byte
+      if (wifi) {
+        // Take spi
+        xfer(0x00);
+        xfer(0x00);
+      }
+      break;
   }
 
   writeTimeCurrent(); // 4 bytes
 
   if (sendTimeSyncUpPacket) {
     sendTimeSyncUpPacket = false;
-    Serial0.write(OPENBCI_EOP_ACCEL_TIME_SET); // 0xC3
+    writeSerial(OPENBCI_EOP_ACCEL_TIME_SET); // 0xC3
+    if (wifi) {
+      xfer(OPENBCI_EOP_ACCEL_TIME_SET);
+      csHigh(WIFI_SS); // close SPI
+    }
   } else {
-    Serial0.write(OPENBCI_EOP_ACCEL_TIME_SYNCED); // 0xC4
+    writeSerial(OPENBCI_EOP_ACCEL_TIME_SYNCED); // 0xC4
+    if (wifi) {
+      xfer(OPENBCI_EOP_ACCEL_TIME_SYNCED);
+      csHigh(WIFI_SS); // close SPI
+    }
   }
 
   sampleCounter++;
@@ -948,22 +1090,40 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
-  Serial0.print('A');
+  writeSerial('A'); // 0x41
 
-  Serial0.write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
 
   ADS_writeChannelData();       // 24 bytes
 
-  Serial0.write(highByte(auxData[0])); // 2 bytes of aux data
-  Serial0.write(lowByte(auxData[0]));
+  writeSerial(highByte(auxData[0])); // 2 bytes of aux data
+  writeSerial(lowByte(auxData[0]));
+
+  if (wifi) {
+    // Take spi
+    csLow(WIFI_SS);
+    xfer('A');
+    xfer(sampleCounter);
+    ADS_writeChannelDataSpi();
+    xfer(highByte(auxData[0]));
+    xfer(lowByte(auxData[0]));
+  }
 
   writeTimeCurrent(); // 4 bytes
 
   if (sendTimeSyncUpPacket) {
     sendTimeSyncUpPacket = false;
-    Serial0.write(OPENBCI_EOP_RAW_AUX_TIME_SET); // 0xC5
+    writeSerial(OPENBCI_EOP_RAW_AUX_TIME_SET); // 0xC5
+    if (wifi) {
+      xfer(OPENBCI_EOP_RAW_AUX_TIME_SET);
+      csHigh(WIFI_SS); // close SPI
+    }
   } else {
-    Serial0.write(OPENBCI_EOP_RAW_AUX_TIME_SYNCED); // 0xC6
+    writeSerial(OPENBCI_EOP_RAW_AUX_TIME_SYNCED); // 0xC6
+    if (wifi) {
+      xfer(OPENBCI_EOP_RAW_AUX_TIME_SYNCED);
+      csHigh(WIFI_SS); // close SPI
+    }
   }
 
   sampleCounter++;
@@ -984,29 +1144,51 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 */
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
-  Serial0.print('A');
+  writeSerial('A'); // 0x41
 
-  Serial0.write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
+
   ADS_writeChannelData();       // 24 bytes
+
+  if (wifi) {
+    // Take spi
+    csLow(WIFI_SS);
+    xfer('A');
+    xfer(sampleCounter);
+    ADS_writeChannelDataSpi();
+  }
+
   if(useAux){
     writeAuxData();         // 6 bytes of aux data
   } else if(useAccel){        // or
     LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
   } else{
     for(int i=0; i<6; i++){
-      Serial0.write((byte)0x00);
+      writeSerial((byte)0x00);
+      if (wifi) {
+        xfer(0x00);
+      }
     }
   }
 
-  Serial0.write(OPENBCI_EOP_STND_ACCEL); // 0xF0
+  writeSerial(OPENBCI_EOP_STND_ACCEL); // 0xF0
+
+  if (wifi) {
+    xfer(OPENBCI_EOP_STND_ACCEL);
+    csHigh(WIFI_SS); // close SPI
+  }
 
   sampleCounter++;
 }
 
 void OpenBCI_32bit_Library::writeAuxData(){
-  for(int i=0; i<3; i++){
-    Serial0.write(highByte(auxData[i])); // write 16 bit axis data MSB first
-    Serial0.write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
+  for(int i = 0; i < 3; i++){
+    writeSerial(highByte(auxData[i])); // write 16 bit axis data MSB first
+    writeSerial(lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    if (wifi) {
+      xfer(highByte(auxData[i]));
+      xfer(lowByte(auxData[i]));
+    }
     auxData[i] = 0;   // reset auxData bytes to 0
   }
 }
@@ -1014,7 +1196,10 @@ void OpenBCI_32bit_Library::writeAuxData(){
 void OpenBCI_32bit_Library::writeTimeCurrent(void) {
   uint32_t newTime = millis(); // serialize the number, placing the MSB in lower packets
   for (int j = 3; j >= 0; j--) {
-    Serial0.write(newTime >> (j*8));
+    writeSerial(newTime >> (j*8));
+    if (wifi) {
+      xfer(newTime >> (j*8));
+    }
   }
 }
 
@@ -1031,33 +1216,38 @@ void OpenBCI_32bit_Library::csLow(int SS)
 { // select an SPI slave to talk to
   switch(SS){
     case BOARD_ADS:
-    spi.setMode(DSPI_MODE1);
-    spi.setSpeed(4000000);
-    digitalWrite(BOARD_ADS, LOW);
-    break;
+      spi.setMode(DSPI_MODE1);
+      spi.setSpeed(4000000);
+      digitalWrite(BOARD_ADS, LOW);
+      break;
     case LIS3DH_SS:
-    spi.setMode(DSPI_MODE3);
-    spi.setSpeed(4000000);
-    digitalWrite(LIS3DH_SS, LOW);
-    break;
+      spi.setMode(DSPI_MODE3);
+      spi.setSpeed(4000000);
+      digitalWrite(LIS3DH_SS, LOW);
+      break;
     case SD_SS:
-    spi.setMode(DSPI_MODE0);
-    spi.setSpeed(20000000);
-    digitalWrite(SD_SS, LOW);
-    break;
+      spi.setMode(DSPI_MODE0);
+      spi.setSpeed(20000000);
+      digitalWrite(SD_SS, LOW);
+      break;
     case DAISY_ADS:
-    spi.setMode(DSPI_MODE1);
-    spi.setSpeed(4000000);
-    digitalWrite(DAISY_ADS, LOW);
-    break;
+      spi.setMode(DSPI_MODE1);
+      spi.setSpeed(4000000);
+      digitalWrite(DAISY_ADS, LOW);
+      break;
     case BOTH_ADS:
-    spi.setMode(DSPI_MODE1);
-    spi.setSpeed(4000000);
-    digitalWrite(BOARD_ADS,LOW);
-    digitalWrite(DAISY_ADS,LOW);
-    break;
+      spi.setMode(DSPI_MODE1);
+      spi.setSpeed(4000000);
+      digitalWrite(BOARD_ADS,LOW);
+      digitalWrite(DAISY_ADS,LOW);
+      break;
+    case WIFI_SS:
+      spi.setMode(DSPI_MODE0);
+      spi.setSpeed(20000000);
+      digitalWrite(WIFI_SS, LOW);
+      break;
     default:
-    break;
+      break;
   }
 }
 
@@ -1065,27 +1255,31 @@ void OpenBCI_32bit_Library::csHigh(int SS)
 { // deselect SPI slave
   switch(SS){
     case BOARD_ADS:
-    digitalWrite(BOARD_ADS, HIGH);
-    spi.setSpeed(20000000);
-    break;
+      digitalWrite(BOARD_ADS, HIGH);
+      spi.setSpeed(20000000);
+      break;
     case LIS3DH_SS:
-    digitalWrite(LIS3DH_SS, HIGH);
-    spi.setSpeed(20000000);
-    break;
+      digitalWrite(LIS3DH_SS, HIGH);
+      spi.setSpeed(20000000);
+      break;
     case SD_SS:
-    digitalWrite(SD_SS, HIGH);
-    spi.setSpeed(4000000);
-    break;
+      digitalWrite(SD_SS, HIGH);
+      spi.setSpeed(4000000);
+      break;
     case DAISY_ADS:
-    digitalWrite(DAISY_ADS, HIGH);
-    spi.setSpeed(20000000);
-    break;
+      digitalWrite(DAISY_ADS, HIGH);
+      spi.setSpeed(20000000);
+      break;
     case BOTH_ADS:
-    digitalWrite(BOARD_ADS, HIGH);
-    digitalWrite(DAISY_ADS, HIGH);
-    spi.setSpeed(20000000); break;
+      digitalWrite(BOARD_ADS, HIGH);
+      digitalWrite(DAISY_ADS, HIGH);
+      spi.setSpeed(20000000); break;
+    case WIFI_SS:
+      digitalWrite(WIFI_SS, HIGH);
+      spi.setSpeed(20000000);
+      break;
     default:
-    break;
+      break;
   }
   spi.setMode(DSPI_MODE0);  // DEFAULT TO SD MODE!
 }
@@ -1108,13 +1302,13 @@ void OpenBCI_32bit_Library::initialize_ads(){
   delay(40);
   resetADS(BOARD_ADS); // reset the on-board ADS registers, and stop DataContinuousMode
   delay(10);
-  WREG(CONFIG1,0xB6,BOARD_ADS); // tell on-board ADS to output its clk, set the data rate to 250SPS
+  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY || curSampleRate),BOARD_ADS); // tell on-board ADS to output its clk, set the data rate to 250SPS
   delay(40);
   resetADS(DAISY_ADS); // software reset daisy module if present
   delay(10);
   daisyPresent = smellDaisy(); // check to see if daisy module is present
   if(!daisyPresent){
-    WREG(CONFIG1,0x96,BOARD_ADS); // turn off clk output if no daisy present
+    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT || curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
   }else{
     numChannels = 16;   // expect up to 16 ADS channels
@@ -1344,13 +1538,13 @@ void OpenBCI_32bit_Library::removeDaisy(void){
 }
 
 void OpenBCI_32bit_Library::attachDaisy(void){
-  WREG(CONFIG1,0xB6,BOARD_ADS); // tell on-board ADS to output the clk, set the data rate to 250SPS
+  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY || curSampleRate),BOARD_ADS); // tell on-board ADS to output the clk, set the data rate to 250SPS
   delay(40);
   resetADS(DAISY_ADS); // software reset daisy module if present
   delay(10);
   daisyPresent = smellDaisy();
   if(!daisyPresent){
-    WREG(CONFIG1,0x96,BOARD_ADS); // turn off clk output if no daisy present
+    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT || curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
     if(!isRunning) Serial0.println("no daisy to attach!");
   }else{
@@ -2142,11 +2336,29 @@ boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
 void OpenBCI_32bit_Library::updateChannelData(){
   // this needs to be reset, or else it will constantly flag us
   channelDataAvailable = false;
-  updateBoardData();
-  if(daisyPresent) {updateDaisyData();}
+
+  switch (curBoardMode) {
+    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
+      updateChannelDataHighSpeed();
+      break;
+    case OPENBCI_BOARD_MODE_DEBUG:
+    case OPENBCI_BOARD_MODE_DEFAULT:
+    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
+    case OPENBCI_BOARD_MODE_INPUT_ANALOG:
+    case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
+    default:
+      updateChannelDataGZLL();
+      break;
+  }
 }
 
-void OpenBCI_32bit_Library::updateBoardData(){
+// CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
+void OpenBCI_32bit_Library::updateChannelDataGZLL(){
+  updateBoardDataGZLL();
+  if(daisyPresent) {updateDaisyDataGZLL();}
+}
+
+void OpenBCI_32bit_Library::updateBoardDataGZLL(){
   byte inByte;
   int byteCounter = 0;
 
@@ -2173,31 +2385,31 @@ void OpenBCI_32bit_Library::updateBoardData(){
 
   // need to convert 24bit to 32bit if using the filter
   for(int i=0; i<8; i++){ // convert 3 byte 2's compliment to 4 byte 2's compliment
-  if(bitRead(boardChannelDataInt[i],23) == 1){
-    boardChannelDataInt[i] |= 0xFF000000;
-  } else{
-    boardChannelDataInt[i] &= 0x00FFFFFF;
-  }
-}
-if(daisyPresent && !firstDataPacket){
-  byteCounter = 0;
-  for(int i=0; i<8; i++){   // take the average of this and the last sample
-    meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
-  }
-  for(int i=0; i<8; i++){  // place the average values in the meanRaw array
-    for(int b=2; b>=0; b--){
-      meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
-      byteCounter++;
+    if(bitRead(boardChannelDataInt[i],23) == 1){
+      boardChannelDataInt[i] |= 0xFF000000;
+    } else{
+      boardChannelDataInt[i] &= 0x00FFFFFF;
     }
   }
+  if(daisyPresent && !firstDataPacket){
+    byteCounter = 0;
+    for(int i=0; i<8; i++){   // take the average of this and the last sample
+      meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
+    }
+    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
+      for(int b=2; b>=0; b--){
+        meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
+        byteCounter++;
+      }
+    }
+  }
+
+  if(firstDataPacket == true){
+    firstDataPacket = false;
+  }
 }
 
-if(firstDataPacket == true){
-  firstDataPacket = false;
-}
-}
-
-void OpenBCI_32bit_Library::updateDaisyData(){
+void OpenBCI_32bit_Library::updateDaisyDataGZLL(){
   byte inByte;
   int byteCounter = 0;
 
@@ -2223,29 +2435,121 @@ void OpenBCI_32bit_Library::updateDaisyData(){
   csHigh(DAISY_ADS);        //  close SPI
   // need to convert 24bit to 32bit
   for(int i=0; i<8; i++){     // convert 3 byte 2's compliment to 4 byte 2's compliment
-  if(bitRead(daisyChannelDataInt[i],23) == 1){
-    daisyChannelDataInt[i] |= 0xFF000000;
-  }else{
-    daisyChannelDataInt[i] &= 0x00FFFFFF;
+    if(bitRead(daisyChannelDataInt[i],23) == 1){
+      daisyChannelDataInt[i] |= 0xFF000000;
+    }else{
+      daisyChannelDataInt[i] &= 0x00FFFFFF;
+    }
+  }
+  if(daisyPresent && !firstDataPacket){
+    byteCounter = 0;
+    for(int i=0; i<8; i++){   // average this sample with the last sample
+      meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
+    }
+    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
+      for(int b=2; b>=0; b--){
+        meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
+        byteCounter++;
+      }
+    }
+  }
+
+  if(firstDataPacket == true) {
+    firstDataPacket = false;
   }
 }
-if(daisyPresent && !firstDataPacket){
-  byteCounter = 0;
-  for(int i=0; i<8; i++){   // average this sample with the last sample
-    meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
+
+/**
+ * @description Used to update global data arrays with new data
+ * @author AJ Keller (@aj-ptw)
+ */
+void OpenBCI_32bit_Library::updateChannelDataHighSpeed(void) {
+  updateBoardDataHighSpeed();
+  if(daisyPresent) {updateDaisyDataHighSpeed();}
+}
+
+/**
+ * @description Used to update global data arrays with new data
+ * @author AJ Keller (@aj-ptw)
+ */
+void OpenBCI_32bit_Library::updateBoardDataHighSpeed(void) {
+  byte inByte;
+  uint8_t byteCounter = 0;
+
+  // Open SPI
+  csLow(BOARD_ADS);
+
+  // Read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
+  for(uint8_t i=0; i<3; i++) {
+    inByte = xfer(0x00);
+    boardStat = (boardStat << 8) | inByte;
   }
-  for(int i=0; i<8; i++){  // place the average values in the meanRaw array
-    for(int b=2; b>=0; b--){
-      meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
+
+  // Read 24 bits of channel data in 8 3 byte chunks
+  for(uint8_t i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
+    for(uint8_t j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++) {
+      inByte = xfer(0x00);
+      boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
       byteCounter++;
+      boardChannelDataInt[i] = (boardChannelDataInt[i]<<8) | inByte;  // int data goes here
+    }
+  }
+
+  // Close SPI
+  csHigh(BOARD_ADS);
+
+  // Need to convert 24bit to 32bit if using the filter
+  // Convert 3 byte 2's compliment to 4 byte 2's compliment
+  for(uint8_t i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
+    if(bitRead(boardChannelDataInt[i],23) == 1) {
+      boardChannelDataInt[i] |= 0xFF000000;
+    } else{
+      boardChannelDataInt[i] &= 0x00FFFFFF;
     }
   }
 }
 
-if(firstDataPacket == true) {
-  firstDataPacket = false;
+/**
+ * @description Used to update global data arrays with new data
+ * @author AJ Keller (@aj-ptw)
+ */
+void OpenBCI_32bit_Library::updateDaisyDataHighSpeed(void) {
+  byte inByte;
+  uint8_t byteCounter = 0;
+
+  // Open SPI
+  csLow(DAISY_ADS);
+
+  // Read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
+  for(int i=0; i < 3; i++){
+    inByte = xfer(0x00);
+    daisyStat = (daisyStat << 8) | inByte;
+  }
+
+  // Read 24 bits of channel data in 8 3 byte chunks
+  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
+    for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++) {
+      inByte = xfer(0x00);
+      daisyChannelDataRaw[byteCounter] = inByte;  // raw data goes here
+      byteCounter++;
+      daisyChannelDataInt[i] = (daisyChannelDataInt[i]<<8) | inByte; // int data goes here
+    }
+  }
+
+  // Close SPI
+  csHigh(DAISY_ADS);
+
+  // Need to convert 24bit to 32bit
+  // Convert 3 byte 2's compliment to 4 byte 2's compliment
+  for(int i=0; i<8; i++){
+    if(bitRead(daisyChannelDataInt[i],23) == 1){
+      daisyChannelDataInt[i] |= 0xFF000000;
+    } else{
+      daisyChannelDataInt[i] &= 0x00FFFFFF;
+    }
+  }
 }
-}
+
 
 // Stop the continuous data acquisition
 void OpenBCI_32bit_Library::stopADS()
@@ -2257,13 +2561,21 @@ void OpenBCI_32bit_Library::stopADS()
   isRunning = false;
 }
 
-void writeOutput(byte b) {
-  switch (c) {
-    case OPENBCI_BOARD_MODE_WIFI:
+/**
+ * @description Route a uint8_t (a.k.a. char or byte) to either Serial0, Serial1,
+ *  or both depending on the curBoardMode. e.g. debug writes to both serial while
+ *  default writes only to seral0
+ */
+void OpenBCI_32bit_Library::writeSerial(uint8_t b) {
+  switch (curBoardMode) {
+    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
       Serial1.write(b);
+      // Need break because we only want to write to Serial1 here
       break;
     case OPENBCI_BOARD_MODE_DEBUG:
+    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
       Serial1.write(b);
+      // NO break because we also want to write to Serial0
     case OPENBCI_BOARD_MODE_DEFAULT:
     case OPENBCI_BOARD_MODE_INPUT_ANALOG:
     case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
@@ -2273,35 +2585,69 @@ void writeOutput(byte b) {
   }
 }
 
-
 //write as binary each channel's data
-void OpenBCI_32bit_Library::ADS_writeChannelData()
-{
+void OpenBCI_32bit_Library::ADS_writeChannelData() {
+  switch (curBoardMode) {
+    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
+      ADS_writeChannelDataHighSpeed();
+      break;
+    case OPENBCI_BOARD_MODE_DEBUG:
+    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
+    case OPENBCI_BOARD_MODE_DEFAULT:
+    case OPENBCI_BOARD_MODE_INPUT_ANALOG:
+    case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
+    default:
+      ADS_writeChannelDataGZLL();
+      break;
+  }
+}
 
-  if (daisyPresent){
-
-    if(sampleCounter % 2 != 0){ //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-      for (int i=0; i<24; i++){
-        writeOutput()
-        Serial0.write(meanBoardDataRaw[i]); // send board data on odd samples
-        if (curBoardMode == OPENBCI_BOARD_MODE_WIFI) {
-          Serial1.write(meanBoardDataRaw[i]);
-        }
+void OpenBCI_32bit_Library::ADS_writeChannelDataGZLL() {
+  if (daisyPresent) {
+    if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
+      for(int i = 0; i<24; i++) {
+        writeSerial(meanBoardDataRaw[i]);
       }
-    }else{
-      for (int i=0; i<24; i++){
-        Serial0.write(meanDaisyDataRaw[i]); // send daisy data on even samples
-        if (curBoardMode == OPENBCI_BOARD_MODE_WIFI) {
-          Serial1.write(meanDaisyDataRaw[i]);
-        }
+    } else {
+      for(int i = 0; i<24; i++) {
+        writeSerial(meanDaisyDataRaw[i]);
       }
     }
-  }else{
-    for(int i=0; i<24; i++){
-      Serial0.write(boardChannelDataRaw[i]);
-      if (curBoardMode == OPENBCI_BOARD_MODE_WIFI) {
-        Serial1.write(boardChannelDataRaw[i]);
-      }
+  } else {
+    for(int i = 0; i < 24; i++) {
+      writeSerial(boardChannelDataRaw[i]);
+    }
+  }
+}
+
+/**
+ * @description Write board (and daisy if present) ADS1299 data to serial port
+ */
+void OpenBCI_32bit_Library::ADS_writeChannelDataHighSpeed() {
+  // Always write board ADS data
+  for(int i = 0; i < 24; i++) {
+    writeSerial(boardChannelDataRaw[i]);
+  }
+  // Only write daisy data if present
+  if (daisyPresent) {
+    for(int i = 0; i < 24; i++) {
+      writeSerial(daisyChannelDataRaw[i]);
+    }
+  }
+}
+
+/**
+ * @description Write board (and daisy if present) ADS1299 data to serial port
+ */
+void OpenBCI_32bit_Library::ADS_writeChannelDataSpi() {
+  // Always write board ADS data
+  for(int i = 0; i < 24; i++) {
+    xfer(boardChannelDataRaw[i]);
+  }
+  // Only write daisy data if present
+  if (daisyPresent) {
+    for(int i = 0; i < 24; i++) {
+      xfer(daisyChannelDataRaw[i]);
     }
   }
 }
@@ -2561,17 +2907,25 @@ boolean OpenBCI_32bit_Library::LIS3DH_DataReady(){
 }
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisData(void){
-  for(int i=0; i<3; i++){
-    Serial0.write(highByte(axisData[i])); // write 16 bit axis data MSB first
-    Serial0.write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+  for(int i = 0; i < 3; i++){
+    writeSerial(highByte(axisData[i])); // write 16 bit axis data MSB first
+    writeSerial(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+    if (wifi) {
+      xfer(highByte(axisData[i]));
+      xfer(lowByte(axisData[i]));
+    }
     axisData[i] = 0;
   }
 }
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxis(uint8_t axis) {
   if (axis > 2) axis = 0;
-  Serial0.write(highByte(axisData[axis])); // write 16 bit axis data MSB first
-  Serial0.write(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+  writeSerial(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  writeSerial(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+  if (wifi) {
+    xfer(highByte(axisData[axis]));
+    xfer(lowByte(axisData[axis]));
+  }
   axisData[axis] = 0;
 }
 

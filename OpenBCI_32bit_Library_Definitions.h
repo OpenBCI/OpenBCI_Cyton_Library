@@ -12,7 +12,6 @@
 
 // Baud rates
 #define OPENBCI_BAUD_RATE 115200
-#define OPENBCI_BAUD_RATE_WIFI 921600
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
@@ -25,14 +24,15 @@
 #define OPENBCI_EOP_RAW_AUX_TIME_SYNCED 0xC6 // End of time synced stream packet
 
 //PIN CONNECTIONS
-#define ADS_DRDY 	    9   // ADS data ready pin
-#define ADS_RST	        4   // ADS reset pin
-#define BOARD_ADS	    8   // ADS chip select
-#define DAISY_ADS	    3   // ADS Daisy chip select
-#define BOTH_ADS        5	// Slave Select Both ADS chips
-#define SD_SS	        2  	// SD card chip select
-#define LIS3DH_SS	    1   // LIS3DH chip select
-#define LIS3DH_DRDY	    0	// LIS3DH data ready pin
+#define ADS_DRDY 9          // ADS data ready pin
+#define ADS_RST	4           // ADS reset pin
+#define BOARD_ADS	8         // ADS chip select
+#define DAISY_ADS	3         // ADS Daisy chip select
+#define BOTH_ADS 5	        // Slave Select Both ADS chips
+#define SD_SS 2  	          // SD card chip select
+#define LIS3DH_SS	1         // LIS3DH chip select
+#define LIS3DH_DRDY 0	      // LIS3DH data ready pin
+#define WIFI_SS 13          // Wifi Chip Select
 #define OPENBCI_PIN_LED 11
 #define OPENBCI_PIN_PGC 12
 
@@ -117,6 +117,18 @@
 #define ADSTESTSIG_PULSE_FAST (0b00000001)
 #define ADSTESTSIG_DCSIG (0b00000011)
 #define ADSTESTSIG_NOCHANGE (0b11111111)
+
+// Sample rates
+#define ADS1299_SAMPLE_RATE_250 0b00000110
+#define ADS1299_SAMPLE_RATE_500 0b00000101
+#define ADS1299_SAMPLE_RATE_1000 0b00000100
+#define ADS1299_SAMPLE_RATE_2000 0b00000011
+#define ADS1299_SAMPLE_RATE_4000 0b00000010
+#define ADS1299_SAMPLE_RATE_8000 0b00000001
+#define ADS1299_SAMPLE_RATE_16000 0b00000000
+
+#define ADS1299_CONFIG1_DAISY 0b10110000
+#define ADS1299_CONFIG1_DAISY_NOT 0b10010000
 
 //Lead-off signal choices
 #define LOFF_MAG_6NA        (0b00000000)
@@ -329,11 +341,15 @@
 
 /** Set Packet Type */
 #define OPENBCI_BOARD_MODE_SET '/'
-#define OPENBCI_BOARD_MODE_DEFAULT '0'
-#define OPENBCI_BOARD_MODE_DEBUG '1'
-#define OPENBCI_BOARD_MODE_WIFI '2'
-#define OPENBCI_BOARD_MODE_INPUT_ANALOG '3'
-#define OPENBCI_BOARD_MODE_INPUT_DIGITAL '4'
+#define OPENBCI_BOARD_MODE_DEFAULT '0' // 48
+#define OPENBCI_BOARD_MODE_DEBUG '1' // 49
+#define OPENBCI_BOARD_MODE_BOTH_SERIAL '2' // 50
+#define OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY '3' // 50
+#define OPENBCI_BOARD_MODE_INPUT_ANALOG '4' // 51
+#define OPENBCI_BOARD_MODE_INPUT_DIGITAL '5' // 52
+
+/** Set sample rate */
+#define OPENBCI_SAMPLE_RATE_SET '~'
 
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
@@ -376,5 +392,8 @@
 
 #define OPENBCI_FIRMWARE_VERSION_V1 1
 #define OPENBCI_FIRMWARE_VERSION_V2 1
+
+#define OPENBCI_ADS_BYTES_PER_CHAN 3
+#define OPENBCI_ADS_CHANS_PER_BOARD 8
 
 #endif

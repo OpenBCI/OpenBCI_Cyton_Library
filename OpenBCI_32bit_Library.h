@@ -29,12 +29,9 @@ public:
     boolean hasDataSerial0(void);
     boolean hasDataSerial1(void);
 
-
-    void    writeSerial(char *data, int len);
-
     boolean isADSDataAvailable(void);
 
-
+    boolean printToSerial1(void);
 
     void writeTimeCurrent(void);
     void writeZeroAux(void);
@@ -52,6 +49,7 @@ public:
 
     boolean processChar(char character);
     void processIncomingBoardMode(char character);
+    void processIncomingSampleRate(char character);
     void processIncomingChannelSettings(char character);
     void processIncomingLeadOffSettings(char character);
 
@@ -84,6 +82,7 @@ public:
 
     // Variables
     boolean daisy;
+    boolean wifi;
     boolean streaming;
     boolean timeSynced;
     boolean sendTimeSyncUpPacket;
@@ -91,15 +90,23 @@ public:
     boolean isProcessingIncomingSettingsLeadOff;
     boolean isProcessingIncomingSerialPassThru;
     boolean settingBoardMode;
+    boolean settingSampleRate;
     volatile boolean channelDataAvailable;
 
     boolean isProcessingMultibyteMsg(void);
     boolean isValidBoardType(char c);
 
     uint8_t curBoardMode;
+    uint8_t curSampleRate;
+    uint32_t curExternBaudRate;
 
     int numberOfIncomingSettingsProcessedChannel;
     int numberOfIncomingSettingsProcessedLeadOff;
+    int numberOfIncomingSettingsProcessedBoardType;
+    uint8_t optionalArgCounter;
+    char optionalArgBuffer5[5];
+    char optionalArgBuffer6[6];
+    char optionalArgBuffer7[7];
     char streamPacketType;
     char currentChannelSetting;
 
@@ -147,6 +154,12 @@ public:
     void updateChannelData(void);   // retrieve data from ADS
     void updateBoardData(void);
     void updateDaisyData(void);
+    void updateChannelDataGZLL(void);   // retrieve data from ADS
+    void updateBoardDataGZLL(void);
+    void updateDaisyDataGZLL(void);
+    void updateChannelDataHighSpeed(void);   // retrieve data from ADS
+    void updateBoardDataHighSpeed(void);
+    void updateDaisyDataHighSpeed(void);
     byte xfer(byte);        // SPI Transfer function
     void resetADS(int);     // reset all the ADS1299's settings
     void startADS(void);
@@ -158,12 +171,15 @@ public:
     void changeInputType(byte);
 
     void ADS_writeChannelData(void);
+    void ADS_writeChannelDataGZLL(void);
+    void ADS_writeChannelDataHighSpeed(void);
+    void ADS_writeChannelDataSpi(void);
     // void ADS_printDeviceID(int);   //
     boolean smellDaisy(void);
     void removeDaisy(void);
     void attachDaisy(void);
     void writeAuxData(void);
-    void writeOutput(byte);
+    void writeSerial(uint8_t);
 
     short auxData[3];           // This is user faceing
     byte regData[24];           // array is used to mirror register data
