@@ -16,7 +16,7 @@ class OpenBCI_32bit_Library {
 public:
   // ENUMS
   typedef enum ACCEL_MODE {
-    ACCEL_MODE_ACTIVE,
+    ACCEL_MODE_ON,
     ACCEL_MODE_OFF
   };
 
@@ -162,6 +162,8 @@ public:
   void    updateDaisyData(void);
   void    updateDaisyDataGZLL(void);
   void    updateDaisyDataHighSpeed(void);
+  void    useAccel();
+  void    useAccel(boolean);
   boolean waitForNewChannelData(void);
   void    write(char);
   void    write(uint8_t);
@@ -183,7 +185,6 @@ public:
   boolean daisyUseSRB1;
   boolean streaming;
   boolean timeSynced;
-  boolean useAccel;
   boolean useAux;
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];

@@ -408,13 +408,21 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   return true;
 }
 
+void OpenBCI_32bit_Library::useAccel(void) {
+  curAccelMode = ACCEL_MODE_ON;
+}
+
+void OpenBCI_32bit_Library::useAccel(boolean yes) {
+  curAccelMode = yes ? ACCEL_MODE_ON : ACCEL_MODE_OFF;
+}
+
 /**
 * @description Reads a status register to see if there is new accelerometer
-*  data.
+*  data. This also takes into account if using accel or not.
 * @returns {boolean} `true` if the accelerometer has new data.
 */
 boolean OpenBCI_32bit_Library::accelHasNewData(void) {
-  return LIS3DH_DataAvailable();
+  return curAccelMode == ACCEL_MODE_ON && LIS3DH_DataAvailable();
 }
 
 /**
@@ -908,7 +916,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedBoardType = 0;
   currentChannelSetting = 0;
   streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
-  curAccelMode = ACCEL_MODE_ACTIVE;
+  curAccelMode = ACCEL_MODE_ON;
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
