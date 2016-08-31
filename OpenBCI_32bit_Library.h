@@ -15,6 +15,26 @@ class OpenBCI_32bit_Library {
 
 public:
   // ENUMS
+  typedef enum ACCEL_MODE {
+    ACCEL_MODE_ACTIVE,
+    ACCEL_MODE_OFF
+  };
+
+  typedef enum BOARD_MODE {
+    BOARD_MODE_DEFAULT,
+    BOARD_MODE_DEBUG
+  };
+
+  typedef enum PACKET_TYPE {
+    PACKET_TYPE_ACCEL,
+    PACKET_TYPE_RAW_AUX,
+    PACKET_TYPE_USER_DEFINED,
+    PACKET_TYPE_ACCEL_TIME_SET,
+    PACKET_TYPE_ACCEL_TIME_SYNC,
+    PACKET_TYPE_RAW_AUX_TIME_SET,
+    PACKET_TYPE_RAW_AUX_TIME_SYNC
+  };
+
   typedef enum SERIAL_STATE {
     SERIAL_STATE_NONE,
     SERIAL_STATE_ONLY_SERIAL_0,
@@ -28,11 +48,6 @@ public:
     SPI_STATE_DUPLEX
   };
 
-  typedef enum BOARD_MODE {
-    BOARD_MODE_DEFAULT,
-    BOARD_MODE_DEBUG
-  };
-
   typedef enum SAMPLE_RATE {
     SAMPLE_RATE_16000,
     SAMPLE_RATE_8000,
@@ -41,17 +56,21 @@ public:
     SAMPLE_RATE_1000,
     SAMPLE_RATE_500,
     SAMPLE_RATE_250
-  }
+  };
 
-  typedef enum PACKET_TYPE {
-    PACKET_TYPE_ACCEL,
-    PACKET_TYPE_RAW_AUX,
-    PACKET_TYPE_USER_DEFINED,
-    PACKET_TYPE_ACCEL_TIME_SET,
-    PACKET_TYPE_ACCEL_TIME_SYNC,
-    PACKET_TYPE_RAW_AUX_TIME_SET,
-    PACKET_TYPE_RAW_AUX_TIME_SYNC
-  }
+  // STRUCTS
+  typedef struct {
+      uint32_t  baudRate;
+      boolean   active;
+      boolean   rx;
+      boolean   tx;
+  } SerialInfo;
+
+  typedef struct {
+      boolean   active;
+      boolean   rx;
+      boolean   tx;
+  } WifiInfo;
 
   // Start up functions
   OpenBCI_32bit_Library();
@@ -105,7 +124,6 @@ public:
   void    printAllRegisters(void);
   void    printHex(byte);            // used for verbosity
   void    printRegisterName(byte);   // used for verbosity
-  boolean printToSerial1(void);
   boolean processChar(char character);
   void    processIncomingBoardMode(char character);
   void    processIncomingSampleRate(char character);
@@ -145,16 +163,22 @@ public:
   void    updateDaisyDataGZLL(void);
   void    updateDaisyDataHighSpeed(void);
   boolean waitForNewChannelData(void);
+  void    write(char);
   void    write(uint8_t);
+  void    write(char[] c, int len) {
+  void    write(uint8_t[] b, int len)
   void    writeAuxData(void);
   void    writeChannelSettings();
   void    writeChannelSettings(byte N);
+  void    writeSerial(char c);
+  void    writeSerial(char[] c, int len);
+  void    writeSpi(uint8_t b);
+  void    writeSpi(uint8_t[] b, int len);
   void    writeTimeCurrent(void);
   void    writeZeroAux(void);
 
   // Variables
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
-  boolean daisy;
   boolean daisyPresent;
   boolean daisyUseSRB1;
   boolean streaming;
@@ -187,16 +211,25 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
+  uint8_t spiBuffer[255];
+  uint8_t spiBufferPosition;
+
   uint32_t curExternBaudRate;
 
   volatile boolean channelDataAvailable;
 
   // ENUMS
+  ACCEL_MODE curAccelMode;
   BOARD_MODE curBoardMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
   SERIAL_STATE curSerialState;
   SPI_STATE curSpiState;
+
+  // STRUCTS
+  SerialInfo serial0;
+  SerialInfo serial1;
+  WifiInfo wifi;
 
   // Class Objects
   DSPI0 spi;  // use DSPI library
@@ -215,7 +248,9 @@ private:
   void    initialize(void);
   void    initialize_accel(byte);    // initialize
   void    initialize_ads(void);
+  void    initializeSerialInfo(SerialInfo si);
   void    initializeVariables(void);
+  void    initializeWifiInfo(WifiInfo wi);
   byte    LIS3DH_getDeviceID(void);
   byte    LIS3DH_read(byte);     // read a register on LIS3DH
   int     LIS3DH_read16(byte);    // read two bytes, used to get axis data
@@ -263,6 +298,7 @@ private:
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
+  unsigned long timeOfLastRead;
   boolean firstDataPacket;
 
 };

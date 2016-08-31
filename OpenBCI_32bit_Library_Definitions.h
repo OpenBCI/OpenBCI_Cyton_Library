@@ -12,7 +12,7 @@
 
 // Baud rates
 #define OPENBCI_BAUD_RATE 115200
-#define OPENBCI_BAUD_RATE_WIFI 921600
+#define OPENBCI_BAUD_RATE_MIN_NO_AVG 200000
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
@@ -355,6 +355,8 @@
 
 /** Packet Size */
 #define OPENBCI_PACKET_SIZE 33
+
+#define OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE 24
 
 /** Impedance Calculation Variables */
 #define OPENBCI_LEAD_OFF_DRIVE_AMPS 0.000000006
