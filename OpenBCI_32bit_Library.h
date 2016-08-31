@@ -61,7 +61,6 @@ public:
   // STRUCTS
   typedef struct {
       uint32_t  baudRate;
-      boolean   active;
       boolean   rx;
       boolean   tx;
   } SerialInfo;
@@ -80,8 +79,8 @@ public:
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
-  void    ADS_writeChannelDataGZLL(void);
-  void    ADS_writeChannelDataHighSpeed(void);
+  void    ADS_writeChannelDataDaisyAvg(void);
+  void    ADS_writeChannelDataNoDaisyAvg(void);
   void    ADS_writeChannelDataSpi(void);
   void    attachDaisy(void);
   void    begin(void);
@@ -114,7 +113,6 @@ public:
   boolean hasDataSerial1(void);
   boolean isADSDataAvailable(void);
   boolean isProcessingMultibyteMsg(void);
-  boolean isValidBoardType(char c);
   void    leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode);
   void    leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode);
   void    leadOffSetForAllChannels(void);
@@ -154,15 +152,15 @@ public:
   void    streamStart(void);
   void    streamStop(void);
   void    updateBoardData(void);
-  void    updateBoardDataGZLL(void);
-  void    updateBoardDataHighSpeed(void);
+  void    updateBoardDataDaisyAvg(void);
+  void    updateBoardDataNoDaisyAvg(void);
   void    updateChannelData(void);   // retrieve data from ADS
-  void    updateChannelDataGZLL(void);   // retrieve data from ADS
-  void    updateChannelDataHighSpeed(void);   // retrieve data from ADS
+  void    updateChannelDataDaisyAvg(void);   // retrieve data from ADS
+  void    updateChannelDataNoDaisyAvg(void);   // retrieve data from ADS
   void    updateDaisyData(void);
-  void    updateDaisyDataGZLL(void);
-  void    updateDaisyDataHighSpeed(void);
-  void    useAccel();
+  void    updateDaisyDataDaisyAvg(void);
+  void    updateDaisyDataNoDaisyAvg(void);
+  boolean useAccel();
   void    useAccel(boolean);
   boolean waitForNewChannelData(void);
   void    write(char);
@@ -228,8 +226,8 @@ public:
   SPI_STATE curSpiState;
 
   // STRUCTS
-  SerialInfo serial0;
-  SerialInfo serial1;
+  SerialInfo iSerial0;
+  SerialInfo iSerial1;
   WifiInfo wifi;
 
   // Class Objects
@@ -290,7 +288,6 @@ private:
   char    optionalArgBuffer5[5];
   char    optionalArgBuffer6[6];
   char    optionalArgBuffer7[7];
-  char    streamPacketType;
   int     boardStat; // used to hold the status register
   int     daisyStat;
   int     DRDYpinValue;

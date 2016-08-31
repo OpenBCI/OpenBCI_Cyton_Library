@@ -16,7 +16,6 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
   curBoardMode = OPENBCI_BOARD_MODE_DEFAULT;
   daisyPresent = false;
-  useAccel = false;
   useAux = false;
   channelDataAvailable = false;
   initializeVariables();
@@ -53,14 +52,12 @@ void OpenBCI_32bit_Library::beginDebug(void) {
   curBoardMode = BOARD_MODE_DEBUG;
   boolean started = boardBeginDebug();
 
-  if (Serial1) {
-    if (started) {
-      Serial1.println("Board up");
-    } else {
-      Serial1.println("Board err");
-    }
-
+  if (started) {
+    Serial1.println("Board up"); sendEOT();
+  } else {
+    Serial1.println("Board err"); sendEOT();
   }
+
 }
 
 /**
@@ -93,6 +90,8 @@ void OpenBCI_32bit_Library::beginSerial1(uint32_t baudRate) {
 * @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
+  if (!Serial0) return false;
+  if (!iSerial0.rx) return false;
   if (Serial0.available()) {
     return true;
   } else {
@@ -105,6 +104,8 @@ boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
 * @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::hasDataSerial1(void) {
+  if (Serial1) return false;
+  if (!iSerial1.rx) return false;
   if (Serial1.available()) {
     return true;
   } else {
@@ -345,13 +346,13 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // STREAM DATA AND FILTER COMMANDS
       case OPENBCI_STREAM_START:  // stream data
-        if(useAccel){
+        if(curAccelMode == ACCEL_MODE_ON){
           enable_accel(RATE_25HZ);
         }      // fire up the accelerometer if you want it
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
-        if(useAccel){
+        if(curAccelMode == ACCEL_MODE_ON){
           disable_accel();
         }  // shut down the accelerometer if you're using it
         streamStop();
@@ -408,8 +409,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   return true;
 }
 
-void OpenBCI_32bit_Library::useAccel(void) {
-  curAccelMode = ACCEL_MODE_ON;
+boolean OpenBCI_32bit_Library::useAccel(void) {
+  return curAccelMode == ACCEL_MODE_ON;
 }
 
 void OpenBCI_32bit_Library::useAccel(boolean yes) {
@@ -422,7 +423,7 @@ void OpenBCI_32bit_Library::useAccel(boolean yes) {
 * @returns {boolean} `true` if the accelerometer has new data.
 */
 boolean OpenBCI_32bit_Library::accelHasNewData(void) {
-  return curAccelMode == ACCEL_MODE_ON && LIS3DH_DataAvailable();
+  return LIS3DH_DataAvailable();
 }
 
 /**
@@ -518,7 +519,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::boardReset(void) {
-  initializeVariables();
+  // initializeVariables(); // called in constructor, redundent here
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
   // delay(500);
 
@@ -538,7 +539,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
-  Serial0.print("$$$");
+  write("$$$");
 }
 
 
@@ -590,17 +591,8 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
             break;
         }
       }
-      switch (curBoardMode) {
-        case OPENBCI_BOARD_MODE_DEBUG:
-        case OPENBCI_BOARD_MODE_BOTH_SERIAL:
-        case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
-          beginSerial1(newBaud);
-          break;
-          case OPENBCI_BOARD_MODE_DEFAULT:
-        case OPENBCI_BOARD_MODE_INPUT_ANALOG:
-        case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
-        default:
-          break;
+      if (curBoardMode == BOARD_MODE_DEBUG) {
+        beginSerial1(newBaud);
       }
 
       if (!streaming) {
@@ -628,8 +620,8 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
 
   // This one is the board type always
   if (numberOfIncomingSettingsProcessedBoardType == 0) {
-    if (isValidBoardType(c)) {
-      curBoardMode = c;
+    if (isDigit(c)) {
+      curBoardMode = c - '0';
       numberOfIncomingSettingsProcessedBoardType = 1;
     } else {
       numberOfIncomingSettingsProcessedBoardType = -1;
@@ -760,7 +752,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       Serial0.print("Channel set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
     }
 
-    if (curBoardMode == OPENBCI_BOARD_MODE_DEBUG) {
+    if (curBoardMode == BOARD_MODE_DEBUG) {
       Serial1.print("Channel set for  "); Serial1.println(currentChannelSetting + 1);
     }
 
@@ -847,7 +839,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       Serial0.print("Lead off set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
     }
 
-    if (curBoardMode == OPENBCI_BOARD_MODE_DEBUG) {
+    if (curBoardMode == BOARD_MODE_DEBUG) {
       Serial1.print("Lead off set for  "); Serial1.println(currentChannelSetting + 1);
     }
 
@@ -859,21 +851,6 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
     // put flag back down
     isProcessingIncomingSettingsLeadOff = false;
-  }
-}
-
-
-boolean OpenBCI_32bit_Library::isValidBoardType(char c) {
-  switch (c) {
-    case OPENBCI_BOARD_MODE_DEFAULT:
-    case OPENBCI_BOARD_MODE_DEBUG:
-    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
-    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
-    case OPENBCI_BOARD_MODE_INPUT_ANALOG:
-    case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
-      return true;
-    default:
-      return false;
   }
 }
 
@@ -915,28 +892,26 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
   currentChannelSetting = 0;
-  streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
   curAccelMode = ACCEL_MODE_ON;
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
   curSerialState = SERIAL_STATE_ONLY_SERIAL_0;
   curSpiState = SPI_STATE_NONE;
-  initializeSerialInfo(serial0);
-  initializeSerialInfo(serial1);
+  initializeSerialInfo(iSerial0);
+  initializeSerialInfo(iSerial1);
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
   si.baudRate = OPENBCI_BAUD_RATE;
-  si.active = false;
   si.rx = true;
   si.tx = true;
 }
 
 void OpenBCI_32bit_Library::initializeWifiInfo(WifiInfo wi) {
-  si.active = false;
-  si.rx = true;
-  si.tx = true;
+  wi.active = false;
+  wi.rx = true;
+  wi.tx = true;
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -1149,7 +1124,7 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
   if(useAux){
     writeAuxData();         // 6 bytes of aux data
-  } else if(useAccel){        // or
+  } else if(curAccelMode == ACCEL_MODE_ON){        // or
     LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
   } else{
     for(int i=0; i<6; i++){
@@ -1468,7 +1443,7 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
   streaming = true;
   startADS();
-  if (curBoardMode == OPENBCI_BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG) {
     Serial1.println("ADS Started");
   }
 }
@@ -1480,7 +1455,7 @@ void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
 void OpenBCI_32bit_Library::streamStop(){
   streaming = false;
   stopADS();
-  if (curBoardMode == OPENBCI_BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG) {
     Serial1.println("ADS Stopped");
   }
 
@@ -2316,28 +2291,28 @@ void OpenBCI_32bit_Library::updateChannelData(){
   // this needs to be reset, or else it will constantly flag us
   channelDataAvailable = false;
 
-  switch (curBoardMode) {
-    case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
-      updateChannelDataHighSpeed();
-      break;
-    case OPENBCI_BOARD_MODE_DEBUG:
-    case OPENBCI_BOARD_MODE_DEFAULT:
-    case OPENBCI_BOARD_MODE_BOTH_SERIAL:
-    case OPENBCI_BOARD_MODE_INPUT_ANALOG:
-    case OPENBCI_BOARD_MODE_INPUT_DIGITAL:
-    default:
-      updateChannelDataGZLL();
-      break;
+  if (curSpiState != SPI_STATE_NONE) {
+    updateChannelDataNoDaisyAvg();
+  } else {
+    if (Serial0) {
+      updateChannelDataDaisyAvg();
+    } else if (Serial1) {
+      if (iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
+        updateChannelDataNoDaisyAvg();
+      } else {
+        updateChannelDataDaisyAvg();
+      }
+    }
   }
 }
 
 // CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
-void OpenBCI_32bit_Library::updateChannelDataGZLL(){
-  updateBoardDataGZLL();
-  if(daisyPresent) {updateDaisyDataGZLL();}
+void OpenBCI_32bit_Library::updateChannelDataDaisyAvg(){
+  updateBoardDataDaisyAvg();
+  if(daisyPresent) {updateDaisyDataDaisyAvg();}
 }
 
-void OpenBCI_32bit_Library::updateBoardDataGZLL(){
+void OpenBCI_32bit_Library::updateBoardDataDaisyAvg(){
   byte inByte;
   int byteCounter = 0;
 
@@ -2388,7 +2363,7 @@ void OpenBCI_32bit_Library::updateBoardDataGZLL(){
   }
 }
 
-void OpenBCI_32bit_Library::updateDaisyDataGZLL(){
+void OpenBCI_32bit_Library::updateDaisyDataDaisyAvg(){
   byte inByte;
   int byteCounter = 0;
 
@@ -2442,16 +2417,16 @@ void OpenBCI_32bit_Library::updateDaisyDataGZLL(){
  * @description Used to update global data arrays with new data
  * @author AJ Keller (@aj-ptw)
  */
-void OpenBCI_32bit_Library::updateChannelDataHighSpeed(void) {
-  updateBoardDataHighSpeed();
-  if(daisyPresent) {updateDaisyDataHighSpeed();}
+void OpenBCI_32bit_Library::updateChannelDataNoDaisyAvg(void) {
+  updateBoardDataNoDaisyAvg();
+  if(daisyPresent) {updateDaisyDataNoDaisyAvg();}
 }
 
 /**
  * @description Used to update global data arrays with new data
  * @author AJ Keller (@aj-ptw)
  */
-void OpenBCI_32bit_Library::updateBoardDataHighSpeed(void) {
+void OpenBCI_32bit_Library::updateBoardDataNoDaisyAvg(void) {
   byte inByte;
   uint8_t byteCounter = 0;
 
@@ -2492,7 +2467,7 @@ void OpenBCI_32bit_Library::updateBoardDataHighSpeed(void) {
  * @description Used to update global data arrays with new data
  * @author AJ Keller (@aj-ptw)
  */
-void OpenBCI_32bit_Library::updateDaisyDataHighSpeed(void) {
+void OpenBCI_32bit_Library::updateDaisyDataNoDaisyAvg(void) {
   byte inByte;
   uint8_t byteCounter = 0;
 
@@ -2540,38 +2515,38 @@ void OpenBCI_32bit_Library::stopADS()
 }
 
 void OpenBCI_32bit_Library::printSerial(char c) {
-  switch (curSerialState) {
-    case SERIAL_STATE_ONLY_SERIAL_0:
-      Serial0.print(c);
-      break;
-    case SERIAL_STATE_ONLY_SERIAL_1:
-      Serial1.print(c);
-      break;
-    case SERIAL_STATE_BOTH:
-      Serial0.print(c);
-      Serial1.print(c);
-      break;
-    case SERIAL_STATE_NONE:
-    default:
-      break;
+  if (Serial0) {
+    Serial0.print(c);
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.print(c);
   }
 }
 
 void OpenBCI_32bit_Library::printSerial(char *msg) {
-  switch (curSerialState) {
-    case SERIAL_STATE_ONLY_SERIAL_0:
-      Serial0.print(msg);
-      break;
-    case SERIAL_STATE_ONLY_SERIAL_1:
-      Serial1.print(msg);
-      break;
-    case SERIAL_STATE_BOTH:
-      Serial0.print(msg);
-      Serial1.print(msg);
-      break;
-    case SERIAL_STATE_NONE:
-    default:
-      break;
+  if (Serial0) {
+    Serial0.print(msg);
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.print(msg);
+  }
+}
+
+void OpenBCI_32bit_Library::printlnSerial(char c) {
+  if (Serial0) {
+    Serial0.println(c);
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.println(c);
+  }
+}
+
+void OpenBCI_32bit_Library::printlnSerial(char *msg) {
+  if (Serial0) {
+    Serial0.println(msg);
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.println(msg);
   }
 }
 
@@ -2612,20 +2587,11 @@ void OpenBCI_32bit_Library::write(uint8_t[] b, int len) {
 }
 
 void OpenBCI_32bit_Library::writeSerial(char c) {
-  switch (curSerialState) {
-    case SERIAL_STATE_ONLY_SERIAL_0:
-      Serial0.write(c);
-      break;
-    case SERIAL_STATE_ONLY_SERIAL_1:
-      Serial1.write(c);
-      break;
-    case SERIAL_STATE_BOTH:
-      Serial0.write(c);
-      Serial1.write(c);
-      break;
-    case SERIAL_STATE_NONE:
-    default:
-      break;
+  if (Serial0) {
+    Serial0.write(c);
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.write(c);
   }
 }
 
@@ -2639,19 +2605,10 @@ void OpenBCI_32bit_Library::writeSerial(char[] c, int len) {
  * @description Transfer a uint8_t over SPI
  */
 void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
-  switch (curSpiState) {
-    case SPI_STATE_ONLY_TX:
-      xfer(b);
-      break;
-    case SPI_STATE_DUPLEX:
-      // TODO: Make the junk word an unused number
-      processChar((char)xfer(b));
-      spiBufferPosition++;
-      if (spiBufferPosition >= 255) spiBufferPosition = 0;
-      break;
-    case SPI_STATE_NONE:
-    default:
-      break;
+  if (wifi.rx) {
+    processChar((char)xfer(b));
+  } else {
+    xfer(b);
   }
 }
 

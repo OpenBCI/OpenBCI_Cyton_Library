@@ -14,7 +14,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use accel data
-  board.useAccel();
+  board.useAccel(true);
 }
 
 void loop() {
@@ -58,6 +58,17 @@ void loop() {
     sdProcessChar(newChar);
 
     // Send to the board library
+    board.processChar(newChar);
+  }
+
+  if (board.hasDataSerial1()) {
+    // Read one char from the serial 1 port
+    char newChar = board.getCharSerial1();
+
+    // Send to the sd library for processing
+    sdProcessChar(newChar);
+    
+    // Read one char and process it
     board.processChar(newChar);
   }
 }
