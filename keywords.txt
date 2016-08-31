@@ -1,0 +1,42 @@
+#######################################
+# Syntax Coloring Map SD
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+board	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+accelHasNewData                     KEYWORD2
+accelUpdateAxisData                 KEYWORD2
+begin                               KEYWORD2
+beginDebug		                    KEYWORD2
+getCharSerial0                      KEYWORD2
+getCharSerial1                      KEYWORD2
+hasDataSerial0                      KEYWORD2
+hasDataSerial1                      KEYWORD2
+isADSDataAvailable                  KEYWORD2
+processChar                         KEYWORD2
+sendChannelData                     KEYWORD2
+sendChannelDataWithAccel            KEYWORD2
+sendChannelDataWithRawAux           KEYWORD2
+sendChannelDataWithTimeAndAccel     KEYWORD2
+sendChannelDataWithTimeAndRawAux    KEYWORD2
+updateChannelData                   KEYWORD2
+waitForNewChannelData               KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+OPENBCI_EOP_STND_ACCEL          KEYWORD2
+OPENBCI_EOP_STND_RAW_AUX        KEYWORD2
+OPENBCI_EOP_USER_DEFINED        KEYWORD2
+OPENBCI_EOP_ACCEL_TIME_SET      KEYWORD2
+OPENBCI_EOP_ACCEL_TIME_SYNCED   KEYWORD2
+OPENBCI_EOP_RAW_AUX_TIME_SET    KEYWORD2
+OPENBCI_EOP_RAW_AUX_TIME_SYNCED KEYWORD2
