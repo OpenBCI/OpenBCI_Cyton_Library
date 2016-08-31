@@ -14,7 +14,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use accel data
-  board.useAccel = true;
+  board.useAccel();
 }
 
 void loop() {
