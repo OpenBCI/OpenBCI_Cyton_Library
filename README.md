@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 [![Stories in Ready](https://badge.waffle.io/OpenBCI/OpenBCI_32bit_Library.png?label=ready&title=Ready)](https://waffle.io/OpenBCI/OpenBCI_32bit_Library)
-# OpenBCI_32bit_Libraries
-=======
-# OpenBCI_32bit_Library
->>>>>>> cfb72942c2443c009df43a41ade9b4963fa5bd2f
+# OpenBCI 32bit Library
 
 The official library for the OpenBCI 32bit Board.
 
