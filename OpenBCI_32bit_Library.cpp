@@ -395,6 +395,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         numberOfIncomingSettingsProcessedBoardType = 0;
         optionalArgCounter = 0;
         break;
+
+      // Sample rate set
       case OPENBCI_SAMPLE_RATE_SET:
         settingSampleRate = true;
         break;
@@ -505,7 +507,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
 void OpenBCI_32bit_Library::boardReset(void) {
   initializeVariables();
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
-  delay(500);
+  delay(50);
 
   Serial0.println("OpenBCI V3 8-16 channel");
   configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
@@ -642,7 +644,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
   if (isDigit(c)) {
     uint8_t digit = c - '0';
-    if (digit <= ADS1299_SAMPLE_RATE_250) {
+    if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
         curSampleRate = digit;
         initialize();
@@ -687,31 +689,44 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
   }
   switch (numberOfIncomingSettingsProcessedChannel) {
     case 1: // channel number
-    currentChannelSetting = getChannelCommandForAsciiChar(character);
-    break;
+      currentChannelSetting = getChannelCommandForAsciiChar(character);
+      break;
     case 2:  // POWER_DOWN
-    channelSettings[currentChannelSetting][POWER_DOWN] = getNumberForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][POWER_DOWN] = getNumberForAsciiChar(character);
+      break;
     case 3: // GAIN_SET
-    channelSettings[currentChannelSetting][GAIN_SET] = getGainForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][GAIN_SET] = getGainForAsciiChar(character);
+      break;
     case 4: // INPUT_TYPE_SET
-    channelSettings[currentChannelSetting][INPUT_TYPE_SET] = getNumberForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][INPUT_TYPE_SET] = getNumberForAsciiChar(character);
+      break;
     case 5: // BIAS_SET
-    channelSettings[currentChannelSetting][BIAS_SET] = getNumberForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][BIAS_SET] = getNumberForAsciiChar(character);
+      break;
     case 6: // SRB2_SET
-    channelSettings[currentChannelSetting][SRB2_SET] = getNumberForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][SRB2_SET] = getNumberForAsciiChar(character);
+      break;
     case 7: // SRB1_SET
-    channelSettings[currentChannelSetting][SRB1_SET] = getNumberForAsciiChar(character);
-    break;
+      channelSettings[currentChannelSetting][SRB1_SET] = getNumberForAsciiChar(character);
+      break;
     case 8: // 'X' latch
-    if (character != OPENBCI_CHANNEL_CMD_LATCH) {
+      if (character != OPENBCI_CHANNEL_CMD_LATCH) {
+        if (!streaming) {
+          Serial0.print("Err: 9th char not ");
+          Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
+          sendEOT();
+        }
+        // We failed somehow and should just abort
+        numberOfIncomingSettingsProcessedChannel = 0;
+
+    // put flag back down
+    isProcessingIncomingSettingsChannel = false;
+
+      }
+      break;
+    default: // should have exited
       if (!streaming) {
-        Serial0.print("Err: 9th char not ");
-        Serial0.println(OPENBCI_CHANNEL_CMD_LATCH);
+        Serial0.print("Err: too many chars");
         sendEOT();
       }
       // We failed somehow and should just abort
@@ -719,20 +734,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
       // put flag back down
       isProcessingIncomingSettingsChannel = false;
-
-    }
-    break;
-    default: // should have exited
-    if (!streaming) {
-      Serial0.print("Err: too many chars");
-      sendEOT();
-    }
-    // We failed somehow and should just abort
-    numberOfIncomingSettingsProcessedChannel = 0;
-
-    // put flag back down
-    isProcessingIncomingSettingsChannel = false;
-    return;
+      return;
   }
 
   // increment the number of bytes processed
@@ -784,19 +786,33 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
   }
   switch (numberOfIncomingSettingsProcessedLeadOff) {
     case 1: // channel number
-    currentChannelSetting = getChannelCommandForAsciiChar(character);
-    break;
+      currentChannelSetting = getChannelCommandForAsciiChar(character);
+      break;
     case 2: // pchannel setting
-    leadOffSettings[currentChannelSetting][PCHAN] = getNumberForAsciiChar(character);
-    break;
+      leadOffSettings[currentChannelSetting][PCHAN] = getNumberForAsciiChar(character);
+      break;
     case 3: // nchannel setting
-    leadOffSettings[currentChannelSetting][NCHAN] = getNumberForAsciiChar(character);
-    break;
+      leadOffSettings[currentChannelSetting][NCHAN] = getNumberForAsciiChar(character);
+      break;
     case 4: // 'Z' latch
-    if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
+      if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
+        if (!streaming) {
+          Serial0.print("Err: 5th char not ");
+          Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+          sendEOT();
+        }
+        // We failed somehow and should just abort
+        // reset numberOfIncomingSettingsProcessedLeadOff
+        numberOfIncomingSettingsProcessedLeadOff = 0;
+
+    // put flag back down
+    isProcessingIncomingSettingsLeadOff = false;
+
+      }
+      break;
+    default: // should have exited
       if (!streaming) {
-        Serial0.print("Err: 5th char not ");
-        Serial0.println(OPENBCI_CHANNEL_IMPEDANCE_LATCH);
+        Serial0.print("Err: too many chars ");
         sendEOT();
       }
       // We failed somehow and should just abort
@@ -805,21 +821,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
       // put flag back down
       isProcessingIncomingSettingsLeadOff = false;
-
-    }
-    break;
-    default: // should have exited
-    if (!streaming) {
-      Serial0.print("Err: too many chars ");
-      sendEOT();
-    }
-    // We failed somehow and should just abort
-    // reset numberOfIncomingSettingsProcessedLeadOff
-    numberOfIncomingSettingsProcessedLeadOff = 0;
-
-    // put flag back down
-    isProcessingIncomingSettingsLeadOff = false;
-    return;
+      return;
   }
 
   // increment the number of bytes processed
@@ -892,7 +894,6 @@ void OpenBCI_32bit_Library::initialize(){
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
   initialize_ads(); // hard reset ADS, set pin directions
   initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
-
 }
 
 // void __USER_ISR ADS_DRDY_Service() {
@@ -915,10 +916,12 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
   currentChannelSetting = 0;
-  timeOffset = 0;
-  timeSetCharArrived = 0;
   streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
-  curSampleRate = ADS1299_SAMPLE_RATE_250;
+  curBoardMode = BOARD_MODE_DEFAULT;
+  curPacketType = PACKET_TYPE_ACCEL;
+  curSampleRate = SAMPLE_RATE_250;
+  curSerialState = SERIAL_STATE_ONLY_SERIAL_0;
+  curSpiState = SPI_STATE_NONE;
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -952,7 +955,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
   if (wifi) {
     // Take spi
     csLow(WIFI_SS);
-    xfer('A');
+    xfer(0xA0);
     xfer(sampleCounter);
     ADS_writeChannelDataSpi();
   }
@@ -985,7 +988,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
   if (wifi) {
     // Take spi
     csLow(WIFI_SS);
-    xfer('A');
+    xfer(0x00);
     xfer(sampleCounter);
     ADS_writeChannelDataSpi();
   }
@@ -2550,7 +2553,6 @@ void OpenBCI_32bit_Library::updateDaisyDataHighSpeed(void) {
   }
 }
 
-
 // Stop the continuous data acquisition
 void OpenBCI_32bit_Library::stopADS()
 {
@@ -2561,12 +2563,40 @@ void OpenBCI_32bit_Library::stopADS()
   isRunning = false;
 }
 
+
+void OpenBCI_32bit_Library::write(char c) {
+  if (curSpiState != SPI_STATE_NONE) {
+    writeSpi(c);
+  }
+  if (curSerialState != SERIAL_STATE_NONE) {
+    writeSerial(c);
+  }
+}
+
+void OpenBCI_32bit_Library::writeSerial(char c) {
+  switch (curSerialState) {
+    case SERIAL_STATE_ONLY_SERIAL_0:
+      Serial0.write(c);
+      break;
+    case SERIAL_STATE_ONLY_SERIAL_1:
+      Serial1.write(c);
+      break;
+    case SERIAL_STATE_BOTH:
+      Serial0.write(c);
+      Serial1.write(c);
+      break;
+    case SERIAL_STATE_NONE:
+    default:
+      break;
+  }
+}
+
 /**
  * @description Route a uint8_t (a.k.a. char or byte) to either Serial0, Serial1,
  *  or both depending on the curBoardMode. e.g. debug writes to both serial while
  *  default writes only to seral0
  */
-void OpenBCI_32bit_Library::writeSerial(uint8_t b) {
+void OpenBCI_32bit_Library::write(uint8_t b) {
   switch (curBoardMode) {
     case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
       Serial1.write(b);
@@ -2587,6 +2617,9 @@ void OpenBCI_32bit_Library::writeSerial(uint8_t b) {
 
 //write as binary each channel's data
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
+  if (wifi) {
+    ADS_writeChannelDataSpi();
+  }
   switch (curBoardMode) {
     case OPENBCI_BOARD_MODE_EXTERN_SERIAL_ONLY:
       ADS_writeChannelDataHighSpeed();
