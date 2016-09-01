@@ -1,13 +1,15 @@
 [![Stories in Ready](https://badge.waffle.io/OpenBCI/OpenBCI_32bit_Library.png?label=ready&title=Ready)](https://waffle.io/OpenBCI/OpenBCI_32bit_Library)
 # OpenBCI 32bit Library
 
-The official library for the OpenBCI 32bit Board.
+The (soon to be) official library for the OpenBCI 32bit Board. 
 
 
 ## Table of Contents:
 
 1. [Minimums](#minimums)
 2. [Installing](#installing)
+3. [Upgrading](#upgrading)
+4. [Downgrading](#downgrading)
 3. [General Overview](#generalOverview)
   1. [Includes](#includes)
   2. [setup()](#setup)
@@ -34,6 +36,14 @@ You just opened your OpenBCI (congrats!) and want to get started programming the
 4. Restart Arduino IDE
 5. Open `DefaultBoard.ino` for a full featured example.
 6. Hack and make awesome stuff!
+
+## <a name="upgrading"></a> Upgrading:
+
+Checkout the [upgrade guide](./UPGRADE_GUIDE)!
+
+## <a name="downgrading"></a> Downgrading:
+
+Have a bunch of custom firmware based on the original firmware? Have no fear for previous releases are [here](https://github.com/OpenBCI/OpenBCI_32bit_Library/releases) and [here for the radios if needed](https://github.com/OpenBCI/OpenBCI_Radios/releases).
 
 ## <a name="generalOverview"></a> General Overview:
 
