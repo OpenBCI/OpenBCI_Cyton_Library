@@ -20,6 +20,11 @@ public:
     ACCEL_MODE_OFF
   };
 
+  typedef enum AUX_MODE {
+    AUX_MODE_ON,
+    AUX_MODE_OFF
+  };
+
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
     BOARD_MODE_DEBUG
