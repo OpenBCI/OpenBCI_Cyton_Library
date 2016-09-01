@@ -5,7 +5,6 @@ The official library for the OpenBCI 32bit Board.
 
 
 ## Table of Contents:
----
 
 1. [Minimums](#minimums)
 2. [Installing](#installing)
