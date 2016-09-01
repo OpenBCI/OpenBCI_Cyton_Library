@@ -85,16 +85,18 @@ We will start with the basics here, and work our way up... The loop function can
 A bare board, not using the SD, accel, or aux data must have the following:
 ```Arduino
 void loop() {
-
   if (board.streaming) {
-    // Wait for the ADS to signal it's ready with new data
-    while (board.waitForNewChannelData()) {}
+    if (board.channelDataAvailable) {
+      // Read from the ADS(s), store data, set channelDataAvailable flag to false
+      board.updateChannelData();
 
-    // Read from the ADS(s) and store data into
-    board.updateChannelData();
-
-    // Send standard packet with channel data
-    board.sendChannelData();
+      if (board.timeSynced) {
+        board.sendChannelDataWithTimeAndRawAux();
+      } else {
+        // Send standard packet with channel data
+        board.sendChannelDataWithRawAux();
+      }
+    }
   }
 
   // Check the serial port for new data
@@ -104,6 +106,7 @@ void loop() {
   }
 }
 ```
+The first `if` statement is only `true` if a `b` command is ran through the `processChar` function. The next `if` statement exploits a `volatile` interrupt driven `boolean` called `channelDataAvailable`. This interrupt driven system is new as of firmware version 2.0.0 a discussion of it can be [found here](https://github.com/OpenBCI/OpenBCI_32bit_Library/issues/22). If the ADS1299 has signaled to the Board new data is ready, the function `updateChannelData()` is executed. This function will grab new data from the Board's ADS1299 (and from the daisy's ADS1299) and store that data to the arrays: `lastBoardDataRaw`, `boardChannelDataRaw`, `meanBoardDataRaw`, `lastDaisyDataRaw`, `daisyChannelDataRaw`, `meanDaisyDataRaw`, which can be accessed to drive filters or whatever your heart desires.
 
 ## System Overview
 
