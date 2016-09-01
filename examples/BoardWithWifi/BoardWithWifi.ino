@@ -14,14 +14,13 @@ void setup() {
   // Notify the board we want to use accel data
   // board.useAccel(true);
 
-  board.curAccelMode = board.ACCEL_MODE_OFF;
   board.curBoardMode = board.BOARD_MODE_DEBUG;
-  board.curSampleRate = board.SAMPLE_RATE_1000;
-  board.curSerialState = board.SERIAL_STATE_ONLY_SERIAL_0;
-  board.curSpiState = board.SPI_STATE_DUPLEX;
+  board.curSampleRate = board.SAMPLE_RATE_250;
+  board.curSerialState = board.SERIAL_STATE_BOTH;
+  // board.curSpiState = board.SPI_STATE_DUPLEX;
 
-  board.wifi.active = true;
-  board.wifi.rx = false;
+  // board.wifi.active = true;
+  // board.wifi.rx = false;
 
   // Bring up the OpenBCI Board
   board.beginDebug();
@@ -60,10 +59,16 @@ void loop() {
       }
     }
   }
+
   // Check serial 0 for new data
   if (board.hasDataSerial0()) {
     // Read one char from the serial 0 port
     char newChar = board.getCharSerial0();
+
+    if (Serial1) {
+      Serial1.print("Recieved char from serial0 ");
+      Serial1.println(newChar);
+    }
 
     // Send to the sd library for processing
     sdProcessChar(newChar);
@@ -75,6 +80,11 @@ void loop() {
   if (board.hasDataSerial1()) {
     // Read one char from the serial 1 port
     char newChar = board.getCharSerial1();
+
+    if (Serial1) {
+      Serial1.print("Recieved char from serial1 ");
+      Serial1.println(newChar);
+    }
 
     // Send to the sd library for processing
     sdProcessChar(newChar);

@@ -128,9 +128,9 @@ public:
   void    printAllRegisters(void);
   void    printHex(byte);            // used for verbosity
   void    printRegisterName(byte);   // used for verbosity
-  void    printSerial(char);
+  // void    printSerial(char);
   void    printSerial(char *);
-  void    printlnSerial(char);
+  // void    printlnSerial(char);
   void    printlnSerial(char *);
   boolean processChar(char);
   void    processIncomingBoardMode(char);

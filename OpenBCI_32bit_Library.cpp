@@ -85,8 +85,9 @@ void OpenBCI_32bit_Library::beginSerial1(uint32_t baudRate) {
 * @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
-  if (!Serial0) return false;
-  if (!iSerial0.rx) return false;
+  // TODO: Need to undo this comment out
+  // if (!Serial0) return false;
+  // if (!iSerial0.rx) return false;
   if (Serial0.available()) {
     return true;
   } else {
@@ -99,8 +100,9 @@ boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
 * @returns {boolean} - `true` if there is data ready to be read
 */
 boolean OpenBCI_32bit_Library::hasDataSerial1(void) {
-  if (Serial1) return false;
-  if (!iSerial1.rx) return false;
+  // TODO: Need to undo this comment out
+  // if (Serial1) return false;
+  // if (!iSerial1.rx) return false;
   if (Serial1.available()) {
     return true;
   } else {
@@ -518,10 +520,13 @@ void OpenBCI_32bit_Library::boardReset(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
-  printSerial("$$$");
+  if (Serial0) {
+    Serial0.print("$$$");
+  }
+  if (Serial1 && iSerial1.tx) {
+    Serial1.print("$$$");
+  }
 }
-
-
 
 void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
 {
@@ -2502,15 +2507,15 @@ void OpenBCI_32bit_Library::stopADS()
   delay(1);
   isRunning = false;
 }
-
-void OpenBCI_32bit_Library::printSerial(char c) {
-  if (Serial0) {
-    Serial0.print(c);
-  }
-  if (Serial1 && iSerial1.tx) {
-    Serial1.print(c);
-  }
-}
+//
+// void OpenBCI_32bit_Library::printSerial(char c) {
+//   if (Serial0) {
+//     Serial0.print(c);
+//   }
+//   if (Serial1 && iSerial1.tx) {
+//     Serial1.print(c);
+//   }
+// }
 
 void OpenBCI_32bit_Library::printSerial(char *msg) {
   if (Serial0) {
@@ -2521,14 +2526,14 @@ void OpenBCI_32bit_Library::printSerial(char *msg) {
   }
 }
 
-void OpenBCI_32bit_Library::printlnSerial(char c) {
-  if (Serial0) {
-    Serial0.println(c);
-  }
-  if (Serial1 && iSerial1.tx) {
-    Serial1.println(c);
-  }
-}
+// void OpenBCI_32bit_Library::printlnSerial(char c) {
+//   if (Serial0) {
+//     Serial0.println(c);
+//   }
+//   if (Serial1 && iSerial1.tx) {
+//     Serial1.println(c);
+//   }
+// }
 
 void OpenBCI_32bit_Library::printlnSerial(char *msg) {
   if (Serial0) {
