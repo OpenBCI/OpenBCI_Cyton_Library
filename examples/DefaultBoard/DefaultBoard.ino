@@ -10,11 +10,21 @@ boolean addAuxToSD = false; // On writeDataToSDCard() call adds Aux data to SD c
 boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file open
 
 void setup() {
+
+  // Notify the board we want to use accel data
+  // board.useAccel(true);
+
+  board.curAccelMode = board.ACCEL_MODE_OFF;
+  board.curBoardMode = board.BOARD_MODE_DEBUG;
+  board.curSampleRate = board.SAMPLE_RATE_1000;
+  board.curSerialState = board.SERIAL_STATE_ONLY_SERIAL_0;
+  board.curSpiState = board.SPI_STATE_DUPLEX;
+
   // Bring up the OpenBCI Board
   board.begin();
 
-  // Notify the board we want to use accel data
-  board.useAccel(true);
+  board.wifi.active = true;
+  board.wifi.rx = false;
 }
 
 void loop() {

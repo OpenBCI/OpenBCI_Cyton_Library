@@ -125,25 +125,6 @@ char OpenBCI_32bit_Library::getCharSerial1(void) {
 }
 
 /**
-* @description If `isSerialAvailableForRead()` is `true` then this function is
-*  called. Reads from `Serial0` first and foremost, which comes from the RFduino.
-*  If `sniffMode` is true and `Serial0` didn't have any data, we will try to
-*  read from `Serial1`. If both are not available then we will return a `0x00`
-*  which is NOT a command that the system will recognize, aka this function has
-*  many safe guards.
-* @returns {char} - The character from the serial port.
-*/
-// char OpenBCI_32bit_Library::readOneSerialChar(void) {
-//     if (Serial0.available()) {
-//         return Serial0.read();
-//     } else if (sniffMode && Serial1.available()) {
-//         return Serial1.read();
-//     } else {
-//         return 0x00;
-//     }
-// }
-
-/**
 * @description While processing incoming multi byte messages these will turn
 *  true.
 * @return {boolean} - True if processing a message and false otherwise
