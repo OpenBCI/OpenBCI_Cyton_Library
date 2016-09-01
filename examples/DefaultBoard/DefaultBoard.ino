@@ -67,7 +67,7 @@ void loop() {
 
     // Send to the sd library for processing
     sdProcessChar(newChar);
-    
+
     // Read one char and process it
     board.processChar(newChar);
   }

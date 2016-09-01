@@ -14,10 +14,6 @@ an OpenBCI 32bit board with an OpenBCI Daisy Module attached.
 /***************************************************/
 // CONSTRUCTOR
 OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
-  curBoardMode = OPENBCI_BOARD_MODE_DEFAULT;
-  daisyPresent = false;
-  useAux = false;
-  channelDataAvailable = false;
   initializeVariables();
 }
 
@@ -26,7 +22,6 @@ OpenBCI_32bit_Library::OpenBCI_32bit_Library() {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::begin(void) {
-  curBoardMode = OPENBCI_BOARD_MODE_DEFAULT;
   // Bring the board up
   boardBegin();
 }
@@ -165,7 +160,7 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 * @return {boolean} - `true` if the command was recognized, `false` if not
 */
 boolean OpenBCI_32bit_Library::processChar(char character) {
-  if (curBoardMode == OPENBCI_BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG) {
     Serial1.print("pC: "); Serial1.println(character);
   }
 
@@ -539,7 +534,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
-  write("$$$");
+  printSerial("$$$");
 }
 
 
@@ -621,7 +616,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
   // This one is the board type always
   if (numberOfIncomingSettingsProcessedBoardType == 0) {
     if (isDigit(c)) {
-      curBoardMode = c - '0';
+      curBoardMode = (BOARD_MODE)(c - '0');
       numberOfIncomingSettingsProcessedBoardType = 1;
     } else {
       numberOfIncomingSettingsProcessedBoardType = -1;
@@ -651,7 +646,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
     uint8_t digit = c - '0';
     if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
-        curSampleRate = digit;
+        curSampleRate = (SAMPLE_RATE)digit;
         initialize();
         Serial0.print("Success: set sample rate to ");
         Serial0.println(curSampleRate);
@@ -881,23 +876,33 @@ void __USER_ISR ADS_DRDY_Service() {
 }
 
 void OpenBCI_32bit_Library::initializeVariables(void) {
-  streaming = false;
-  sendTimeSyncUpPacket = false;
-  timeSynced = false;
+  // Bools
+  channelDataAvailable = false;
+  daisyPresent = false;
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
-  settingBoardMode = false;
-  settingSampleRate = false;
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
+  sendTimeSyncUpPacket = false;
+  settingBoardMode = false;
+  settingSampleRate = false;
+  streaming = false;
+  timeSynced = false;
+
+  // Nums
   currentChannelSetting = 0;
+
+  // Enums
   curAccelMode = ACCEL_MODE_ON;
+  curAuxMode = AUX_MODE_ON;
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
   curSerialState = SERIAL_STATE_ONLY_SERIAL_0;
   curSpiState = SPI_STATE_NONE;
+
+  // Structs
   initializeSerialInfo(iSerial0);
   initializeSerialInfo(iSerial1);
 }
@@ -949,7 +954,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
   accelWriteAxisData(); // 6 bytes
 
-  write(OPENBCI_EOP_STND_ACCEL); // 0xC0
+  write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
   if (curSpiState != SPI_STATE_NONE) {
     // Close SPI
@@ -981,7 +986,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
   writeAuxData();         // 6 bytes
 
-  write(OPENBCI_EOP_STND_RAW_AUX); // 0xC1 - 1 byte
+  write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX)); // 0xC1 - 1 byte
 
   if (curSpiState != SPI_STATE_NONE) {
     // Close SPI
@@ -1039,9 +1044,9 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
   if (sendTimeSyncUpPacket) {
     sendTimeSyncUpPacket = false;
-    write(OPENBCI_EOP_ACCEL_TIME_SET); // 0xC3
+    write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET)); // 0xC3
   } else {
-    write(OPENBCI_EOP_ACCEL_TIME_SYNCED); // 0xC4
+    write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
   }
 
   if (curSpiState != SPI_STATE_NONE) {
@@ -1083,9 +1088,9 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
   if (sendTimeSyncUpPacket) {
     sendTimeSyncUpPacket = false;
-    write(OPENBCI_EOP_RAW_AUX_TIME_SET); // 0xC5
+    write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX_TIME_SET)); // 0xC5
   } else {
-    write(OPENBCI_EOP_RAW_AUX_TIME_SYNCED); // 0xC6
+    write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX_TIME_SYNC)); // 0xC6
   }
 
   if (curSpiState != SPI_STATE_NONE) {
@@ -1122,17 +1127,17 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
   ADS_writeChannelData();       // 24 bytes
 
-  if(useAux){
+  if(curAuxMode == AUX_MODE_ON){
     writeAuxData();         // 6 bytes of aux data
   } else if(curAccelMode == ACCEL_MODE_ON){        // or
     LIS3DH_writeAxisData(); // 6 bytes of accelerometer data
   } else{
-    for(int i=0; i<6; i++){
-      write((byte)0x00);
+    for(int i = 0; i < 6; i++){
+      write((uint8_t)0x00);
     }
   }
 
-  write(OPENBCI_EOP_STND_ACCEL); // 0xF0
+  write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
   if (curSpiState != SPI_STATE_NONE) {
     // Close SPI
@@ -1144,8 +1149,8 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
 void OpenBCI_32bit_Library::writeAuxData(){
   for(int i = 0; i < 3; i++){
-    write(highByte(auxData[i])); // write 16 bit axis data MSB first
-    write(lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    write((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    write((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
     auxData[i] = 0;   // reset auxData bytes to 0
   }
 }
@@ -1153,7 +1158,7 @@ void OpenBCI_32bit_Library::writeAuxData(){
 void OpenBCI_32bit_Library::writeTimeCurrent(void) {
   uint32_t newTime = millis(); // serialize the number, placing the MSB in lower packets
   for (int j = 3; j >= 0; j--) {
-    write(newTime >> (j*8));
+    write((uint8_t)(newTime >> (j*8)));
   }
 }
 
@@ -2568,16 +2573,7 @@ void OpenBCI_32bit_Library::write(uint8_t b) {
   }
 }
 
-void OpenBCI_32bit_Library::write(char[] c, int len) {
-  if (curSpiState != SPI_STATE_NONE) {
-    writeSpi(c, len);
-  }
-  if (curSerialState != SERIAL_STATE_NONE) {
-    writeSerial(c, len);
-  }
-}
-
-void OpenBCI_32bit_Library::write(uint8_t[] b, int len) {
+void OpenBCI_32bit_Library::write(uint8_t *b, int len) {
   if (curSpiState != SPI_STATE_NONE) {
     writeSpi(b, len);
   }
@@ -2586,7 +2582,7 @@ void OpenBCI_32bit_Library::write(uint8_t[] b, int len) {
   }
 }
 
-void OpenBCI_32bit_Library::writeSerial(char c) {
+void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
   if (Serial0) {
     Serial0.write(c);
   }
@@ -2595,7 +2591,7 @@ void OpenBCI_32bit_Library::writeSerial(char c) {
   }
 }
 
-void OpenBCI_32bit_Library::writeSerial(char[] c, int len) {
+void OpenBCI_32bit_Library::writeSerial(uint8_t *c, int len) {
   for (int i = 0; i < len; i++) {
     writeSerial(c[i]);
   }
@@ -2612,7 +2608,7 @@ void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
   }
 }
 
-void OpenBCI_32bit_Library::writeSpi(uint8_t[] b, int len) {
+void OpenBCI_32bit_Library::writeSpi(uint8_t *b, int len) {
   for (int i = 0; i < len; i++) {
     writeSpi(b[i]);
   }
@@ -2629,12 +2625,12 @@ void OpenBCI_32bit_Library::ADS_writeChannelData() {
         if (curExternBaudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
           ADS_writeChannelDataNoDaisyAvg();
         } else {
-          ADS_writeChannelDataAvgDaisy();
+          ADS_writeChannelDataDaisyAvg();
         }
         break;
       case SERIAL_STATE_ONLY_SERIAL_0:
       case SERIAL_STATE_BOTH:
-        ADS_writeChannelDataAvgDaisy();
+        ADS_writeChannelDataDaisyAvg();
         break;
       case SERIAL_STATE_NONE:
       default:
@@ -2644,15 +2640,15 @@ void OpenBCI_32bit_Library::ADS_writeChannelData() {
   }
 }
 
-void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
+void OpenBCI_32bit_Library::ADS_writeChannelDataDaisyAvg() {
   if (daisyPresent) {
     if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-      write(meanBoardDataRaw[i], OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+      write(meanBoardDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
     } else {
-      write(meanDaisyDataRaw[i], OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+      write(meanDaisyDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
     }
   } else {
-    write(boardChannelDataRaw[i], OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+    write(boardChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
   }
 }
 
@@ -2661,11 +2657,11 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
  */
 void OpenBCI_32bit_Library::ADS_writeChannelDataNoDaisyAvg() {
   // Always write board ADS data
-  write(boardChannelDataRaw[i], OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+  write(boardChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
 
   // Only write daisy data if present
   if (daisyPresent) {
-    write(daisyChannelDataRaw[i], OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+    write(daisyChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
   }
 }
 
@@ -2925,24 +2921,16 @@ boolean OpenBCI_32bit_Library::LIS3DH_DataReady(){
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisData(void){
   for(int i = 0; i < 3; i++){
-    writeSerial(highByte(axisData[i])); // write 16 bit axis data MSB first
-    writeSerial(lowByte(axisData[i]));  // axisData is array of type short (16bit)
-    if (wifi) {
-      xfer(highByte(axisData[i]));
-      xfer(lowByte(axisData[i]));
-    }
+    write(highByte(axisData[i])); // write 16 bit axis data MSB first
+    write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
     axisData[i] = 0;
   }
 }
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxis(uint8_t axis) {
   if (axis > 2) axis = 0;
-  writeSerial(highByte(axisData[axis])); // write 16 bit axis data MSB first
-  writeSerial(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
-  if (wifi) {
-    xfer(highByte(axisData[axis]));
-    xfer(lowByte(axisData[axis]));
-  }
+  write(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  write(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
   axisData[axis] = 0;
 }
 

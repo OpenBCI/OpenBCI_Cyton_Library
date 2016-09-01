@@ -92,46 +92,51 @@ public:
   void    beginDebug(void);
   void    beginSerial1(void);
   void    beginSerial1(uint32_t);
-  boolean boardBegin(void);
-  boolean boardBeginDebug(void);
-  boolean boardBeginDebug(int);
   void    boardReset(void);
   void    changeChannelLeadOffDetect();
   void    changeChannelLeadOffDetect(byte N);
   void    channelSettingsArraySetForAll(void);
   void    channelSettingsArraySetForChannel(byte N);
   void    channelSettingsSetForChannel(byte, byte, byte, byte, byte, byte, byte);
+  void    csLow(int);
+  void    csHigh(int);
   void    configureInternalTestSignal(byte,byte);
   void    configureLeadOffDetection(byte, byte);
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
+  void    disable_accel(void); // stop data acquisition and go into low power mode
+  void    enable_accel(byte);  // start acceleromoeter with default settings
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
   char    getCharSerial1(void);
-  char    getConstrainedChannelNumber(byte channelNumber);
-  byte    getDefaultChannelSettingForSetting(byte setting);
-  char    getDefaultChannelSettingForSettingAscii(byte setting);
-  char    getGainForAsciiChar(char asciiChar);
-  char    getNumberForAsciiChar(char asciiChar);
-  char    getTargetSSForConstrainedChannelNumber(byte channelNumber);
-  char    getYesOrNoForAsciiChar(char asciiChar);
+  char    getConstrainedChannelNumber(byte);
+  byte    getDefaultChannelSettingForSetting(byte);
+  char    getDefaultChannelSettingForSettingAscii(byte);
+  char    getGainForAsciiChar(char);
+  char    getNumberForAsciiChar(char);
+  char    getTargetSSForConstrainedChannelNumber(byte);
+  char    getYesOrNoForAsciiChar(char);
   boolean hasDataSerial0(void);
   boolean hasDataSerial1(void);
   boolean isADSDataAvailable(void);
   boolean isProcessingMultibyteMsg(void);
-  void    leadOffConfigureSignalForAll(byte amplitudeCode, byte freqCode);
-  void    leadOffConfigureSignalForTargetSS(byte targetSS, byte amplitudeCode, byte freqCode);
+  void    leadOffConfigureSignalForAll(byte, byte);
+  void    leadOffConfigureSignalForTargetSS(byte, byte, byte);
   void    leadOffSetForAllChannels(void);
-  void    leadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
-  void    ledFlash(int numberOfFlashes);
+  void    leadOffSetForChannel(byte, byte, byte);
+  void    ledFlash(int);
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printHex(byte);            // used for verbosity
   void    printRegisterName(byte);   // used for verbosity
-  boolean processChar(char character);
-  void    processIncomingBoardMode(char character);
-  void    processIncomingSampleRate(char character);
-  void    processIncomingChannelSettings(char character);
-  void    processIncomingLeadOffSettings(char character);
+  void    printSerial(char);
+  void    printSerial(char *);
+  void    printlnSerial(char);
+  void    printlnSerial(char *);
+  boolean processChar(char);
+  void    processIncomingBoardMode(char);
+  void    processIncomingSampleRate(char);
+  void    processIncomingChannelSettings(char);
+  void    processIncomingLeadOffSettings(char);
   void    reportDefaultChannelSettings(void);
   void    removeDaisy(void);
   void    resetADS(int);     // reset all the ADS1299's settings
@@ -147,12 +152,12 @@ public:
   void    setChannelsToDefault(void);
   void    sendEOT(void);
   boolean smellDaisy(void);
-  void    streamSafeChannelDeactivate(byte channelNumber);
-  void    streamSafeChannelActivate(byte channelNumber);
-  void    streamSafeChannelSettingsForChannel(byte channelNumber, byte powerDown, byte gain, byte inputType, byte bias, byte srb2, byte srb1);
+  void    streamSafeChannelDeactivate(byte);
+  void    streamSafeChannelActivate(byte);
+  void    streamSafeChannelSettingsForChannel(byte, byte, byte, byte, byte, byte, byte);
   void    streamSafeSetAllChannelsToDefault(void);
   void    streamSafeReportAllChannelDefaults(void);
-  void    streamSafeLeadOffSetForChannel(byte channelNumber, byte pInput, byte nInput);
+  void    streamSafeLeadOffSetForChannel(byte, byte, byte);
   void    streamSafeTimeSendSyncSetPacket(void);
   void    streamStart(void);
   void    streamStop(void);
@@ -170,15 +175,14 @@ public:
   boolean waitForNewChannelData(void);
   void    write(char);
   void    write(uint8_t);
-  void    write(char[] c, int len) {
-  void    write(uint8_t[] b, int len)
+  void    write(uint8_t *, int);
   void    writeAuxData(void);
-  void    writeChannelSettings();
-  void    writeChannelSettings(byte N);
-  void    writeSerial(char c);
-  void    writeSerial(char[] c, int len);
-  void    writeSpi(uint8_t b);
-  void    writeSpi(uint8_t[] b, int len);
+  void    writeChannelSettings(void);
+  void    writeChannelSettings(byte);
+  void    writeSerial(uint8_t);
+  void    writeSerial(uint8_t *, int);
+  void    writeSpi(uint8_t);
+  void    writeSpi(uint8_t *, int);
   void    writeTimeCurrent(void);
   void    writeZeroAux(void);
 
@@ -188,28 +192,27 @@ public:
   boolean daisyUseSRB1;
   boolean streaming;
   boolean timeSynced;
-  boolean useAux;
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
   boolean verbosity; // turn on/off Serial verbosity
 
-  byte boardChannelDataRaw[24];    // array to hold raw channel data
+  byte boardChannelDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
   byte channelSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // array to hold current channel settings
-  byte daisyChannelDataRaw[24];
+  byte daisyChannelDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];
   byte defaultChannelSettings[OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // default channel settings
-  byte lastBoardDataRaw[24];
-  byte lastDaisyDataRaw[24];
+  byte lastBoardDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];
+  byte lastDaisyDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];
   byte leadOffSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS];  // used to control on/off of impedance measure for P and N side of each channel
-  byte meanBoardDataRaw[24];
-  byte meanDaisyDataRaw[24];
+  byte meanBoardDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];
+  byte meanDaisyDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];
   byte sampleCounter;
 
-  int boardChannelDataInt[8];    // array used when reading channel data as ints
-  int daisyChannelDataInt[8];    // array used when reading channel data as ints
-  int lastBoardChannelDataInt[8];
-  int lastDaisyChannelDataInt[8];
-  int meanBoardChannelDataInt[8];
-  int meanDaisyChannelDataInt[8];
+  int boardChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
+  int daisyChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
+  int lastBoardChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];
+  int lastDaisyChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];
+  int meanBoardChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];
+  int meanDaisyChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];
   int numChannels;
 
   short auxData[3]; // This is user faceing
@@ -224,6 +227,7 @@ public:
 
   // ENUMS
   ACCEL_MODE curAccelMode;
+  AUX_MODE curAuxMode;
   BOARD_MODE curBoardMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
@@ -241,20 +245,20 @@ public:
 private:
 
   byte    ADS_getDeviceID(int);
+  void    boardBeginADSInterrupt(void);
+  boolean boardBegin(void);
+  boolean boardBeginDebug(void);
+  boolean boardBeginDebug(int);
   void    changeInputType(byte);
-  void    csLow(int);
-  void    csHigh(int);
-  void    disable_accel(void); // stop data acquisition and go into low power mode
-  void    enable_accel(byte);  // start acceleromoeter with default settings
   int     getX(void);
   int     getY(void);
   int     getZ(void);
   void    initialize(void);
   void    initialize_accel(byte);    // initialize
   void    initialize_ads(void);
-  void    initializeSerialInfo(SerialInfo si);
+  void    initializeSerialInfo(SerialInfo);
   void    initializeVariables(void);
-  void    initializeWifiInfo(WifiInfo wi);
+  void    initializeWifiInfo(WifiInfo);
   byte    LIS3DH_getDeviceID(void);
   byte    LIS3DH_read(byte);     // read a register on LIS3DH
   int     LIS3DH_read16(byte);    // read two bytes, used to get axis data
