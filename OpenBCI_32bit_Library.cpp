@@ -506,7 +506,10 @@ void OpenBCI_32bit_Library::boardReset(void) {
     Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
   }
   Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-  Serial0.println("Firmware: v2.0.0");
+  Serial0.println("Firmware: v3.0.0");
+  if (curBoardMode == BOARD_MODE_DEBUG) {
+    Serial1.println("Initialized with firmware 3.0.0");
+  }
   sendEOT();
 }
 
@@ -840,7 +843,7 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH); // TODO: Figure out how to solve this problem
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!

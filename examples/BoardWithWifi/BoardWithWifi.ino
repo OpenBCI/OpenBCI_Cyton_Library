@@ -11,13 +11,20 @@ boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file 
 
 void setup() {
 
-  // Step 1: Configure the board
-  //  Use accel data
-  board.useAccel(true);
+  // Notify the board we want to use accel data
+  // board.useAccel(true);
 
-  // Step 2: Call a begin function
+  board.curAccelMode = board.ACCEL_MODE_OFF;
+  board.curBoardMode = board.BOARD_MODE_DEBUG;
+  board.curSampleRate = board.SAMPLE_RATE_1000;
+  board.curSerialState = board.SERIAL_STATE_ONLY_SERIAL_0;
+  board.curSpiState = board.SPI_STATE_DUPLEX;
+
+  board.wifi.active = true;
+  board.wifi.rx = false;
+
   // Bring up the OpenBCI Board
-  board.begin();
+  board.beginDebug();
 
 }
 
