@@ -40,13 +40,6 @@ public:
     PACKET_TYPE_RAW_AUX_TIME_SYNC
   };
 
-  typedef enum SERIAL_STATE {
-    SERIAL_STATE_NONE,
-    SERIAL_STATE_ONLY_SERIAL_0,
-    SERIAL_STATE_ONLY_SERIAL_1,
-    SERIAL_STATE_BOTH
-  };
-
   typedef enum SPI_STATE {
     SPI_STATE_NONE,
     SPI_STATE_ONLY_TX,
@@ -74,7 +67,7 @@ public:
       boolean   active;
       boolean   rx;
       boolean   tx;
-  } WifiInfo;
+  } SpiInfo;
 
   // Start up functions
   OpenBCI_32bit_Library();
@@ -128,10 +121,18 @@ public:
   void    printAllRegisters(void);
   void    printHex(byte);            // used for verbosity
   void    printRegisterName(byte);   // used for verbosity
-  // void    printSerial(char);
-  void    printSerial(char *);
-  // void    printlnSerial(char);
-  void    printlnSerial(char *);
+  void    printSerial(uint8_t);
+  void    printSerial(uint8_t c, uint8_t arg);
+  void    printSerial(uint8_t *, size_t len);
+  void    printSerial(const char *data) {
+    printSerial((uint8_t *)data, strlen(data));
+  }
+  void    printlnSerial(uint8_t);
+  void    printlnSerial(uint8_t c, uint8_t arg);
+  void    printlnSerial(uint8_t *, size_t len);
+  void    printlnSerial(const char *data) {
+    printlnSerial((uint8_t *)data, strlen(data));
+  }
   boolean processChar(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
@@ -151,6 +152,8 @@ public:
   void    sendChannelDataWithTimeAndRawAux(void);
   void    setChannelsToDefault(void);
   void    sendEOT(void);
+  void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
+  void    setSpiInfo(SpiInfo si, boolean rx, boolean tx, boolean active);
   boolean smellDaisy(void);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
@@ -173,16 +176,24 @@ public:
   boolean useAccel();
   void    useAccel(boolean);
   boolean waitForNewChannelData(void);
-  void    write(char);
   void    write(uint8_t);
-  void    write(uint8_t *, int);
+  // void    write(uint8_t *, size_t len);
+  // void    write(const char *data) {
+  //   write((uint8_t *)data, strlen(data));
+  // }
   void    writeAuxData(void);
   void    writeChannelSettings(void);
   void    writeChannelSettings(byte);
   void    writeSerial(uint8_t);
-  void    writeSerial(uint8_t *, int);
+  // void    writeSerial(uint8_t *, size_t);
+  // void    writeSerial(const char *data) {
+  //   writeSerial((uint8_t *)data, strlen(data));
+  // }
   void    writeSpi(uint8_t);
-  void    writeSpi(uint8_t *, int);
+  // void    writeSpi(uint8_t *, size_t);
+  // void    writeSpi(const char *data) {
+  //   writeSpi((uint8_t *)data, strlen(data));
+  // }
   void    writeTimeCurrent(void);
   void    writeZeroAux(void);
 
@@ -221,8 +232,6 @@ public:
   uint8_t spiBuffer[255];
   uint8_t spiBufferPosition;
 
-  uint32_t curExternBaudRate;
-
   volatile boolean channelDataAvailable;
 
   // ENUMS
@@ -231,13 +240,12 @@ public:
   BOARD_MODE curBoardMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
-  SERIAL_STATE curSerialState;
   SPI_STATE curSpiState;
 
   // STRUCTS
   SerialInfo iSerial0;
   SerialInfo iSerial1;
-  WifiInfo wifi;
+  SpiInfo iSpi;
 
   // Class Objects
   DSPI0 spi;  // use DSPI library
@@ -248,7 +256,7 @@ private:
   void    boardBeginADSInterrupt(void);
   boolean boardBegin(void);
   boolean boardBeginDebug(void);
-  boolean boardBeginDebug(int);
+  // boolean boardBeginDebug(int);
   void    changeInputType(byte);
   int     getX(void);
   int     getY(void);
@@ -258,7 +266,7 @@ private:
   void    initialize_ads(void);
   void    initializeSerialInfo(SerialInfo);
   void    initializeVariables(void);
-  void    initializeWifiInfo(WifiInfo);
+  void    initializeSpiInfo(SpiInfo);
   byte    LIS3DH_getDeviceID(void);
   byte    LIS3DH_read(byte);     // read a register on LIS3DH
   int     LIS3DH_read16(byte);    // read two bytes, used to get axis data

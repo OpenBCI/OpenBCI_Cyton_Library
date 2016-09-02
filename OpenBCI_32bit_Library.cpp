@@ -428,6 +428,9 @@ boolean OpenBCI_32bit_Library::boardBegin(void) {
   // Initalize the serial port baud rate
   Serial0.begin(OPENBCI_BAUD_RATE);
 
+  // Set serial 0 to true for rx and tx
+  setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
+
   pinMode(OPENBCI_PIN_LED, OUTPUT);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
@@ -456,9 +459,22 @@ void OpenBCI_32bit_Library::boardBeginADSInterrupt(void) {
 boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
   // Initalize the serial port baud rate
   Serial0.begin(OPENBCI_BAUD_RATE);
+  iSerial0.tx = true;
+  iSerial0.rx = true;
+  iSerial0.baudRate = OPENBCI_BAUD_RATE;
+
+  // setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
+  // Serial1.print("begin S0 tx "); Serial1.println(iSerial0.tx ? "on" : "off");
+
 
   // Initalize the serial debug port
   Serial1.begin(OPENBCI_BAUD_RATE);
+  iSerial1.tx = true;
+  iSerial1.rx = true;
+  iSerial1.baudRate = OPENBCI_BAUD_RATE;
+  // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
+  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+
 
   // Startup for interrupt
   boardBeginADSInterrupt();
@@ -474,21 +490,21 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
 * @param baudRate {int} - The baudRate you want the secondary serial port to run at.
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
-  // Initalize the serial port baud rate
-  Serial0.begin(OPENBCI_BAUD_RATE);
-
-  // Initalize the serial debug port
-  Serial1.begin(baudRate);
-
-  // Startup for interrupt
-  boardBeginADSInterrupt();
-
-  // Do a soft reset
-  boardReset();
-
-  return true;
-}
+// boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
+//   // Initalize the serial port baud rate
+//   Serial0.begin(OPENBCI_BAUD_RATE);
+//
+//   // Initalize the serial debug port
+//   Serial1.begin(baudRate);
+//
+//   // Startup for interrupt
+//   boardBeginADSInterrupt();
+//
+//   // Do a soft reset
+//   boardReset();
+//
+//   return true;
+// }
 
 /**
 * @description: This is a function that can be called multiple times, this is
@@ -509,9 +525,6 @@ void OpenBCI_32bit_Library::boardReset(void) {
   }
   Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
   Serial0.println("Firmware: v3.0.0");
-  if (curBoardMode == BOARD_MODE_DEBUG) {
-    Serial1.println("Initialized with firmware 3.0.0");
-  }
   sendEOT();
 }
 
@@ -520,12 +533,9 @@ void OpenBCI_32bit_Library::boardReset(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
-  if (Serial0) {
-    Serial0.print("$$$");
-  }
-  if (Serial1 && iSerial1.tx) {
-    Serial1.print("$$$");
-  }
+  writeSerial('$');
+  writeSerial('$');
+  writeSerial('$');
 }
 
 void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
@@ -636,7 +646,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
     if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
         curSampleRate = (SAMPLE_RATE)digit;
-        initialize();
+        // initialize();
         Serial0.print("Success: set sample rate to ");
         Serial0.println(curSampleRate);
         sendEOT();
@@ -888,7 +898,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
-  curSerialState = SERIAL_STATE_ONLY_SERIAL_0;
   curSpiState = SPI_STATE_NONE;
 
   // Structs
@@ -897,15 +906,25 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
-  si.baudRate = OPENBCI_BAUD_RATE;
+  setSerialInfo(si, false, false, OPENBCI_BAUD_RATE);
+}
+
+void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate) {
+  si.baudRate = baudRate;
+  si.rx = rx;
+  si.tx = tx;
+}
+
+void OpenBCI_32bit_Library::initializeSpiInfo(SpiInfo si) {
+  si.active = false;
   si.rx = true;
   si.tx = true;
 }
 
-void OpenBCI_32bit_Library::initializeWifiInfo(WifiInfo wi) {
-  wi.active = false;
-  wi.rx = true;
-  wi.tx = true;
+void OpenBCI_32bit_Library::setSpiInfo(SpiInfo si, boolean rx, boolean tx, boolean active) {
+  si.active = active;
+  si.rx = rx;
+  si.tx = tx;
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -2507,124 +2526,116 @@ void OpenBCI_32bit_Library::stopADS()
   delay(1);
   isRunning = false;
 }
-//
-// void OpenBCI_32bit_Library::printSerial(char c) {
-//   if (Serial0) {
-//     Serial0.print(c);
-//   }
-//   if (Serial1 && iSerial1.tx) {
-//     Serial1.print(c);
-//   }
-// }
 
-void OpenBCI_32bit_Library::printSerial(char *msg) {
-  if (Serial0) {
-    Serial0.print(msg);
+
+void OpenBCI_32bit_Library::printSerial(uint8_t c) {
+  Serial1.print("printSerial(uint8_t c)");
+
+  if (iSerial0.tx) {
+    Serial0.print(c);
   }
-  if (Serial1 && iSerial1.tx) {
-    Serial1.print(msg);
+  if (iSerial1.tx) {
+    Serial1.print(c);
   }
 }
 
-// void OpenBCI_32bit_Library::printlnSerial(char c) {
-//   if (Serial0) {
-//     Serial0.println(c);
-//   }
-//   if (Serial1 && iSerial1.tx) {
-//     Serial1.println(c);
-//   }
-// }
+void OpenBCI_32bit_Library::printSerial(uint8_t c, uint8_t arg) {
+  Serial1.print("printSerial(uint8_t c, uint8_t arg)");
 
-void OpenBCI_32bit_Library::printlnSerial(char *msg) {
-  if (Serial0) {
-    Serial0.println(msg);
+  if (iSerial0.tx) {
+    Serial0.print(c, arg);
   }
-  if (Serial1 && iSerial1.tx) {
-    Serial1.println(msg);
+  if (iSerial1.tx) {
+    Serial1.print(c, arg);
   }
 }
 
-void OpenBCI_32bit_Library::write(char c) {
-  if (curSpiState != SPI_STATE_NONE) {
-    writeSpi(c);
+void OpenBCI_32bit_Library::printSerial(uint8_t *c, size_t len) {
+  Serial1.print("printSerial(uint8_t *c, size_t len)");
+
+  for (int i = 0; i < len; i++) {
+    printSerial(c[i]);
   }
-  if (curSerialState != SERIAL_STATE_NONE) {
-    writeSerial(c);
+}
+
+void OpenBCI_32bit_Library::printlnSerial(uint8_t c) {
+  printSerial(c);
+  printSerial('\n');
+}
+
+void OpenBCI_32bit_Library::printlnSerial(uint8_t *c, size_t len) {
+  for (int i = 0; i < len; i++) {
+    printSerial(c[i]);
   }
+  printSerial('\n');
+}
+
+void OpenBCI_32bit_Library::printlnSerial(uint8_t c, uint8_t arg) {
+  printSerial(c, arg);
+  printSerial('\n');
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-  if (curSpiState != SPI_STATE_NONE) {
-    writeSpi(b);
-  }
-  if (curSerialState != SERIAL_STATE_NONE) {
-    writeSerial(b);
-  }
+  writeSpi(b);
+  writeSerial(b);
 }
-
-void OpenBCI_32bit_Library::write(uint8_t *b, int len) {
-  if (curSpiState != SPI_STATE_NONE) {
-    writeSpi(b, len);
-  }
-  if (curSerialState != SERIAL_STATE_NONE) {
-    writeSerial(b, len);
-  }
-}
+//
+// void OpenBCI_32bit_Library::write(uint8_t *b, size_t len) {
+//   for (int i = 0; i < len; i++) {
+//     write(b[i]);
+//   }
+// }
 
 void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
-  if (Serial0) {
+  if (iSerial0.tx) {
     Serial0.write(c);
   }
-  if (Serial1 && iSerial1.tx) {
+  if (iSerial1.tx) {
     Serial1.write(c);
   }
 }
 
-void OpenBCI_32bit_Library::writeSerial(uint8_t *c, int len) {
-  for (int i = 0; i < len; i++) {
-    writeSerial(c[i]);
-  }
-}
+// void OpenBCI_32bit_Library::writeSerial(uint8_t *c, size_t len) {
+//   for (int i = 0; i < len; i++) {
+//     writeSerial(c[i]);
+//   }
+// }
 
 /**
  * @description Transfer a uint8_t over SPI
  */
 void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
-  if (wifi.rx) {
-    processChar((char)xfer(b));
-  } else {
-    xfer(b);
+  if (iSpi.tx) {
+    if (iSpi.rx) {
+      processChar((char)xfer(b));
+    } else {
+      xfer(b);
+    }
   }
 }
 
-void OpenBCI_32bit_Library::writeSpi(uint8_t *b, int len) {
-  for (int i = 0; i < len; i++) {
-    writeSpi(b[i]);
-  }
-}
+// void OpenBCI_32bit_Library::writeSpi(uint8_t *b, size_t len) {
+//   for (int i = 0; i < len; i++) {
+//     writeSpi(b[i]);
+//   }
+// }
 
 //write as binary each channel's data
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
   if (curSpiState != SPI_STATE_NONE) {
     ADS_writeChannelDataNoDaisyAvg();
   }
-  if (curSerialState != SERIAL_STATE_NONE) {
-    switch (curSerialState) {
-      case SERIAL_STATE_ONLY_SERIAL_1:
-        if (curExternBaudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
-          ADS_writeChannelDataNoDaisyAvg();
-        } else {
-          ADS_writeChannelDataDaisyAvg();
-        }
-        break;
-      case SERIAL_STATE_ONLY_SERIAL_0:
-      case SERIAL_STATE_BOTH:
-        ADS_writeChannelDataDaisyAvg();
-        break;
-      case SERIAL_STATE_NONE:
-      default:
-        // Do nothing
-        break;
+  if (iSerial0.tx) {
+
+  }
+  if (Serial0 && iSerial0.tx) {
+    ADS_writeChannelDataDaisyAvg();
+  }
+  if (Serial1 && iSerial1.tx) {
+    if (iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
+      ADS_writeChannelDataNoDaisyAvg();
+    } else {
+      ADS_writeChannelDataDaisyAvg();
     }
   }
 }
@@ -2632,12 +2643,18 @@ void OpenBCI_32bit_Library::ADS_writeChannelData() {
 void OpenBCI_32bit_Library::ADS_writeChannelDataDaisyAvg() {
   if (daisyPresent) {
     if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-      write(meanBoardDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+        write(meanBoardDataRaw[i]);
+      }
     } else {
-      write(meanDaisyDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+        write(meanDaisyDataRaw[i]);
+      }
     }
   } else {
-    write(boardChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+    for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+      write(boardChannelDataRaw[i]);
+    }
   }
 }
 
@@ -2646,11 +2663,15 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataDaisyAvg() {
  */
 void OpenBCI_32bit_Library::ADS_writeChannelDataNoDaisyAvg() {
   // Always write board ADS data
-  write(boardChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+  for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+    write(boardChannelDataRaw[i]);
+  }
 
   // Only write daisy data if present
   if (daisyPresent) {
-    write(daisyChannelDataRaw, OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE);
+    for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+      write(daisyChannelDataRaw[i]);
+    }
   }
 }
 
