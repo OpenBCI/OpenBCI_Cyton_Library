@@ -43,9 +43,13 @@ void OpenBCI_32bit_Library::begin(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::beginDebug(void) {
+  beginDebug(OPENBCI_BAUD_RATE);
+}
+
+void OpenBCI_32bit_Library::beginDebug(uint32_t baudRate) {
   // Bring the board up
   curBoardMode = BOARD_MODE_DEBUG;
-  boolean started = boardBeginDebug();
+  boolean started = boardBeginDebug(baudRate);
 
   if (started) {
     Serial1.println("Board up"); sendEOT();

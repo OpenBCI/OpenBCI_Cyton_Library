@@ -83,6 +83,7 @@ public:
   void    attachDaisy(void);
   void    begin(void);
   void    beginDebug(void);
+  void    beginDebug(uint32_t);
   void    beginSerial1(void);
   void    beginSerial1(uint32_t);
   void    boardReset(void);
@@ -257,7 +258,6 @@ private:
   boolean boardBegin(void);
   boolean boardBeginDebug(void);
   boolean boardBeginDebug(uint8_t);
-  // boolean boardBeginDebug(int);
   void    changeInputType(byte);
   int     getX(void);
   int     getY(void);
