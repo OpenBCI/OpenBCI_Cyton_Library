@@ -14,7 +14,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use accel data
-  board.curAccelMode = board.ACCEL_MODE_ON;
+  board.useAccel = true;
 }
 
 void loop() {
