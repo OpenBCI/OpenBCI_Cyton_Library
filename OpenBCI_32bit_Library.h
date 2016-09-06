@@ -118,10 +118,6 @@ public:
   void    leadOffSetForAllChannels(void);
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
-  void    printADSregisters(int);
-  void    printAllRegisters(void);
-  void    printHex(byte);            // used for verbosity
-  void    printRegisterName(byte);   // used for verbosity
   void    printSerial(uint8_t);
   void    printSerial(uint8_t c, uint8_t arg);
   void    printSerial(uint8_t *, size_t len);
@@ -166,14 +162,10 @@ public:
   void    streamStart(void);
   void    streamStop(void);
   void    updateBoardData(void);
-  void    updateBoardDataDaisyAvg(void);
-  void    updateBoardDataNoDaisyAvg(void);
+  void    updateBoardData(boolean);
   void    updateChannelData(void);   // retrieve data from ADS
-  void    updateChannelDataDaisyAvg(void);   // retrieve data from ADS
-  void    updateChannelDataNoDaisyAvg(void);   // retrieve data from ADS
   void    updateDaisyData(void);
-  void    updateDaisyDataDaisyAvg(void);
-  void    updateDaisyDataNoDaisyAvg(void);
+  void    updateDaisyData(boolean);
   boolean useAccel();
   void    useAccel(boolean);
   boolean waitForNewChannelData(void);
@@ -278,6 +270,12 @@ private:
   void    LIS3DH_writeAxisData(void);
   void    LIS3DH_writeAxisDataForAxis(uint8_t axis);
   void    LIS3DH_updateAxisData(void);
+  void    printADSregisters(int);
+  void    printAllRegisters(void);
+  void    printFailure();
+  void    printHex(byte);
+  void    printRegisterName(byte);
+  void    printSuccess();
   void    RDATA(int);   // read data one-shot
   void    RDATAC(int);  // go into read data continuous mode
   void    RESET(int);   // set all register values to default
@@ -293,6 +291,7 @@ private:
   byte    xfer(byte);        // SPI Transfer function
 
   // Variables
+  boolean firstDataPacket;
   boolean isProcessingIncomingSettingsChannel;
   boolean isProcessingIncomingSettingsLeadOff;
   boolean isProcessingIncomingSerialPassThru;
@@ -315,7 +314,6 @@ private:
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
-  boolean firstDataPacket;
 
 };
 

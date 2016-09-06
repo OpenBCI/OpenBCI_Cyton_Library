@@ -92,7 +92,7 @@ boolean OpenBCI_32bit_Library::hasDataSerial0(void) {
   // TODO: Need to undo this comment out
   // if (!Serial0) return false;
   // if (!iSerial0.rx) return false;
-  if (Serial0.available()) {
+  if (iSerial0.rx && Serial0.available()) {
     return true;
   } else {
     return false;
@@ -107,7 +107,7 @@ boolean OpenBCI_32bit_Library::hasDataSerial1(void) {
   // TODO: Need to undo this comment out
   // if (Serial1) return false;
   // if (!iSerial1.rx) return false;
-  if (Serial1.available()) {
+  if (iSerial1.rx && Serial1.available()) {
     return true;
   } else {
     return false;
@@ -627,7 +627,8 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
       }
 
       if (!streaming) {
-        Serial0.print("Success: Board type set to ");
+        printSuccess();
+        Serial0.print("Board type set to ");
         Serial0.print(curBoardMode);
         Serial0.print(" new baud is ");
         Serial0.print(newBaud);
@@ -635,13 +636,15 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
       }
     } else if (numberOfIncomingSettingsProcessedBoardType == 0) {
       if (!streaming) {
-        Serial0.print("Success: Current Board type set to ");
+        printSuccess();
+        Serial0.print("Current Board type set to ");
         Serial0.print(curBoardMode);
         sendEOT();
       }
     } else {
       if (!streaming) {
-        Serial0.print("Failure: invalid board mode");
+        printFailure();
+        Serial0.print("invalid board mode");
         sendEOT();
       }
     }
@@ -678,25 +681,33 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
 }
 
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
-  if (isDigit(c)) {
+  if (c == OPENBCI_SAMPLE_RATE_SET) {
+    printSuccess();
+    Serial0.print("current sample rate is ");
+    Serial0.println(curSampleRate);
+    sendEOT();
+  } else if (isDigit(c)) {
     uint8_t digit = c - '0';
     if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
         curSampleRate = (SAMPLE_RATE)digit;
         // initialize();
-        Serial0.print("Success: set sample rate to ");
+        printSuccess();
+        Serial0.print("set sample rate to ");
         Serial0.println(curSampleRate);
         sendEOT();
       }
     } else {
       if (!streaming) {
-        Serial0.print("Failure: sample value out of bounds. ");
+        printFailure();
+        Serial0.print("sample value out of bounds. ");
         sendEOT();
       }
     }
   } else {
     if (!streaming) {
-      Serial0.print("Failure: invalid sample value.");
+      printFailure();
+      Serial0.print("invalid sample value.");
       sendEOT();
     }
   }
@@ -2341,33 +2352,25 @@ void OpenBCI_32bit_Library::updateChannelData(){
   // this needs to be reset, or else it will constantly flag us
   channelDataAvailable = false;
 
-  if (curSpiState != SPI_STATE_NONE) {
-    updateChannelDataNoDaisyAvg();
-  } else {
-    if (Serial0) {
-      updateChannelDataDaisyAvg();
-    } else if (Serial1) {
-      if (iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
-        updateChannelDataNoDaisyAvg();
-      } else {
-        updateChannelDataDaisyAvg();
-      }
-    }
+  boolean downsample = true;
+  if (iSerial0.tx == false && (curSpiState != SPI_STATE_NONE || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
+    downsample = false;
   }
+
+  updateBoardData(downsample);
+  if(daisyPresent) {updateDaisyData(downsample);}
 }
 
-// CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
-void OpenBCI_32bit_Library::updateChannelDataDaisyAvg(){
-  updateBoardDataDaisyAvg();
-  if(daisyPresent) {updateDaisyDataDaisyAvg();}
+void OpenBCI_32bit_Library::updateBoardData(void){
+  updateBoardData(true);
 }
 
-void OpenBCI_32bit_Library::updateBoardDataDaisyAvg(){
+void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
   byte inByte;
   int byteCounter = 0;
 
-  if(daisyPresent && !firstDataPacket){
-    for(int i=0; i < 8; i++){  // shift and average the byte arrays
+  if(daisyPresent && !firstDataPacket && downsample){
+    for(int i=0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){  // shift and average the byte arrays
       lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
     }
   }
@@ -2377,8 +2380,8 @@ void OpenBCI_32bit_Library::updateBoardDataDaisyAvg(){
     inByte = xfer(0x00);    //  read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
     boardStat = (boardStat << 8) | inByte;
   }
-  for(int i = 0; i<8; i++){
-    for(int j=0; j<3; j++){   //  read 24 bits of channel data in 8 3 byte chunks
+  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){
+    for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++){   //  read 24 bits of channel data in 8 3 byte chunks
       inByte = xfer(0x00);
       boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
       byteCounter++;
@@ -2388,19 +2391,19 @@ void OpenBCI_32bit_Library::updateBoardDataDaisyAvg(){
   csHigh(BOARD_ADS); // close SPI
 
   // need to convert 24bit to 32bit if using the filter
-  for(int i=0; i<8; i++){ // convert 3 byte 2's compliment to 4 byte 2's compliment
+  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){ // convert 3 byte 2's compliment to 4 byte 2's compliment
     if(bitRead(boardChannelDataInt[i],23) == 1){
       boardChannelDataInt[i] |= 0xFF000000;
     } else{
       boardChannelDataInt[i] &= 0x00FFFFFF;
     }
   }
-  if(daisyPresent && !firstDataPacket){
+  if(daisyPresent && !firstDataPacket && downsample){
     byteCounter = 0;
-    for(int i=0; i<8; i++){   // take the average of this and the last sample
+    for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){   // take the average of this and the last sample
       meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
     }
-    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
+    for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){  // place the average values in the meanRaw array
       for(int b=2; b>=0; b--){
         meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
         byteCounter++;
@@ -2413,126 +2416,44 @@ void OpenBCI_32bit_Library::updateBoardDataDaisyAvg(){
   }
 }
 
-void OpenBCI_32bit_Library::updateDaisyDataDaisyAvg(){
+/**
+* @description Read from the Daisy's ADS1299 chip and fill the core arrays with
+*  new data. Defaults to downsampling if the daisy is present.
+* @author AJ Keller (@aj-ptw)
+*/
+void OpenBCI_32bit_Library::updateDaisyData(void){
+  updateDaisyData(true);
+}
+
+/**
+* @description Read from the Daisy's ADS1299 chip and fill the core arrays with
+*  new data.
+* @param `downsample` {boolean} - Averages the last sample with the current to
+*  cut the sample rate in half.
+* @author AJ Keller (@aj-ptw)
+*/
+void OpenBCI_32bit_Library::updateDaisyData(boolean downsample){
   byte inByte;
   int byteCounter = 0;
 
-  if(daisyPresent && !firstDataPacket){
-    for(int i=0; i<8; i++){  // shift and average the byte arrays
+  if(daisyPresent && !firstDataPacket && downsample){
+    for(int i=0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){  // shift and average the byte arrays
       lastDaisyChannelDataInt[i] = daisyChannelDataInt[i]; // remember the last samples
     }
   }
 
-  csLow(DAISY_ADS);       //  open SPI
-  for(int i=0; i<3; i++){
-    inByte = xfer(0x00);    //  read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
-    daisyStat = (daisyStat << 8) | inByte;
-  }
-  for(int i = 0; i<8; i++){
-    for(int j=0; j<3; j++){   //  read 24 bits of channel data in 8 3 byte chunks
-      inByte = xfer(0x00);
-      daisyChannelDataRaw[byteCounter] = inByte;  // raw data goes here
-      byteCounter++;
-      daisyChannelDataInt[i] = (daisyChannelDataInt[i]<<8) | inByte; // int data goes here
-    }
-  }
-  csHigh(DAISY_ADS);        //  close SPI
-  // need to convert 24bit to 32bit
-  for(int i=0; i<8; i++){     // convert 3 byte 2's compliment to 4 byte 2's compliment
-    if(bitRead(daisyChannelDataInt[i],23) == 1){
-      daisyChannelDataInt[i] |= 0xFF000000;
-    }else{
-      daisyChannelDataInt[i] &= 0x00FFFFFF;
-    }
-  }
-  if(daisyPresent && !firstDataPacket){
-    byteCounter = 0;
-    for(int i=0; i<8; i++){   // average this sample with the last sample
-      meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
-    }
-    for(int i=0; i<8; i++){  // place the average values in the meanRaw array
-      for(int b=2; b>=0; b--){
-        meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
-        byteCounter++;
-      }
-    }
-  }
-
-  if(firstDataPacket == true) {
-    firstDataPacket = false;
-  }
-}
-
-/**
- * @description Used to update global data arrays with new data
- * @author AJ Keller (@aj-ptw)
- */
-void OpenBCI_32bit_Library::updateChannelDataNoDaisyAvg(void) {
-  updateBoardDataNoDaisyAvg();
-  if(daisyPresent) {updateDaisyDataNoDaisyAvg();}
-}
-
-/**
- * @description Used to update global data arrays with new data
- * @author AJ Keller (@aj-ptw)
- */
-void OpenBCI_32bit_Library::updateBoardDataNoDaisyAvg(void) {
-  byte inByte;
-  uint8_t byteCounter = 0;
-
-  // Open SPI
-  csLow(BOARD_ADS);
-
-  // Read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
-  for(uint8_t i=0; i<3; i++) {
-    inByte = xfer(0x00);
-    boardStat = (boardStat << 8) | inByte;
-  }
-
-  // Read 24 bits of channel data in 8 3 byte chunks
-  for(uint8_t i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
-    for(uint8_t j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++) {
-      inByte = xfer(0x00);
-      boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
-      byteCounter++;
-      boardChannelDataInt[i] = (boardChannelDataInt[i]<<8) | inByte;  // int data goes here
-    }
-  }
-
-  // Close SPI
-  csHigh(BOARD_ADS);
-
-  // Need to convert 24bit to 32bit if using the filter
-  // Convert 3 byte 2's compliment to 4 byte 2's compliment
-  for(uint8_t i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
-    if(bitRead(boardChannelDataInt[i],23) == 1) {
-      boardChannelDataInt[i] |= 0xFF000000;
-    } else{
-      boardChannelDataInt[i] &= 0x00FFFFFF;
-    }
-  }
-}
-
-/**
- * @description Used to update global data arrays with new data
- * @author AJ Keller (@aj-ptw)
- */
-void OpenBCI_32bit_Library::updateDaisyDataNoDaisyAvg(void) {
-  byte inByte;
-  uint8_t byteCounter = 0;
-
   // Open SPI
   csLow(DAISY_ADS);
-
   // Read status register (1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4])
-  for(int i=0; i < 3; i++){
+  // TODO: Do we really need to read this status register ever time?
+  for(int i = 0; i < 3; i++){
     inByte = xfer(0x00);
     daisyStat = (daisyStat << 8) | inByte;
   }
 
   // Read 24 bits of channel data in 8 3 byte chunks
-  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++) {
-    for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++) {
+  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){
+    for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++){
       inByte = xfer(0x00);
       daisyChannelDataRaw[byteCounter] = inByte;  // raw data goes here
       byteCounter++;
@@ -2543,14 +2464,33 @@ void OpenBCI_32bit_Library::updateDaisyDataNoDaisyAvg(void) {
   // Close SPI
   csHigh(DAISY_ADS);
 
-  // Need to convert 24bit to 32bit
-  // Convert 3 byte 2's compliment to 4 byte 2's compliment
-  for(int i=0; i<8; i++){
+  // Convert 24bit to 32bit
+  for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){
+    // Convert 3 byte 2's compliment to 4 byte 2's compliment
     if(bitRead(daisyChannelDataInt[i],23) == 1){
       daisyChannelDataInt[i] |= 0xFF000000;
-    } else{
+    }else{
       daisyChannelDataInt[i] &= 0x00FFFFFF;
     }
+  }
+
+  if(daisyPresent && !firstDataPacket && downsample){
+    byteCounter = 0;
+    // Average this sample with the last sample
+    for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){
+      meanDaisyChannelDataInt[i] = (lastDaisyChannelDataInt[i] + daisyChannelDataInt[i])/2;
+    }
+    // Place the average values in the meanRaw array
+    for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){
+      for(int b = 2; b >= 0; b--){
+        meanDaisyDataRaw[byteCounter] = (meanDaisyChannelDataInt[i] >> (b*8)) & 0xFF;
+        byteCounter++;
+      }
+    }
+  }
+
+  if(firstDataPacket == true) {
+    firstDataPacket = false;
   }
 }
 
@@ -3135,6 +3075,14 @@ void OpenBCI_32bit_Library::printHex(byte _data){
   Serial0.print("0x");
   if(_data < 0x10) Serial0.print("0");
   Serial0.print(_data, HEX);
+}
+
+void OpenBCI_32bit_Library::printFailure() {
+  Serial0.print("Failure: ");
+}
+
+void OpenBCI_32bit_Library::printSuccess() {
+  Serial0.print("Success: ");
 }
 
 /**

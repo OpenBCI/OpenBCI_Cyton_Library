@@ -18,7 +18,6 @@ void setup() {
 
   board.curSampleRate = board.SAMPLE_RATE_500;
   // board.iSerial0.tx = false;
-  Serial1.println("hey");
 }
 
 void loop() {
@@ -52,10 +51,10 @@ void loop() {
     // Read one char from the serial 0 port
     char newChar = board.getCharSerial0();
     //
-    if (Serial1) {
-      Serial1.print("Recieved char from serial0 ");
-      Serial1.println(newChar);
-    }
+    // if (Serial1) {
+    //   Serial1.print("Recieved char from serial0 ");
+    //   Serial1.println(newChar);
+    // }
 
     // Send to the board library
     board.processChar(newChar);
@@ -65,10 +64,10 @@ void loop() {
     // Read one char from the serial 1 port
     char newChar = board.getCharSerial1();
 
-    if (Serial1) {
-      Serial1.print("Recieved char from serial1 ");
-      Serial1.println(newChar);
-    }
+    // if (Serial1) {
+    //   Serial1.print("Recieved char from serial1 ");
+    //   Serial1.println(newChar);
+    // }
 
     // Read one char and process it
     board.processChar(newChar);
