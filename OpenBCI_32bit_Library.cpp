@@ -380,6 +380,26 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         settingSampleRate = true;
         break;
 
+
+      // TODO: REMOVE THIS
+      case '.':
+        sendChannelDataWithAccel();
+        break;
+
+      case '}':
+        if (iSerial1.tx) {
+          char code = 'c';
+          Serial1.print("ADS1299_CONFIG1_DAISY: 0x");
+          Serial1.println(ADS1299_CONFIG1_DAISY, HEX);
+          Serial1.print("curSampleRate: 0x");
+          Serial1.println(curSampleRate, HEX);
+          code = (char)(ADS1299_CONFIG1_DAISY | curSampleRate);
+          Serial1.print("Sample Rate 0x");
+          Serial1.println(code, HEX);
+        }
+        sendEOT();
+        break;
+
       default:
         return false;
     }
@@ -1269,13 +1289,13 @@ void OpenBCI_32bit_Library::initialize_ads(){
   delay(40);
   resetADS(BOARD_ADS); // reset the on-board ADS registers, and stop DataContinuousMode
   delay(10);
-  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY || curSampleRate),BOARD_ADS); // tell on-board ADS to output its clk, set the data rate to 250SPS
+  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY | curSampleRate),BOARD_ADS); // tell on-board ADS to output its clk, set the data rate to 250SPS
   delay(40);
   resetADS(DAISY_ADS); // software reset daisy module if present
   delay(10);
   daisyPresent = smellDaisy(); // check to see if daisy module is present
   if(!daisyPresent){
-    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT || curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
+    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT | curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
   }else{
     numChannels = 16;   // expect up to 16 ADS channels
@@ -1505,13 +1525,13 @@ void OpenBCI_32bit_Library::removeDaisy(void){
 }
 
 void OpenBCI_32bit_Library::attachDaisy(void){
-  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY || curSampleRate),BOARD_ADS); // tell on-board ADS to output the clk, set the data rate to 250SPS
+  WREG(CONFIG1,(ADS1299_CONFIG1_DAISY | curSampleRate),BOARD_ADS); // tell on-board ADS to output the clk, set the data rate to 250SPS
   delay(40);
   resetADS(DAISY_ADS); // software reset daisy module if present
   delay(10);
   daisyPresent = smellDaisy();
   if(!daisyPresent){
-    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT || curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
+    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT | curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
     if(!isRunning) Serial0.println("no daisy to attach!");
   }else{
@@ -2623,16 +2643,17 @@ void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
 //write as binary each channel's data
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
 
-  if (curSpiState != SPI_STATE_NONE) {
-    ADS_writeChannelDataSpi();
-  }
+  // if (curSpiState != SPI_STATE_NONE) {
+  //   ADS_writeChannelDataSpi();
+  // }
   ADS_writeChannelDataSerial();
-  ADS_writeChannelDataSerialNoAvg();
+  // ADS_writeChannelDataSerialNoAvg();
 }
 
 void OpenBCI_32bit_Library::ADS_writeChannelDataSerial() {
   if (iSerial0.tx || (iSerial1.tx && iSerial1.baudRate <= OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     if (daisyPresent) {
+      // Code that runs with daisy present
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
         for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
           writeSerial(meanBoardDataRaw[i]);
@@ -2642,8 +2663,9 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataSerial() {
           writeSerial(meanDaisyDataRaw[i]);
         }
       }
+    // Code that runs without the daisy present
     } else {
-      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+      for(int i = 0; i < 24; i++) {
         writeSerial(boardChannelDataRaw[i]);
       }
     }

@@ -77,8 +77,8 @@ public:
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
-  void    ADS_writeChannelDataDaisyAvg(void);
-  void    ADS_writeChannelDataSpi(void);
+  void    ADS_writeChannelDataSerial(void);
+  void    ADS_writeChannelDataSerialNoAvg(void);
   void    ADS_writeChannelDataSpi(void);
   void    attachDaisy(void);
   void    begin(void);
