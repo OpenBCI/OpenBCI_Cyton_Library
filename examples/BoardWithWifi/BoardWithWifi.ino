@@ -15,6 +15,9 @@ void setup() {
 
   // Bring up the OpenBCI Board
   board.beginDebug();
+
+  board.curSampleRate = board.SAMPLE_RATE_500;
+  board.iSerial0.tx = false;
   Serial1.println("hey");
 }
 

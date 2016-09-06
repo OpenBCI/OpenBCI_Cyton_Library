@@ -510,21 +510,34 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
 * @param baudRate {int} - The baudRate you want the secondary serial port to run at.
 * @author: AJ Keller (@pushtheworldllc)
 */
-// boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
-//   // Initalize the serial port baud rate
-//   Serial0.begin(OPENBCI_BAUD_RATE);
-//
-//   // Initalize the serial debug port
-//   Serial1.begin(baudRate);
-//
-//   // Startup for interrupt
-//   boardBeginADSInterrupt();
-//
-//   // Do a soft reset
-//   boardReset();
-//
-//   return true;
-// }
+boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
+  // Initalize the serial port baud rate
+  Serial0.begin(OPENBCI_BAUD_RATE);
+  iSerial0.tx = true;
+  iSerial0.rx = true;
+  iSerial0.baudRate = OPENBCI_BAUD_RATE;
+
+  // setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
+  // Serial1.print("begin S0 tx "); Serial1.println(iSerial0.tx ? "on" : "off");
+
+
+  // Initalize the serial debug port
+  Serial1.begin(baudRate);
+  iSerial1.tx = true;
+  iSerial1.rx = true;
+  iSerial1.baudRate = baudRate;
+  // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
+  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+
+
+  // Startup for interrupt
+  boardBeginADSInterrupt();
+
+  // Do a soft reset
+  boardReset();
+
+  return true;
+}
 
 /**
 * @description: This is a function that can be called multiple times, this is
