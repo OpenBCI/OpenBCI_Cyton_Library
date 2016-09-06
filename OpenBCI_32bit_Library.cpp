@@ -2622,55 +2622,66 @@ void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
 
 //write as binary each channel's data
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
-  if (curSpiState != SPI_STATE_NONE) {
-    ADS_writeChannelDataNoDaisyAvg();
-  }
-  if (iSerial0.tx) {
 
+  if (curSpiState != SPI_STATE_NONE) {
+    ADS_writeChannelDataSpi();
   }
-  if (Serial0 && iSerial0.tx) {
-    ADS_writeChannelDataDaisyAvg();
-  }
-  if (Serial1 && iSerial1.tx) {
-    if (iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
-      ADS_writeChannelDataNoDaisyAvg();
+  ADS_writeChannelDataSerial();
+  ADS_writeChannelDataSerialNoAvg();
+}
+
+void OpenBCI_32bit_Library::ADS_writeChannelDataSerial() {
+  if (iSerial0.tx || (iSerial1.tx && iSerial1.baudRate <= OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
+    if (daisyPresent) {
+      if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
+        for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+          writeSerial(meanBoardDataRaw[i]);
+        }
+      } else {
+        for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+          writeSerial(meanDaisyDataRaw[i]);
+        }
+      }
     } else {
-      ADS_writeChannelDataDaisyAvg();
+      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+        writeSerial(boardChannelDataRaw[i]);
+      }
     }
   }
 }
 
-void OpenBCI_32bit_Library::ADS_writeChannelDataDaisyAvg() {
-  if (daisyPresent) {
-    if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-        write(meanBoardDataRaw[i]);
-      }
-    } else {
-      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-        write(meanDaisyDataRaw[i]);
-      }
-    }
-  } else {
+void OpenBCI_32bit_Library::ADS_writeChannelDataSerialNoAvg() {
+  if (iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
+    // Don't run this function if the serial baud rate is not greater then the
+    // minimum
+    // Always write board ADS data
     for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      write(boardChannelDataRaw[i]);
+      Serial1.write(boardChannelDataRaw[i]);
+    }
+
+    // Only write daisy data if present
+    if (daisyPresent) {
+      for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
+        Serial1.write(daisyChannelDataRaw[i]);
+      }
     }
   }
+
 }
 
 /**
  * @description Write board (and daisy if present) ADS1299 data to serial port
  */
-void OpenBCI_32bit_Library::ADS_writeChannelDataNoDaisyAvg() {
+void OpenBCI_32bit_Library::ADS_writeChannelDataSpi() {
   // Always write board ADS data
   for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-    write(boardChannelDataRaw[i]);
+    writeSpi(boardChannelDataRaw[i]);
   }
 
   // Only write daisy data if present
   if (daisyPresent) {
     for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      write(daisyChannelDataRaw[i]);
+      writeSpi(daisyChannelDataRaw[i]);
     }
   }
 }

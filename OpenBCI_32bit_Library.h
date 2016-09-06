@@ -78,7 +78,7 @@ public:
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
   void    ADS_writeChannelDataDaisyAvg(void);
-  void    ADS_writeChannelDataNoDaisyAvg(void);
+  void    ADS_writeChannelDataSpi(void);
   void    ADS_writeChannelDataSpi(void);
   void    attachDaisy(void);
   void    begin(void);
