@@ -8,16 +8,18 @@ void setup() {
   // Notify the board we want to use accel data
   // board.useAccel(true);
 
-  // board.curSpiState = board.SPI_STATE_DUPLEX;
-  //
+
   // board.wifi.active = true;
   // board.wifi.rx = false;
+  board.iSpi.rx = true;
+  board.iSpi.tx = true;
 
   // Bring up the OpenBCI Board
-  board.beginDebug(230400);
-
-  board.curSampleRate = board.SAMPLE_RATE_500;
+  board.beginDebug(115200);
+  // Change the sample rate
+  // board.curSampleRate = board.SAMPLE_RATE_500;
   // board.iSerial0.tx = false;
+
 }
 
 void loop() {

@@ -40,12 +40,6 @@ public:
     PACKET_TYPE_RAW_AUX_TIME_SYNC
   };
 
-  typedef enum SPI_STATE {
-    SPI_STATE_NONE,
-    SPI_STATE_ONLY_TX,
-    SPI_STATE_DUPLEX
-  };
-
   typedef enum SAMPLE_RATE {
     SAMPLE_RATE_16000,
     SAMPLE_RATE_8000,
@@ -64,7 +58,6 @@ public:
   } SerialInfo;
 
   typedef struct {
-      boolean   active;
       boolean   rx;
       boolean   tx;
   } SpiInfo;
@@ -150,7 +143,7 @@ public:
   void    setChannelsToDefault(void);
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
-  void    setSpiInfo(SpiInfo si, boolean rx, boolean tx, boolean active);
+  void    setSpiInfo(SpiInfo si, boolean rx, boolean tx);
   boolean smellDaisy(void);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
@@ -233,7 +226,6 @@ public:
   BOARD_MODE curBoardMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
-  SPI_STATE curSpiState;
 
   // STRUCTS
   SerialInfo iSerial0;

@@ -946,7 +946,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
-  curSpiState = SPI_STATE_NONE;
 
   // Structs
   initializeSerialInfo(iSerial0);
@@ -964,13 +963,10 @@ void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx,
 }
 
 void OpenBCI_32bit_Library::initializeSpiInfo(SpiInfo si) {
-  si.active = false;
-  si.rx = true;
-  si.tx = true;
+  setSpiInfo(si, false, false);
 }
 
-void OpenBCI_32bit_Library::setSpiInfo(SpiInfo si, boolean rx, boolean tx, boolean active) {
-  si.active = active;
+void OpenBCI_32bit_Library::setSpiInfo(SpiInfo si, boolean rx, boolean tx) {
   si.rx = rx;
   si.tx = tx;
 }
@@ -998,7 +994,7 @@ void OpenBCI_32bit_Library::printAllRegisters(){
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
   // Take SPI
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     csLow(WIFI_SS);
   }
 
@@ -1012,7 +1008,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     // Close SPI
     csHigh(WIFI_SS);
   }
@@ -1030,7 +1026,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
   // Take SPI
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     csLow(WIFI_SS);
   }
 
@@ -1044,7 +1040,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX)); // 0xC1 - 1 byte
 
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     // Close SPI
     csHigh(WIFI_SS);
   }
@@ -1069,7 +1065,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
   // Take SPI
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     csLow(WIFI_SS);
   }
 
@@ -1105,7 +1101,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
   }
 
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     // Close SPI
     csHigh(WIFI_SS);
   }
@@ -1127,7 +1123,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
   // Take SPI
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     csLow(WIFI_SS);
   }
 
@@ -1149,7 +1145,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
     write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX_TIME_SYNC)); // 0xC6
   }
 
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     // Close SPI
     csHigh(WIFI_SS);
   }
@@ -1173,7 +1169,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
   // Take SPI
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     csLow(WIFI_SS);
   }
 
@@ -1195,7 +1191,7 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
-  if (curSpiState != SPI_STATE_NONE) {
+  if (iSpi.tx) {
     // Close SPI
     csHigh(WIFI_SS);
   }
@@ -2353,7 +2349,7 @@ void OpenBCI_32bit_Library::updateChannelData(){
   channelDataAvailable = false;
 
   boolean downsample = true;
-  if (iSerial0.tx == false && (curSpiState != SPI_STATE_NONE || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
+  if (iSerial0.tx == false && (iSpi.tx || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     downsample = false;
   }
 
@@ -2584,7 +2580,11 @@ void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
 void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
   if (iSpi.tx) {
     if (iSpi.rx) {
-      processChar((char)xfer(b));
+      uint8_t out = xfer(b);
+      writeSerial(out);
+      // Serial0.print(out);
+      // Send it to be processed
+      // processChar(b);
     } else {
       xfer(b);
     }
@@ -2600,7 +2600,7 @@ void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
 //write as binary each channel's data
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
 
-  // if (curSpiState != SPI_STATE_NONE) {
+  // if (iSpi.tx) {
   //   ADS_writeChannelDataSpi();
   // }
   ADS_writeChannelDataSerial();
