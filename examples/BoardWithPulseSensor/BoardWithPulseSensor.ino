@@ -66,6 +66,6 @@ void loop() {
   // Check the serial port for new data
   if (board.hasDataSerial0()) {
     // Read one char and process it
-    board.processChar(board.readOneSerialChar());
+    board.processChar(board.getCharSerial0());
   }
 }
