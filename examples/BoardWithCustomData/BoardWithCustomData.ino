@@ -19,7 +19,7 @@ void setup() {
 void loop() {
 
   // Downsample
-  if ((millis() - timer) > 20) {
+  if ((millis() - timer) > 10) {
     // Save new time
     timer = millis();
     sendLEDStatus();
