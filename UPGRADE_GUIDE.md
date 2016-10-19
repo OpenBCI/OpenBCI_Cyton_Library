@@ -8,9 +8,9 @@ You must re-program three (3) different microcontrollers: Chipkit Pic32 (hereaft
 
 The order of programming should go as follows
 
-1. Flash the `Device` with [`RadioDevice32bit`](https://github.com/OpenBCI/OpenBCI_Radios/blob/2.0.0/examples/RadioDevice32bit/RadioDevice32bit.ino)
-2. Flash the `Host` with [`RadioHost32bit`](https://github.com/OpenBCI/OpenBCI_Radios/blob/2.0.0/examples/RadioHost32bit/RadioHost32bit.ino)
-3. Flash the `Pic` with [`DefaultBoard`](https://github.com/OpenBCI/OpenBCI_32bit_Library/blob/2.0.0/examples/DefaultBoard/DefaultBoard.ino)
+1. Flash the `Device` with [`RadioDevice32bit`](https://github.com/OpenBCI/OpenBCI_Radios/blob/master/examples/RadioDevice32bit/RadioDevice32bit.ino)
+2. Flash the `Host` with [`RadioHost32bit`](https://github.com/OpenBCI/OpenBCI_Radios/blob/master/examples/RadioHost32bit/RadioHost32bit.ino)
+3. Flash the `Pic` with [`DefaultBoard`](https://github.com/OpenBCI/OpenBCI_32bit_Library/blob/master/examples/DefaultBoard/DefaultBoard.ino)
 
 ### Awesome New Features
 
