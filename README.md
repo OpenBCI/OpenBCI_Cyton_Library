@@ -1,7 +1,7 @@
 [![Stories in Ready](https://badge.waffle.io/OpenBCI/OpenBCI_32bit_Library.png?label=ready&title=Ready)](https://waffle.io/OpenBCI/OpenBCI_32bit_Library)
 # OpenBCI 32bit Library
 
-The (soon to be) official library for the OpenBCI 32bit Board. 
+The (soon to be) official library for the OpenBCI 32bit Board.
 
 
 ## Table of Contents:
@@ -129,9 +129,9 @@ void loop() {
   }
 
   // Check the serial port for new data
-  if (board.isSerialAvailableForRead()) {
+  if (board.hasDataSerial0()) {
     // Read one char and process it
-    board.processChar(board.readOneSerialChar());
+    board.processChar(board.getCharSerial0());
   }
 }
 ```
@@ -139,7 +139,7 @@ The first `if` statement is only `true` if a `b` command is ran through the `pro
 
 ## <a name="systemOverview"></a> System Overview:
 
-If you send a packet from the Pic32 to the Device RFduino and you start it with 0x41, write 31 bytes, and follow with 0xFx (where x can be 0-F hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
+If you send a packet from the Pic32 to the Device RFduino and you start it with `0x41`, write 31 bytes, and follow with `0xCX` (where `X` can be `0-F` hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
 
 # <a name="referenceGuide"></a> Reference Guide:
 
@@ -177,9 +177,9 @@ Specifically lines `311` and `313`, change `7` and `10` to `11` and `12` for `_S
 
 You will need to reflash your board! But now you can connect to pins `11` (`TX`) and `12` (`RX`) via any 3V3 serial to USB driver. Remember to use 3V3, 115200 baud, and have a common ground!
 
-### isSerialAvailableForRead()
+### hasDataSerial0()
 
-Called in every `loop()` and checks both `Serial0` and `Serial1` if `sniffMode` is `true`.
+Called in every `loop()` and checks `Serial0`.
 
 **_Returns_** {boolean}
 
@@ -197,9 +197,9 @@ The character to process.
 
 `true` if the command was recognized, `false` if not.
 
-### readOneSerialChar()
+### getCharSerial0()
 
-If `isSerialAvailableForRead()` is `true` then this function is called. Reads from `Serial0` first and foremost, which comes from the RFduino. If `sniffMode` is true and `Serial0` didn't have any data, we will try to read from `Serial1`. If both are not available then we will return a `0x00` which is NOT a command that the system will recognize, aka this function has many safe guards.
+If `hasDataSerial0()` is `true` then this function is called. Reads from `Serial0` first and foremost, which comes from the RFduino. If no data is available then returns a `0x00` which is NOT a command that the system will recognize as a safe guard.
 
 **_Returns_** {char}
 
