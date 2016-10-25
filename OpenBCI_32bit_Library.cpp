@@ -2549,15 +2549,9 @@ void OpenBCI_32bit_Library::printlnSerial(uint8_t c, uint8_t arg) {
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-  writeSpi(b);
+  storeSpi(b);
   writeSerial(b);
 }
-//
-// void OpenBCI_32bit_Library::write(uint8_t *b, size_t len) {
-//   for (int i = 0; i < len; i++) {
-//     write(b[i]);
-//   }
-// }
 
 void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
   if (iSerial0.tx) {
@@ -2568,16 +2562,23 @@ void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
   }
 }
 
-// void OpenBCI_32bit_Library::writeSerial(uint8_t *c, size_t len) {
-//   for (int i = 0; i < len; i++) {
-//     writeSerial(c[i]);
-//   }
-// }
+/**
+ * [OpenBCI_32bit_Library::storeSpi description]
+ * @param  b {uint8_t} A single byte to store
+ * @return   {boolean} True if the byte was stored, false if the buffer is full.
+ */
+boolean OpenBCI_32bit_Library::storeSpi(uint8_t b) {
+  if (spiBufferPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
+
+  spiBuffer[spiBufferPosition] = b
+  spiBufferPosition++;
+  return true;
+}
 
 /**
  * @description Transfer a uint8_t over SPI
  */
-void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
+void OpenBCI_32bit_Library::WIFIwriteSpi(uint8_t b) {
   if (iSpi.tx) {
     if (iSpi.rx) {
       uint8_t out = xfer(b);
@@ -2591,76 +2592,62 @@ void OpenBCI_32bit_Library::writeSpi(uint8_t b) {
   }
 }
 
-// void OpenBCI_32bit_Library::writeSpi(uint8_t *b, size_t len) {
-//   for (int i = 0; i < len; i++) {
-//     writeSpi(b[i]);
-//   }
-// }
-
-//write as binary each channel's data
-void OpenBCI_32bit_Library::ADS_writeChannelData() {
-
-  // if (iSpi.tx) {
-  //   ADS_writeChannelDataSpi();
-  // }
-  ADS_writeChannelDataSerial();
-  // ADS_writeChannelDataSerialNoAvg();
+void OpenBCI_32bit_Library::WIFI_writeData(uint8_t * data, size_t len) {
+  uint8_t i=0;
+  csLow(WIFI_SS);
+  SPI.transfer(WIFI_SPI_CMD_DATA_WRITE);
+  SPI.transfer(WIFI_SPI_CMD_NULL);
+  while(len-- && i < 32) {
+      SPI.transfer(data[i++]);
+  }
+  while(i++ < 32) {
+      SPI.transfer(0);
+  }
+  csHigh(WIFI_SS);
 }
 
-void OpenBCI_32bit_Library::ADS_writeChannelDataSerial() {
+void OpenBCI_32bit_Library::ADS_writeChannelData() {
+  ADS_writeChannelDataAvgDaisy();
+  ADS_writeChannelDataNoAvgDaisy();
+}
+
+
+void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
   if (iSerial0.tx || (iSerial1.tx && iSerial1.baudRate <= OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     if (daisyPresent) {
       // Code that runs with daisy present
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
         for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-          writeSerial(meanBoardDataRaw[i]);
+          write(meanBoardDataRaw[i]);
         }
       } else {
         for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-          writeSerial(meanDaisyDataRaw[i]);
+          write(meanDaisyDataRaw[i]);
         }
       }
     // Code that runs without the daisy present
     } else {
       for(int i = 0; i < 24; i++) {
-        writeSerial(boardChannelDataRaw[i]);
+        write(boardChannelDataRaw[i]);
       }
     }
   }
 }
 
-void OpenBCI_32bit_Library::ADS_writeChannelDataSerialNoAvg() {
+void OpenBCI_32bit_Library::ADS_writeChannelDataNoAvgDaisy() {
   if (iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
     // Don't run this function if the serial baud rate is not greater then the
     // minimum
     // Always write board ADS data
     for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      Serial1.write(boardChannelDataRaw[i]);
+      write(boardChannelDataRaw[i]);
     }
 
     // Only write daisy data if present
     if (daisyPresent) {
       for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-        Serial1.write(daisyChannelDataRaw[i]);
+        write(daisyChannelDataRaw[i]);
       }
-    }
-  }
-
-}
-
-/**
- * @description Write board (and daisy if present) ADS1299 data to serial port
- */
-void OpenBCI_32bit_Library::ADS_writeChannelDataSpi() {
-  // Always write board ADS data
-  for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-    writeSpi(boardChannelDataRaw[i]);
-  }
-
-  // Only write daisy data if present
-  if (daisyPresent) {
-    for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      writeSpi(daisyChannelDataRaw[i]);
     }
   }
 }

@@ -215,7 +215,7 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
-  uint8_t spiBuffer[255];
+  uint8_t spiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
   uint8_t spiBufferPosition;
 
   volatile boolean channelDataAvailable;
