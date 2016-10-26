@@ -11,8 +11,7 @@ void setup() {
 
   // board.wifi.active = true;
   // board.wifi.rx = false;
-  board.iSpi.rx = true;
-  board.iSpi.tx = true;
+  board.iWifi.tx = true;
 
   // Bring up the OpenBCI Board
   board.beginDebug(115200);

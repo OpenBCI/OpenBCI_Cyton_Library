@@ -453,7 +453,9 @@ boolean OpenBCI_32bit_Library::boardBegin(void) {
   Serial0.begin(OPENBCI_BAUD_RATE);
 
   // Set serial 0 to true for rx and tx
-  setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
+  iSerial0.tx = true;
+  iSerial0.rx = true;
+  iSerial0.baudRate = OPENBCI_BAUD_RATE;
 
   pinMode(OPENBCI_PIN_LED, OUTPUT);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
@@ -550,7 +552,6 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::boardReset(void) {
-  // initializeVariables(); // called in constructor, redundent here
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
   // delay(500);
 
@@ -963,10 +964,10 @@ void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx,
 }
 
 void OpenBCI_32bit_Library::initializeSpiInfo(SpiInfo si) {
-  setSpiInfo(si, false, false);
+  wifiSetInfo(si, false, false);
 }
 
-void OpenBCI_32bit_Library::setSpiInfo(SpiInfo si, boolean rx, boolean tx) {
+void OpenBCI_32bit_Library::wifiSetInfo(SpiInfo si, boolean rx, boolean tx) {
   si.rx = rx;
   si.tx = tx;
 }
@@ -993,12 +994,7 @@ void OpenBCI_32bit_Library::printAllRegisters(){
 */
 void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
-  // Take SPI
-  if (iSpi.tx) {
-    csLow(WIFI_SS);
-  }
-
-  write(OPENBCI_BOP); // 0x41
+  writeSerial(OPENBCI_BOP); // 0x41
 
   write(sampleCounter); // 1 byte
 
@@ -1008,9 +1004,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
-  if (iSpi.tx) {
-    // Close SPI
-    csHigh(WIFI_SS);
+  if (iWifi.tx) {
+    wifiFlushBuffer();
   }
 
   sampleCounter++;
@@ -1025,12 +1020,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
-  // Take SPI
-  if (iSpi.tx) {
-    csLow(WIFI_SS);
-  }
-
-  write(OPENBCI_BOP); // 0x41
+  writeSerial(OPENBCI_BOP); // 0x41
 
   write(sampleCounter); // 1 byte
 
@@ -1040,9 +1030,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX)); // 0xC1 - 1 byte
 
-  if (iSpi.tx) {
-    // Close SPI
-    csHigh(WIFI_SS);
+  if (iWifi.tx) {
+    wifiFlushBuffer();
   }
 
   sampleCounter++;
@@ -1064,12 +1053,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
-  // Take SPI
-  if (iSpi.tx) {
-    csLow(WIFI_SS);
-  }
-
-  write(OPENBCI_BOP); // 0x41
+  writeSerial(OPENBCI_BOP); // 0x41
 
   write(sampleCounter); // 1 byte
 
@@ -1101,9 +1085,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
     write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
   }
 
-  if (iSpi.tx) {
-    // Close SPI
-    csHigh(WIFI_SS);
+  if (iWifi.tx) {
+    wifiFlushBuffer();
   }
 
   sampleCounter++;
@@ -1122,12 +1105,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 */
 void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 
-  // Take SPI
-  if (iSpi.tx) {
-    csLow(WIFI_SS);
-  }
-
-  write(OPENBCI_BOP); // 0x41
+  writeSerial(OPENBCI_BOP); // 0x41
 
   write(sampleCounter); // 1 byte
 
@@ -1145,9 +1123,8 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
     write((uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX_TIME_SYNC)); // 0xC6
   }
 
-  if (iSpi.tx) {
-    // Close SPI
-    csHigh(WIFI_SS);
+  if (iWifi.tx) {
+    wifiFlushBuffer();
   }
 
   sampleCounter++;
@@ -1168,11 +1145,6 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 */
 void OpenBCI_32bit_Library::sendChannelData(void) {
 
-  // Take SPI
-  if (iSpi.tx) {
-    csLow(WIFI_SS);
-  }
-
   write(OPENBCI_BOP); // 0x41
 
   write(sampleCounter); // 1 byte
@@ -1191,9 +1163,8 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
   write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
-  if (iSpi.tx) {
-    // Close SPI
-    csHigh(WIFI_SS);
+  if (iWifi.tx) {
+    wifiFlushBuffer();
   }
 
   sampleCounter++;
@@ -2349,7 +2320,7 @@ void OpenBCI_32bit_Library::updateChannelData(){
   channelDataAvailable = false;
 
   boolean downsample = true;
-  if (iSerial0.tx == false && (iSpi.tx || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
+  if (iSerial0.tx == false && (iWifi.tx || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     downsample = false;
   }
 
@@ -2549,7 +2520,7 @@ void OpenBCI_32bit_Library::printlnSerial(uint8_t c, uint8_t arg) {
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-  storeSpi(b);
+  wifiStoreByte(b);
   writeSerial(b);
 }
 
@@ -2560,50 +2531,6 @@ void OpenBCI_32bit_Library::writeSerial(uint8_t c) {
   if (iSerial1.tx) {
     Serial1.write(c);
   }
-}
-
-/**
- * [OpenBCI_32bit_Library::storeSpi description]
- * @param  b {uint8_t} A single byte to store
- * @return   {boolean} True if the byte was stored, false if the buffer is full.
- */
-boolean OpenBCI_32bit_Library::storeSpi(uint8_t b) {
-  if (spiBufferPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
-
-  spiBuffer[spiBufferPosition] = b
-  spiBufferPosition++;
-  return true;
-}
-
-/**
- * @description Transfer a uint8_t over SPI
- */
-void OpenBCI_32bit_Library::WIFIwriteSpi(uint8_t b) {
-  if (iSpi.tx) {
-    if (iSpi.rx) {
-      uint8_t out = xfer(b);
-      writeSerial(out);
-      // Serial0.print(out);
-      // Send it to be processed
-      // processChar(b);
-    } else {
-      xfer(b);
-    }
-  }
-}
-
-void OpenBCI_32bit_Library::WIFI_writeData(uint8_t * data, size_t len) {
-  uint8_t i=0;
-  csLow(WIFI_SS);
-  SPI.transfer(WIFI_SPI_CMD_DATA_WRITE);
-  SPI.transfer(WIFI_SPI_CMD_NULL);
-  while(len-- && i < 32) {
-      SPI.transfer(data[i++]);
-  }
-  while(i++ < 32) {
-      SPI.transfer(0);
-  }
-  csHigh(WIFI_SS);
 }
 
 void OpenBCI_32bit_Library::ADS_writeChannelData() {
@@ -2635,7 +2562,7 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
 }
 
 void OpenBCI_32bit_Library::ADS_writeChannelDataNoAvgDaisy() {
-  if (iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
+  if ((iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) || iWifi.tx) {
     // Don't run this function if the serial baud rate is not greater then the
     // minimum
     // Always write board ADS data
@@ -2850,8 +2777,72 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
   }
 }
 
-
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF ADS1299 FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>
+// ******************************************************************************
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/**
+* @description Creates a byteId for sending data spi to wifi shield
+* @param isStreamPacket {boolean} Set true if this is a streaming packet
+* @param isDaisy {boolean} Set true if daisy packet
+* @param packetNumber {uint8_t} What number packet are you trying to send?
+* @returns [char] The newly formed byteId where a byteId is defined as
+*           Bit 7 - Streaming byte packet
+*           Bits[6:3] - Packet count
+*           Bits[2:0] - Free
+* @author AJ Keller (@pushtheworldllc)
+*/
+uint8_t OpenBCI_32bit_Library::wifiByteIdMake(boolean isStreamPacket, boolean isDaisy, uint8_t packetNumber) {
+  // Set output initially equal to 0
+  uint8_t output = 0x00;
+
+  // Set first bit if this is a streaming packet
+  if  (isStreamPacket) output = output | 0x80;
+
+  // Set packet count bits Bits[6:3] NOTE: 0xFF is error
+  // convert int to char then shift then or
+  output = output | ((packetNumber & 0x0F) << 3);
+
+  return output;
+}
+
+/**
+ * [OpenBCI_32bit_Library::wifiStoreByte description]
+ * @param  b {uint8_t} A single byte to store
+ * @return   {boolean} True if the byte was stored, false if the buffer is full.
+ */
+boolean OpenBCI_32bit_Library::wifiStoreByte(uint8_t b) {
+  if (wifiBufferPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
+
+  wifiBuffer[wifiBufferPosition] = b;
+  wifiBufferPosition++;
+  return true;
+}
+
+/**
+ * Flush the 32 byte buffer to the wifi shield. Set byte id too...
+ */
+void OpenBCI_32bit_Library::wifiFlushBuffer() {
+  wifiBuffer[WIFI_SPI_BYTE_ID_POS] = wifiByteIdMake(streaming, daisyPresent, 0);
+  wifiWriteData(wifiBuffer, WIFI_SPI_MAX_PACKET_SIZE);
+  wifiBufferPosition = 0;
+}
+
+void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
+  uint8_t i = 0;
+  csLow(WIFI_SS);
+  xfer(0x02);
+  xfer(0x00);
+  while(len-- && i < WIFI_SPI_MAX_PACKET_SIZE) {
+      xfer(data[i++]);
+  }
+  while(i++ < WIFI_SPI_MAX_PACKET_SIZE) {
+      xfer(0); // Pad with zeros till 32
+  }
+  csHigh(WIFI_SS);
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<  END OF WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // ******************************************************************************
 // <<<<<<<<<<<<<<<<<<<<<<<<<  LIS3DH FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

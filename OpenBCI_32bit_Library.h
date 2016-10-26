@@ -70,9 +70,8 @@ public:
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
-  void    ADS_writeChannelDataSerial(void);
-  void    ADS_writeChannelDataSerialNoAvg(void);
-  void    ADS_writeChannelDataSpi(void);
+  void    ADS_writeChannelDataAvgDaisy(void);
+  void    ADS_writeChannelDataNoAvgDaisy(void);
   void    attachDaisy(void);
   void    begin(void);
   void    beginDebug(void);
@@ -143,7 +142,6 @@ public:
   void    setChannelsToDefault(void);
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
-  void    setSpiInfo(SpiInfo si, boolean rx, boolean tx);
   boolean smellDaisy(void);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
@@ -162,6 +160,11 @@ public:
   boolean useAccel();
   void    useAccel(boolean);
   boolean waitForNewChannelData(void);
+  uint8_t wifiByteIdMake(boolean, boolean, uint8_t);
+  void    wifiSetInfo(SpiInfo, boolean, boolean);
+  boolean wifiStoreByte(uint8_t);
+  void    wifiFlushBuffer(void);
+  void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   // void    write(uint8_t *, size_t len);
   // void    write(const char *data) {
@@ -215,8 +218,8 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
-  uint8_t spiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
-  uint8_t spiBufferPosition;
+  uint8_t wifiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
+  uint8_t wifiBufferPosition;
 
   volatile boolean channelDataAvailable;
 
@@ -230,7 +233,7 @@ public:
   // STRUCTS
   SerialInfo iSerial0;
   SerialInfo iSerial1;
-  SpiInfo iSpi;
+  SpiInfo iWifi;
 
   // Class Objects
   DSPI0 spi;  // use DSPI library
