@@ -506,7 +506,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
     }
     Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-    Serial0.println("Firmware: v2.0.0");
+    Serial0.println("Firmware: v2.0.1");
     sendEOT();
 }
 
@@ -796,6 +796,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
     timeOffset = 0;
     timeSetCharArrived = 0;
     streamPacketType = (char)OPENBCI_PACKET_TYPE_V3;
+    verbosity = false; // when verbosity is true, there will be Serial feedback
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -1065,17 +1066,15 @@ void OpenBCI_32bit_Library::csHigh(int SS)
 // *************************************************************************************
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  ADS1299 FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-
 void OpenBCI_32bit_Library::initialize_ads(){
-    verbosity = false;      // when verbosity is true, there will be Serial feedback
-// recommended power up sequence requiers >Tpor (~32mS)
+    // recommended power up sequence requiers >Tpor (~32mS)
     delay(50);
     pinMode(ADS_RST,OUTPUT);
     digitalWrite(ADS_RST,LOW);  // reset pin connected to both ADS ICs
     delayMicroseconds(4);   // toggle reset pin
     digitalWrite(ADS_RST,HIGH); // this will reset the Daisy if it is present
     delayMicroseconds(20);  // recommended to wait 18 Tclk before using device (~8uS);
-// initalize the  data ready chip select and reset pins:
+    // initalize the  data ready chip select and reset pins:
     pinMode(ADS_DRDY, INPUT); // we get DRDY asertion from the on-board ADS
     delay(40);
     resetADS(BOARD_ADS); // reset the on-board ADS registers, and stop DataContinuousMode

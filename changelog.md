@@ -1,3 +1,8 @@
+# v2.0.1
+
+### Bug Fixes
+* Bug where softReset message could be scrambled on daisy board.
+
 # v2.0.0-rc.6
 
 ### New Features
