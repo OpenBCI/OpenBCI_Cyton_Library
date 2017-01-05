@@ -499,9 +499,8 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
 void OpenBCI_32bit_Library::boardReset(void) {
     initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
     delay(500);
-
-    Serial0.println("OpenBCI V3 8-16 channel");
     configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
+    Serial0.println("OpenBCI V3 8-16 channel");
     Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
     if(daisyPresent){  // library will set this in initialize() if daisy present and functional
       Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
@@ -1068,6 +1067,7 @@ void OpenBCI_32bit_Library::csHigh(int SS)
 
 
 void OpenBCI_32bit_Library::initialize_ads(){
+    verbosity = false;      // when verbosity is true, there will be Serial feedback
 // recommended power up sequence requiers >Tpor (~32mS)
     delay(50);
     pinMode(ADS_RST,OUTPUT);
@@ -1116,7 +1116,6 @@ void OpenBCI_32bit_Library::initialize_ads(){
       leadOffSettings[i][PCHAN] = OFF;
       leadOffSettings[i][NCHAN] = OFF;
     }
-    verbosity = false;      // when verbosity is true, there will be Serial feedback
     firstDataPacket = true;
 
     streaming = false;
