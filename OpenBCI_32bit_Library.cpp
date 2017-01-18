@@ -553,10 +553,9 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
 */
 void OpenBCI_32bit_Library::boardReset(void) {
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
-  // delay(500);
-
-  Serial0.println("OpenBCI V3 8-16 channel");
+  delay(500);
   configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
+  Serial0.println("OpenBCI V3 8-16 channel");
   Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
   if(daisyPresent){  // library will set this in initialize() if daisy present and functional
     Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
@@ -929,17 +928,18 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   daisyPresent = false;
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
-  numberOfIncomingSettingsProcessedChannel = 0;
-  numberOfIncomingSettingsProcessedLeadOff = 0;
-  numberOfIncomingSettingsProcessedBoardType = 0;
   sendTimeSyncUpPacket = false;
   settingBoardMode = false;
   settingSampleRate = false;
   streaming = false;
   timeSynced = false;
+  verbosity = false; // when verbosity is true, there will be Serial feedback
 
   // Nums
   currentChannelSetting = 0;
+  numberOfIncomingSettingsProcessedChannel = 0;
+  numberOfIncomingSettingsProcessedLeadOff = 0;
+  numberOfIncomingSettingsProcessedBoardType = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -1269,7 +1269,6 @@ void OpenBCI_32bit_Library::csHigh(int SS)
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // *************************************************************************************
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  ADS1299 FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 void OpenBCI_32bit_Library::initialize_ads(){
   // recommended power up sequence requiers >Tpor (~32mS)
