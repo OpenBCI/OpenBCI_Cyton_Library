@@ -1,14 +1,15 @@
 #include <DSPI.h>
 
-int packetSendIntervalMs = 50; // 50 ms
+int packetSendIntervalMs = 500; // 50 ms
 unsigned long lastPacketSent = millis();
 const int packetSize = 32;
 uint8_t buf[packetSize];
-uint8_t WIFI_SS = 18;
+uint8_t WIFI_SS = 13;
 
 DSPI0 spi;  // use DSPI library
 
 boolean streaming = false;
+boolean wifi = false;
 
 void setup() {
 
@@ -26,7 +27,7 @@ void setup() {
   pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH);
 
   spi.begin();
-  spi.setSpeed(20000000);  // use 4MHz for ADS and LIS3DH
+  spi.setSpeed(8000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
 
   Serial0.begin(115200);
@@ -52,9 +53,17 @@ void loop() {
         Serial0.println("starting stream");
         break;
       case 's':
-        streaming = true;
+        streaming = false;
         Serial0.println("stopping stream");
         break;
+      case 'w':
+          wifi = !wifi;
+          if (wifi) {
+            Serial0.println("enabled wifi mode");
+          } else {
+            Serial0.println("disabled wifi mode");
+          }
+          break;
       case '0':
         digitalWrite(WIFI_SS,LOW);
         Serial0.println("forced pin 13 to low");
@@ -74,14 +83,12 @@ void loop() {
 void flushbufToSpi() {
   uint8_t i = 0;
   uint8_t len = packetSize;
-  digitalWrite(WIFI_SS,LOW);
+  if (wifi) digitalWrite(WIFI_SS,LOW);
   spi.transfer(0x02);
   spi.transfer(0x00);
-  while(len-- && i < packetSize) {
-      spi.transfer(buf[i++]);
+  while(i < packetSize) {
+      spi.transfer('a');
+      i++;
   }
-  while(i++ < packetSize) {
-      spi.transfer(0); // Pad with zeros till 32
-  }
-  digitalWrite(WIFI_SS,HIGH);
+  if (wifi) digitalWrite(WIFI_SS,HIGH);
 }
