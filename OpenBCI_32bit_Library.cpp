@@ -1225,7 +1225,7 @@ void OpenBCI_32bit_Library::csLow(int SS)
       break;
     case WIFI_SS:
       spi.setMode(DSPI_MODE0);
-      spi.setSpeed(20000000);
+      spi.setSpeed(10000000);
       digitalWrite(WIFI_SS, LOW);
       break;
     default:
@@ -1258,7 +1258,7 @@ void OpenBCI_32bit_Library::csHigh(int SS)
       spi.setSpeed(20000000); break;
     case WIFI_SS:
       digitalWrite(WIFI_SS, HIGH);
-      spi.setSpeed(20000000);
+      spi.setSpeed(10000000);
       break;
     default:
       break;

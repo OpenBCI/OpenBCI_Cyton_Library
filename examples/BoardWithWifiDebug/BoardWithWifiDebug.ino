@@ -1,6 +1,6 @@
 #include <DSPI.h>
 
-int packetSendIntervalMs = 500; // 50 ms
+int packetSendIntervalMs = 100; // 50 ms
 unsigned long lastPacketSent = millis();
 const int packetSize = 32;
 uint8_t buf[packetSize];
@@ -27,7 +27,7 @@ void setup() {
   pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH);
 
   spi.begin();
-  spi.setSpeed(8000000);  // use 4MHz for ADS and LIS3DH
+  spi.setSpeed(10000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
 
   Serial0.begin(115200);
