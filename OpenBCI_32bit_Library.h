@@ -140,6 +140,7 @@ public:
   void    sendChannelDataWithTimeAndAccel(void);
   void    sendChannelDataWithTimeAndRawAux(void);
   void    setChannelsToDefault(void);
+  void    setSampleRate(uint8_t newSampleRateCode);
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
   boolean smellDaisy(void);

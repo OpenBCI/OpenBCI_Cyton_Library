@@ -14,10 +14,11 @@ void setup() {
   board.iWifi.tx = true;
 
   // Bring up the OpenBCI Board
-  board.beginDebug(115200);
+  board.begin();
+
   // Change the sample rate
-  // board.curSampleRate = board.SAMPLE_RATE_500;
-  // board.iSerial0.tx = false;
+  board.setSampleRate(board.SAMPLE_RATE_500);
+  board.iSerial0.tx = false;
 
 }
 

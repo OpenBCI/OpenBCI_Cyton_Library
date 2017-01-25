@@ -570,9 +570,9 @@ void OpenBCI_32bit_Library::boardReset(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
-  writeSerial('$');
-  writeSerial('$');
-  writeSerial('$');
+  Serial0.print('$');
+  Serial0.print('$');
+  Serial0.print('$');
 }
 
 void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
@@ -680,6 +680,11 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
   }
 }
 
+void OpenBCI_32bit_Library::setSampleRate(uint8_t newSampleRateCode) {
+  curSampleRate = (SAMPLE_RATE)newSampleRateCode;
+  initialize_ads();
+}
+
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
   if (c == OPENBCI_SAMPLE_RATE_SET) {
     printSuccess();
@@ -690,7 +695,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
     uint8_t digit = c - '0';
     if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
-        curSampleRate = (SAMPLE_RATE)digit;
+        setSampleRate(digit);
         // initialize();
         printSuccess();
         Serial0.print("set sample rate to ");
@@ -2544,17 +2549,17 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
       // Code that runs with daisy present
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
         for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-          write(meanBoardDataRaw[i]);
+          writeSerial(meanBoardDataRaw[i]);
         }
       } else {
         for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-          write(meanDaisyDataRaw[i]);
+          writeSerial(meanDaisyDataRaw[i]);
         }
       }
     // Code that runs without the daisy present
     } else {
       for(int i = 0; i < 24; i++) {
-        write(boardChannelDataRaw[i]);
+        writeSerial(boardChannelDataRaw[i]);
       }
     }
   }
@@ -2566,13 +2571,13 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataNoAvgDaisy() {
     // minimum
     // Always write board ADS data
     for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      write(boardChannelDataRaw[i]);
+      wifiStoreByte(boardChannelDataRaw[i]);
     }
 
     // Only write daisy data if present
     if (daisyPresent) {
       for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-        write(daisyChannelDataRaw[i]);
+        wifiStoreByte(daisyChannelDataRaw[i]);
       }
     }
   }
@@ -2829,14 +2834,21 @@ void OpenBCI_32bit_Library::wifiFlushBuffer() {
 
 void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
   uint8_t i = 0;
+  byte b = 0;
   csLow(WIFI_SS);
   xfer(0x02);
   xfer(0x00);
   while(len-- && i < WIFI_SPI_MAX_PACKET_SIZE) {
-      xfer(data[i++]);
+      byte = xfer(data[i++]);
+      if (iWifi.rx) {
+        processChar(byte);
+      }
   }
   while(i++ < WIFI_SPI_MAX_PACKET_SIZE) {
-      xfer(0); // Pad with zeros till 32
+      byte = xfer(0); // Pad with zeros till 32
+      if (iWifi.rx) {
+        processChar(byte);
+      }
   }
   csHigh(WIFI_SS);
 }
