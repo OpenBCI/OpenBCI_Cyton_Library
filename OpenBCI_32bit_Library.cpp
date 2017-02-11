@@ -458,6 +458,7 @@ boolean OpenBCI_32bit_Library::boardBegin(void) {
   iSerial0.baudRate = OPENBCI_BAUD_RATE;
 
   pinMode(OPENBCI_PIN_LED, OUTPUT);
+  digitalWrite(OPENBCI_PIN_LED, HIGH);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
 
   // Startup the interrupt
@@ -563,6 +564,11 @@ void OpenBCI_32bit_Library::boardReset(void) {
   Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
   Serial0.println("Firmware: v3.0.0");
   sendEOT();
+  // Always keep pin low or else esp will fail to boot.
+  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
+  delay(1000);
+  digitalWrite(OPENBCI_PIN_LED, HIGH);
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH);
 }
 
 /**
@@ -911,7 +917,8 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH); // TODO: Figure out how to solve this problem
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
+  digitalWrite(OPENBCI_PIN_LED, LOW);
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
@@ -2839,15 +2846,15 @@ void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
   xfer(0x02);
   xfer(0x00);
   while(len-- && i < WIFI_SPI_MAX_PACKET_SIZE) {
-      byte = xfer(data[i++]);
+      b = xfer(data[i++]);
       if (iWifi.rx) {
-        processChar(byte);
+        processChar(b);
       }
   }
   while(i++ < WIFI_SPI_MAX_PACKET_SIZE) {
-      byte = xfer(0); // Pad with zeros till 32
+      b = xfer(0); // Pad with zeros till 32
       if (iWifi.rx) {
-        processChar(byte);
+        processChar(b);
       }
   }
   csHigh(WIFI_SS);
