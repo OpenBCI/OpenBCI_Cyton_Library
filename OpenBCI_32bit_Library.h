@@ -161,7 +161,6 @@ public:
   boolean useAccel();
   void    useAccel(boolean);
   boolean waitForNewChannelData(void);
-  uint8_t wifiByteIdMake(boolean, boolean, uint8_t);
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
   void    wifiFlushBuffer(void);

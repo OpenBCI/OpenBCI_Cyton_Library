@@ -35,16 +35,11 @@ void loop() {
 
       }
 
-      if (board.timeSynced) {
-        // Send time synced packet with channel data, current board time, and an accel reading
-        //  X axis is sent on sampleCounter % 10 == 7
-        //  Y axis is sent on sampleCounter % 10 == 8
-        //  Z axis is sent on sampleCounter % 10 == 9
-        board.sendChannelDataWithTimeAndAccel();
-      } else {
-        // Send standard packet with channel data
-        board.sendChannelDataWithAccel();
-      }
+      // Send time synced packet with channel data, current board time, and an accel reading
+      //  X axis is sent on sampleCounter % 10 == 7
+      //  Y axis is sent on sampleCounter % 10 == 8
+      //  Z axis is sent on sampleCounter % 10 == 9
+      board.sendChannelDataWithTimeAndAccel();
     }
   }
 

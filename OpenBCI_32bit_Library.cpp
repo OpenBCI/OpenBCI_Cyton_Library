@@ -1067,6 +1067,13 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
   writeSerial(OPENBCI_BOP); // 0x41
 
+  if (sendTimeSyncUpPacket) {
+    sendTimeSyncUpPacket = false;
+    wifiStoreByte((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET)); // 0xC3
+  } else {
+    wifiStoreByte((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
+  }
+
   write(sampleCounter); // 1 byte
 
   ADS_writeChannelData();       // 24 bytes
@@ -1092,9 +1099,9 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
   if (sendTimeSyncUpPacket) {
     sendTimeSyncUpPacket = false;
-    write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET)); // 0xC3
+    writeSerial((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET)); // 0xC3
   } else {
-    write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
+    writeSerial((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
   }
 
   if (iWifi.tx) {
@@ -2803,19 +2810,19 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 *           Bits[2:0] - Free
 * @author AJ Keller (@pushtheworldllc)
 */
-uint8_t OpenBCI_32bit_Library::wifiByteIdMake(boolean isStreamPacket, boolean isDaisy, uint8_t packetNumber) {
-  // Set output initially equal to 0
-  uint8_t output = 0x00;
-
-  // Set first bit if this is a streaming packet
-  if  (isStreamPacket) output = output | 0x80;
-
-  // Set packet count bits Bits[6:3] NOTE: 0xFF is error
-  // convert int to char then shift then or
-  output = output | ((packetNumber & 0x0F) << 3);
-
-  return output;
-}
+// uint8_t OpenBCI_32bit_Library::wifiByteIdMake(boolean isStreamPacket, uint8_t packetNumber) {
+//   // Set output initially equal to 0
+//   uint8_t output = 0x00;
+//
+//   // Set first bit if this is a streaming packet
+//   if  (isStreamPacket) output = output | 0x80;
+//
+//   // Set packet count bits Bits[6:3] NOTE: 0xFF is error
+//   // convert int to char then shift then or
+//   output = output | ((packetNumber & 0x0F) << 3);
+//
+//   return output;
+// }
 
 /**
  * [OpenBCI_32bit_Library::wifiStoreByte description]
@@ -2834,7 +2841,7 @@ boolean OpenBCI_32bit_Library::wifiStoreByte(uint8_t b) {
  * Flush the 32 byte buffer to the wifi shield. Set byte id too...
  */
 void OpenBCI_32bit_Library::wifiFlushBuffer() {
-  wifiBuffer[WIFI_SPI_BYTE_ID_POS] = wifiByteIdMake(streaming, daisyPresent, 0);
+  // wifiBuffer[WIFI_SPI_BYTE_ID_POS] = wifiByteIdMake(streaming, daisyPresent, 0);
   wifiWriteData(wifiBuffer, WIFI_SPI_MAX_PACKET_SIZE);
   wifiBufferPosition = 0;
 }
