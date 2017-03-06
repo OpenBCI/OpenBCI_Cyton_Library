@@ -387,7 +387,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // TODO: REMOVE THIS
       case '.':
-        sendChannelDataWithAccel();
+        sendChannelData(PACKET_TYPE_ACCEL);
         break;
 
       case '}':
@@ -411,12 +411,12 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   return true;
 }
 
-boolean OpenBCI_32bit_Library::useAccel(void) {
-  return curAccelMode == ACCEL_MODE_ON;
-}
-
 void OpenBCI_32bit_Library::useAccel(boolean yes) {
-  curAccelMode = yes ? ACCEL_MODE_ON : ACCEL_MODE_OFF;
+  if (yes) {
+    curPacketType = PACKET_TYPE_ACCEL;
+  } else {
+    curPacketType = PACKET_TYPE_RAW_AUX;
+  }
 }
 
 /**
@@ -571,11 +571,6 @@ void OpenBCI_32bit_Library::boardReset(void) {
   Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
   Serial0.println("Firmware: v3.0.0");
   sendEOT();
-  // Always keep pin low or else esp will fail to boot.
-  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  delay(1000);
-  digitalWrite(OPENBCI_PIN_LED, HIGH);
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH);
 }
 
 /**
@@ -925,7 +920,11 @@ void OpenBCI_32bit_Library::initialize(){
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
   pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
-  digitalWrite(OPENBCI_PIN_LED, LOW);
+  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET,LOW);
+  delay(20);
+  digitalWrite(WIFI_RESET, HIGH);
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH); // Set back to high
+
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
@@ -1120,7 +1119,7 @@ void OpenBCI_32bit_Library::sendRawAuxWifi(void) {
 *  Else if `sendTimeSyncUpPacket` is `false` then:
 *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
 */
-void OpenBCI_32bit_Library::sendTimeWithAccelSerial() {
+void OpenBCI_32bit_Library::sendTimeWithAccelSerial(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
     case ACCEL_AXIS_X: // 7
@@ -1154,7 +1153,7 @@ void OpenBCI_32bit_Library::sendTimeWithAccelSerial() {
 *  Else if `sendTimeSyncUpPacket` is `false` then:
 *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
 */
-void OpenBCI_32bit_Library::sendTimeWithAccelWifi() {
+void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
     case ACCEL_AXIS_X: // 7
@@ -1208,23 +1207,23 @@ void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
   writeTimeCurrentWifi(lastSampleTime); // 4 bytes
 }
 
-void OpenBCI_32bit_Library::writeAuxDataSerial(){
+void OpenBCI_32bit_Library::writeAuxDataSerial(void){
   for(int i = 0; i < 3; i++){
     writeSerial((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
     writeSerial((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
   }
 }
 
-void OpenBCI_32bit_Library::zeroAuxData(){
-  for(int i = 0; i < 3; i++){
-    auxData[i] = 0;   // reset auxData bytes to 0
-  }
-}
-
-void OpenBCI_32bit_Library::writeAuxDataWifi(){
+void OpenBCI_32bit_Library::writeAuxDataWifi(void){
   for(int i = 0; i < 3; i++){
     wifiStoreByte((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
     wifiStoreByte((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+  }
+}
+
+void OpenBCI_32bit_Library::zeroAuxData(void) {
+  for(int i = 0; i < 3; i++){
+    auxData[i] = 0;   // reset auxData bytes to 0
   }
 }
 
@@ -2366,14 +2365,6 @@ void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 * @description Check status register to see if data is available from the ADS1299.
 * @returns {boolean} - `true` if data is available
 */
-boolean OpenBCI_32bit_Library::waitForNewChannelData(void) {
-  return !isADSDataAvailable();
-}
-
-/**
-* @description Check status register to see if data is available from the ADS1299.
-* @returns {boolean} - `true` if data is available
-*/
 boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
   return (!(digitalRead(ADS_DRDY)));
 }
@@ -3014,11 +3005,6 @@ void OpenBCI_32bit_Library::LIS3DH_zeroAxisData(void){
   for(int i = 0; i < 3; i++){
     axisData[i] = 0;
   }
-}
-
-void OpenBCI_32bit_Library::LIS3DH_zeroAxisDataForAxis(uint8_t axis) {
-  if (axis > 2) axis = 0;
-  axisData[axis] = 0;
 }
 
 byte OpenBCI_32bit_Library::LIS3DH_read(byte reg){

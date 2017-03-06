@@ -66,12 +66,14 @@ public:
   OpenBCI_32bit_Library();
   boolean accelHasNewData(void);
   void    accelUpdateAxisData(void);
-  void    accelWriteAxisData(void);
+  void    accelWriteAxisDataSerial(void);
+  void    accelWriteAxisDataWifi(void);
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
   void    ADS_writeChannelDataAvgDaisy(void);
   void    ADS_writeChannelDataNoAvgDaisy(void);
+  void    ADS_writeChannelDataWifi(boolean daisy);
   void    attachDaisy(void);
   void    begin(void);
   void    beginDebug(void);
@@ -134,11 +136,7 @@ public:
   void    resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
   void    startADS(void);
   void    stopADS(void);
-  void    sendChannelData(void); // send the current data with sample number
-  void    sendChannelDataWithAccel(void);
-  void    sendChannelDataWithRawAux(void);
-  void    sendChannelDataWithTimeAndAccel(void);
-  void    sendChannelDataWithTimeAndRawAux(void);
+  void    sendChannelData(PACKET_TYPE);
   void    setChannelsToDefault(void);
   void    setSampleRate(uint8_t newSampleRateCode);
   void    sendEOT(void);
@@ -158,33 +156,23 @@ public:
   void    updateChannelData(void);   // retrieve data from ADS
   void    updateDaisyData(void);
   void    updateDaisyData(boolean);
-  boolean useAccel();
   void    useAccel(boolean);
-  boolean waitForNewChannelData(void);
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
   void    wifiFlushBuffer(void);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
-  // void    write(uint8_t *, size_t len);
-  // void    write(const char *data) {
-  //   write((uint8_t *)data, strlen(data));
-  // }
-  void    writeAuxData(void);
+  void    writeAuxDataSerial(void);
+  void    writeAuxDataWifi(void);
   void    writeChannelSettings(void);
   void    writeChannelSettings(byte);
   void    writeSerial(uint8_t);
-  // void    writeSerial(uint8_t *, size_t);
-  // void    writeSerial(const char *data) {
-  //   writeSerial((uint8_t *)data, strlen(data));
-  // }
   void    writeSpi(uint8_t);
-  // void    writeSpi(uint8_t *, size_t);
-  // void    writeSpi(const char *data) {
-  //   writeSpi((uint8_t *)data, strlen(data));
-  // }
   void    writeTimeCurrent(void);
+  void OpenBCI_32bit_Library::writeTimeCurrentSerial(uint32_t newTime)
+  void OpenBCI_32bit_Library::writeTimeCurrentWifi(uint32_t newTime)
   void    writeZeroAux(void);
+  void OpenBCI_32bit_Library::zeroAuxData(void)
 
   // Variables
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
@@ -264,9 +252,12 @@ private:
   boolean LIS3DH_DataReady(void); // check LIS3DH_DRDY pin
   boolean LIS3DH_DataAvailable(void); // check LIS3DH STATUS_REG2
   void    LIS3DH_readAllRegs(void);
-  void    LIS3DH_writeAxisData(void);
-  void    LIS3DH_writeAxisDataForAxis(uint8_t axis);
+  void    LIS3DH_writeAxisDataSerial(void);
+  void    LIS3DH_writeAxisDataWifi(void);
+  void    LIS3DH_writeAxisDataForAxisSerial(uint8_t axis);
+  void    LIS3DH_writeAxisDataForAxisWifi(uint8_t axis);
   void    LIS3DH_updateAxisData(void);
+  void    LIS3DH_zeroAxisData(void);
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
@@ -279,6 +270,13 @@ private:
   byte    RREG(byte,int);            // read one ADS register
   void    RREGS(byte,byte,int);      // read multiple ADS registers
   void    SDATAC(int);  // get out of read data continuous mode
+  void    sendChannelDataSerial(PACKET_TYPE);
+  void    sendChannelDataWifi(PACKET_TYPE, boolean);
+  void    sendRawAuxWifi(void);
+  void    sendTimeWithAccelWifi(void);
+  void    sendTimeWithAccelSerial(void);
+  void    sendTimeWithRawAuxSerial(void);
+  void    sendTimeWithRawAuxWifi(void);
   void    STANDBY(int); // go into low power mode
   void    START(int);   // start data acquisition
   void    STOP(int);    // stop data acquisition
