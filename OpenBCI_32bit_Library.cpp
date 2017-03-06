@@ -444,6 +444,13 @@ void OpenBCI_32bit_Library::accelWriteAxisData(void) {
 }
 
 /**
+* @description Reads from the accelerometer to get new X, Y, and Z data.
+*/
+void OpenBCI_32bit_Library::accelWriteAxisDataWifi(void) {
+  LIS3DH_writeAxisDataWifi();
+}
+
+/**
 * @description: This is a function that is called once and confiures all pins on
 *                 the PIC32 uC
 * @author: AJ Keller (@pushtheworldllc)
@@ -949,6 +956,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
 
   // Nums
   currentChannelSetting = 0;
+  lastSampleTime = 0;
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
@@ -1014,14 +1022,27 @@ void OpenBCI_32bit_Library::sendChannelDataWithAccel(void)  {
 
   accelWriteAxisData(); // 6 bytes
 
-  write((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
-
-  if (iWifi.tx) {
-    wifiFlushBuffer();
-  }
+  writeSerial((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 0xC0
 
   sampleCounter++;
+}
 
+/**
+* @description Writes channel data and `axisData` array to wifi
+*
+*  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
+*/
+void OpenBCI_32bit_Library::sendChannelDataWithAccelWifi(boolean daisy)  {
+
+  wifiStoreByte((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL)); // 1 byte
+
+  wifiStoreByte(sampleCounter); // 1 byte
+
+  ADS_writeChannelDataWifi(daisy); // 24 bytes
+
+  accelWriteAxisDataWifi(); // 6 bytes
+
+  wifiFlushBuffer();
 }
 
 /**
@@ -1049,6 +1070,44 @@ void OpenBCI_32bit_Library::sendChannelDataWithRawAux(void) {
   sampleCounter++;
 }
 
+void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean daisy) {
+  wifiStoreByte((uint8_t)(PCKT_END | packetType)); // 1 byte
+  wifiStoreByte(sampleCounter); // 1 byte
+  ADS_writeChannelDataWifi(daisy);       // 24 bytes
+
+  switch (packetType) {
+    case PACKET_TYPE_ACCEL:
+      accelWriteAxisDataWifi(); // 6 bytes
+      break;
+    case PACKET_TYPE_RAW_AUX:
+      writeAuxDataWifi(); // 6 bytes
+      break;
+    case PACKET_TYPE_ACCEL_TIME_SET:
+    case PACKET_TYPE_ACCEL_TIME_SYNC:
+      sendTimeWithAccelWifi();
+      break;
+    case PACKET_TYPE_RAW_AUX_TIME_SET:
+    case PACKET_TYPE_RAW_AUX_TIME_SYNC:
+      sendTimeAndRawAux();
+      break;
+    default:
+      break;
+  }
+
+  wifiFlushBuffer();
+}
+
+/**
+* @description Writes channel data and `auxData` array to serial port in
+*  the correct stream packet format.
+*
+*  Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See `OpenBCI_32bit_Library_Definitions.h`
+*/
+void OpenBCI_32bit_Library::sendRawAuxWifi(boolean daisy) {
+  writeAuxDataWifi();         // 6 bytes
+
+}
+
 /**
 * @description Writes channel data, `axisData` array, and 4 byte unsigned time
 *  stamp in ms to serial port in the correct stream packet format.
@@ -1067,14 +1126,7 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
 
   writeSerial(OPENBCI_BOP); // 0x41
 
-  if (sendTimeSyncUpPacket) {
-    sendTimeSyncUpPacket = false;
-    wifiStoreByte((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET)); // 0xC3
-  } else {
-    wifiStoreByte((uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SYNC)); // 0xC4
-  }
-
-  write(sampleCounter); // 1 byte
+  writeSerial(sampleCounter); // 1 byte
 
   ADS_writeChannelData();       // 24 bytes
 
@@ -1109,6 +1161,40 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndAccel(void) {
   }
 
   sampleCounter++;
+}
+
+/**
+* @description Writes channel data, `axisData` array, and 4 byte unsigned time
+*  stamp in ms to serial port in the correct stream packet format.
+*
+*  `axisData` will be split up and sent on the samples with `sampleCounter` of
+*   7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
+*
+*  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+*   getting a time sync set `<` command) then:
+*      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket`
+*      to `false`.
+*  Else if `sendTimeSyncUpPacket` is `false` then:
+*      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
+*/
+void OpenBCI_32bit_Library::sendTimeWithAccelWifi() {
+  // send two bytes of either accel data or blank
+  switch (sampleCounter % 10) {
+    case ACCEL_AXIS_X: // 7
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_X);
+      break;
+    case ACCEL_AXIS_Y: // 8
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Y);
+      break;
+    case ACCEL_AXIS_Z: // 9
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Z);
+      break;
+    default:
+      wifiStoreByte((byte)0x00); // high byte
+      wifiStoreByte((byte)0x00); // low byte
+      break;
+  }
+  writeTimeCurrentWifi(lastSampleTime); // 4 bytes
 }
 
 /**
@@ -1151,6 +1237,23 @@ void OpenBCI_32bit_Library::sendChannelDataWithTimeAndRawAux(void) {
 }
 
 /**
+* @description Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned
+*  time stamp in ms to serial port in the correct stream packet format.
+*
+*  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
+*   getting a time sync set `<` command) then:
+*      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket`
+*      to `false`.
+*  Else if `sendTimeSyncUpPacket` is `false` then:
+*      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+*/
+void OpenBCI_32bit_Library::sendTimeAndRawAux(void) {
+  write(highByte(auxData[0])); // 2 bytes of aux data
+  write(lowByte(auxData[0]));
+  writeTimeCurrent(); // 4 bytes
+}
+
+/**
 * @description Writes channel data, aux data, and footer to serial port. This
 *  is the old way to send channel data. Based on global variables `useAux`
 *  and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
@@ -1188,12 +1291,55 @@ void OpenBCI_32bit_Library::sendChannelData(void) {
 
   sampleCounter++;
 }
+void OpenBCI_32bit_Library::beforeSendData() {
+  if (iWifi.tx) {
+
+  }
+  if (iSer)
+}
+
+void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
+  switch (packetType) {
+    case PACKET_TYPE_ACCEL:
+      if (iWifi.tx) {
+        sendChannelDataWithAccelWifi(false);
+        if (daisyPresent) sendChannelDataWithAccelWifi(true);
+      }
+      if (iSerial0.tx || iSerial1.tx) sendChannelDataWithAccel();
+      break;
+    case PACKET_TYPE_RAW_AUX:
+      sendChannelDataWithRawAux();
+      break;
+    case PACKET_TYPE_ACCEL_TIME_SET:
+    case PACKET_TYPE_ACCEL_TIME_SYNC:
+      if (iWifi.tx) {
+        sendChannelDataWithTimeAndAccelWifi(false);
+        if (daisyPresent) sendChannelDataWithTimeAndAccelWifi(true);
+      }
+      if (iSerial0.tx || iSerial1.tx) sendChannelDataWithTimeAndAccel();
+      break;
+    case PACKET_TYPE_RAW_AUX_TIME_SET:
+    case PACKET_TYPE_RAW_AUX_TIME_SYNC:
+      sendChannelDataWithTimeAndRawAux();
+      break;
+    default:
+      sendChannelData();
+      break;
+  }
+}
 
 void OpenBCI_32bit_Library::writeAuxData(){
   for(int i = 0; i < 3; i++){
-    write((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
-    write((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    writeSerial((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    writeSerial((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
     auxData[i] = 0;   // reset auxData bytes to 0
+  }
+}
+
+void OpenBCI_32bit_Library::writeAuxDataWifi(){
+  for(int i = 0; i < 3; i++){
+    wifiStoreByte((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    wifiStoreByte((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
   }
 }
 
@@ -1201,6 +1347,13 @@ void OpenBCI_32bit_Library::writeTimeCurrent(void) {
   uint32_t newTime = millis(); // serialize the number, placing the MSB in lower packets
   for (int j = 3; j >= 0; j--) {
     write((uint8_t)(newTime >> (j*8)));
+  }
+}
+
+void OpenBCI_32bit_Library::writeTimeCurrentWifi(uint32_t newTime) {
+  // serialize the number, placing the MSB in lower packets
+  for (int j = 3; j >= 0; j--) {
+    wifiStoreByte((uint8_t)(newTime >> (j*8)));
   }
 }
 
@@ -2337,8 +2490,10 @@ void OpenBCI_32bit_Library::updateChannelData(){
   // this needs to be reset, or else it will constantly flag us
   channelDataAvailable = false;
 
+  lastSampleTime = millis();
+
   boolean downsample = true;
-  if (iSerial0.tx == false && (iWifi.tx || iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
+  if (iSerial0.tx == false && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
     downsample = false;
   }
 
@@ -2557,6 +2712,20 @@ void OpenBCI_32bit_Library::ADS_writeChannelData() {
 }
 
 
+void OpenBCI_32bit_Library::ADS_writeChannelDataWifi(boolean daisy) {
+  if (daisy) {
+    // Send daisy
+    for(int i = 0; i < 24; i++) {
+      wifiStoreByte(daisyChannelDataRaw[i]);
+    }
+  } else {
+    // Send on board
+    for(int i = 0; i < 24; i++) {
+      wifiStoreByte(boardChannelDataRaw[i]);
+    }
+  }
+}
+
 void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
   if (iSerial0.tx || (iSerial1.tx && iSerial1.baudRate <= OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     if (daisyPresent) {
@@ -2580,18 +2749,18 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
 }
 
 void OpenBCI_32bit_Library::ADS_writeChannelDataNoAvgDaisy() {
-  if ((iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) || iWifi.tx) {
+  if (iSerial1.tx && iSerial1.baudRate > OPENBCI_BAUD_RATE_MIN_NO_AVG) {
     // Don't run this function if the serial baud rate is not greater then the
     // minimum
     // Always write board ADS data
     for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-      wifiStoreByte(boardChannelDataRaw[i]);
+      writeSerial(boardChannelDataRaw[i]);
     }
 
     // Only write daisy data if present
     if (daisyPresent) {
       for(int i = 0; i < OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE; i++) {
-        wifiStoreByte(daisyChannelDataRaw[i]);
+        writeSerial(daisyChannelDataRaw[i]);
       }
     }
   }
@@ -2924,16 +3093,38 @@ boolean OpenBCI_32bit_Library::LIS3DH_DataReady(){
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisData(void){
   for(int i = 0; i < 3; i++){
-    write(highByte(axisData[i])); // write 16 bit axis data MSB first
-    write(lowByte(axisData[i]));  // axisData is array of type short (16bit)
-    axisData[i] = 0;
+    writeSerial(highByte(axisData[i])); // write 16 bit axis data MSB first
+    writeSerial(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+  }
+}
+
+void OpenBCI_32bit_Library::LIS3DH_writeAxisDataWifi(void){
+  for(int i = 0; i < 3; i++){
+    wifiStoreByte(highByte(axisData[i])); // write 16 bit axis data MSB first
+    wifiStoreByte(lowByte(axisData[i]));  // axisData is array of type short (16bit)
   }
 }
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxis(uint8_t axis) {
   if (axis > 2) axis = 0;
-  write(highByte(axisData[axis])); // write 16 bit axis data MSB first
-  write(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+  writeSerial(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  writeSerial(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+}
+
+void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForWifi(uint8_t axis) {
+  if (axis > 2) axis = 0;
+  wifiStoreByte(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  wifiStoreByte(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+}
+
+void OpenBCI_32bit_Library::LIS3DH_zeroAxisData(void){
+  for(int i = 0; i < 3; i++){
+    axisData[i] = 0;
+  }
+}
+
+void OpenBCI_32bit_Library::LIS3DH_zeroAxisDataForAxis(uint8_t axis) {
+  if (axis > 2) axis = 0;
   axisData[axis] = 0;
 }
 

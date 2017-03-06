@@ -221,6 +221,8 @@ public:
   uint8_t wifiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
   uint8_t wifiBufferPosition;
 
+  unsigned long lastSampleTime;
+
   volatile boolean channelDataAvailable;
 
   // ENUMS
