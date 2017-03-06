@@ -29,6 +29,7 @@
 #define WIFI_SS 13          // Wifi Chip Select
 #define OPENBCI_PIN_LED 11
 #define OPENBCI_PIN_PGC 12
+#define WIFI_RESET 18
 
 #define OPENBCI_PIN_SERIAL1_TX 11
 #define OPENBCI_PIN_SERIAL1_RX 12
