@@ -8,16 +8,15 @@ void setup() {
   // Notify the board we want to use accel data
   // board.useAccel(true);
 
-
-  // board.wifi.active = true;
-  // board.wifi.rx = false;
+  board.iWifi.rx = true;
   board.iWifi.tx = true;
+
+  board.curSampleRate = board.SAMPLE_RATE_2000;
 
   // Bring up the OpenBCI Board
   board.begin();
 
   // Change the sample rate
-  board.setSampleRate(board.SAMPLE_RATE_500);
   board.iSerial0.tx = false;
 
   board.timeSynced = true;
