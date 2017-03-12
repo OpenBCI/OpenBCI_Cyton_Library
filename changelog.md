@@ -5,6 +5,7 @@
 * Add ability to turn external serial port `Serial1` on through commands.
 * Add ability to use ESP8266 through SPI port.
 * Change board types on the fly!
+* Add loop function for internal timing operations
 
 ### Enhancements
 
@@ -16,7 +17,7 @@
 * Removed `OPENBCI_EOP_STND_ACCEL`, `OPENBCI_EOP_STND_RAW_AUX`, `OPENBCI_EOP_USER_DEFINED`, `OPENBCI_EOP_ACCEL_TIME_SET`, `OPENBCI_EOP_ACCEL_TIME_SYNCED`, `OPENBCI_EOP_RAW_AUX_TIME_SET`, and `OPENBCI_EOP_RAW_AUX_TIME_SYNCED` in place of `enum` support replacement: `PACKET_TYPE_ACCEL`, `PACKET_TYPE_RAW_AUX`, `PACKET_TYPE_USER_DEFINED`, `PACKET_TYPE_ACCEL_TIME_SET`, `PACKET_TYPE_ACCEL_TIME_SYNC`, `PACKET_TYPE_RAW_AUX_TIME_SET`, and `PACKET_TYPE_RAW_AUX_TIME_SYNC`.
 * Removed `sniffMode` in place for `curBoardMode == OPENBCI_BOARD_MODE_DEBUG`
 * Removed `sendChannelData(void)` function, use `sendChannelData(PACKET_TYPE)` and specify packet type.
-* Removed public `waitForNewChannelData()` 
+* Removed public `waitForNewChannelData()`
 
 # v2.0.1
 

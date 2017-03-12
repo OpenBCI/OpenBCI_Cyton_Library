@@ -920,16 +920,37 @@ void OpenBCI_32bit_Library::initialize(){
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
   pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
-  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET,LOW);
-  delay(20);
-  digitalWrite(WIFI_RESET, HIGH);
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,HIGH); // Set back to high
+  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
+  digitalWrite(OPENBCI_PIN_LED, LOW);
+  timeOfWifiToggle = millis();
+  toggleWifiCS = true;
+  toggleWifiReset = true;
 
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
   initialize_ads(); // hard reset ADS, set pin directions
   initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
+}
+
+/**
+ * OpenBCI_32bit_Library::loop used to run internal library looping functions
+ *  mainly used for timers and such.
+ */
+void OpenBCI_32bit_Library::loop(void) {
+  if (toggleWifiReset) {
+    if ((millis() - timeOfWifiToggle) > 200) {
+      digitalWrite(WIFI_RESET, HIGH);
+      toggleWifiReset = false;
+    }
+  }
+  if (toggleWifiCS) {
+    if ((millis() - timeOfWifiToggle) > 2000) {
+      digitalWrite(OPENBCI_PIN_LED, HIGH);
+      digitalWrite(WIFI_SS, HIGH); // Set back to high
+      toggleWifiCS = false;
+    }
+  }
 }
 
 // void __USER_ISR ADS_DRDY_Service() {
@@ -951,6 +972,8 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   settingSampleRate = false;
   streaming = false;
   timeSynced = false;
+  toggleWifiCS = false;
+  toggleWifiReset = false;
   verbosity = false; // when verbosity is true, there will be Serial feedback
 
   // Nums
@@ -959,6 +982,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
+  timeOfWifiToggle = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -1157,13 +1181,13 @@ void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
     case ACCEL_AXIS_X: // 7
-      LIS3DH_writeAxisDataForAxisSerialWifi(ACCEL_AXIS_X);
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_X);
       break;
     case ACCEL_AXIS_Y: // 8
-      LIS3DH_writeAxisDataForAxisSerialWifi(ACCEL_AXIS_Y);
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Y);
       break;
     case ACCEL_AXIS_Z: // 9
-      LIS3DH_writeAxisDataForAxisSerialWifi(ACCEL_AXIS_Z);
+      LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Z);
       break;
     default:
       wifiStoreByte((byte)0x00); // high byte

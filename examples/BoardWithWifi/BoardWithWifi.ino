@@ -20,9 +20,12 @@ void setup() {
   board.setSampleRate(board.SAMPLE_RATE_500);
   board.iSerial0.tx = false;
 
+  board.timeSynced = true;
+
 }
 
 void loop() {
+  board.loop();
   if (board.streaming) {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
@@ -34,9 +37,17 @@ void loop() {
         board.accelUpdateAxisData();
 
       }
-
+      if (board.timeSynced) {
+        // Send time synced packet with channel data, current board time, and an accel reading
+        //  X axis is sent on sampleCounter % 10 == 7
+        //  Y axis is sent on sampleCounter % 10 == 8
+        //  Z axis is sent on sampleCounter % 10 == 9
+        board.sendChannelData(board.PACKET_TYPE_ACCEL_TIME_SYNC);
+      } else {
+        // Send standard packet with channel data
+        board.sendChannelData(board.PACKET_TYPE_ACCEL);
+      }
       // Send time synced packet with channel data, current board time, and an accel reading
-      board.sendChannelData(board.PACKET_TYPE_ACCEL_TIME_SYNC);
     }
   }
 

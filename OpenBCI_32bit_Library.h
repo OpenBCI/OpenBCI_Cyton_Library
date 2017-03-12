@@ -112,6 +112,7 @@ public:
   void    leadOffSetForAllChannels(void);
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
+  void    loop(void);
   void    printSerial(uint8_t);
   void    printSerial(uint8_t c, uint8_t arg);
   void    printSerial(uint8_t *, size_t len);
@@ -169,10 +170,10 @@ public:
   void    writeSerial(uint8_t);
   void    writeSpi(uint8_t);
   void    writeTimeCurrent(void);
-  void OpenBCI_32bit_Library::writeTimeCurrentSerial(uint32_t newTime)
-  void OpenBCI_32bit_Library::writeTimeCurrentWifi(uint32_t newTime)
+  void    writeTimeCurrentSerial(uint32_t newTime);
+  void    writeTimeCurrentWifi(uint32_t newTime);
   void    writeZeroAux(void);
-  void OpenBCI_32bit_Library::zeroAuxData(void)
+  void    zeroAuxData(void);
 
   // Variables
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
@@ -294,6 +295,8 @@ private:
   boolean sendTimeSyncUpPacket;
   boolean settingBoardMode;
   boolean settingSampleRate;
+  boolean toggleWifiCS;
+  boolean toggleWifiReset;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;
@@ -309,6 +312,7 @@ private:
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
+  unsigned long timeOfWifiToggle;
 
 };
 
