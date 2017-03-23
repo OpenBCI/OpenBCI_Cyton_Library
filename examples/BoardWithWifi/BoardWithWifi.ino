@@ -11,7 +11,7 @@ void setup() {
   board.iWifi.rx = true;
   board.iWifi.tx = true;
 
-  board.curSampleRate = board.SAMPLE_RATE_2000;
+  board.curSampleRate = board.SAMPLE_RATE_250;
 
   // Bring up the OpenBCI Board
   board.begin();
@@ -20,7 +20,6 @@ void setup() {
   board.iSerial0.tx = false;
 
   board.timeSynced = true;
-
 }
 
 void loop() {
@@ -34,7 +33,6 @@ void loop() {
       if(board.accelHasNewData()) {
         // Get new accel data
         board.accelUpdateAxisData();
-
       }
       if (board.timeSynced) {
         // Send time synced packet with channel data, current board time, and an accel reading

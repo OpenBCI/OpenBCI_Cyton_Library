@@ -161,6 +161,7 @@ public:
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
   void    wifiFlushBuffer(void);
+  void    wifiReadData(void);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   void    writeAuxDataSerial(void);
@@ -208,6 +209,7 @@ public:
   short axisData[3];
 
   uint8_t wifiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
+  char wifiBufferInput[WIFI_SPI_MAX_PACKET_SIZE];
   uint8_t wifiBufferPosition;
 
   unsigned long lastSampleTime;
@@ -255,8 +257,8 @@ private:
   void    LIS3DH_readAllRegs(void);
   void    LIS3DH_writeAxisDataSerial(void);
   void    LIS3DH_writeAxisDataWifi(void);
-  void    LIS3DH_writeAxisDataForAxisSerial(uint8_t axis);
-  void    LIS3DH_writeAxisDataForAxisWifi(uint8_t axis);
+  void    LIS3DH_writeAxisDataForAxisSerial(uint8_t);
+  void    LIS3DH_writeAxisDataForAxisWifi(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
   void    printADSregisters(int);
@@ -265,6 +267,7 @@ private:
   void    printHex(byte);
   void    printRegisterName(byte);
   void    printSuccess();
+  void    processCharWifi(uint8_t);
   void    RDATA(int);   // read data one-shot
   void    RDATAC(int);  // go into read data continuous mode
   void    RESET(int);   // set all register values to default

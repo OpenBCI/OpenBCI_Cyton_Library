@@ -387,7 +387,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // TODO: REMOVE THIS
       case '.':
-        sendChannelData(PACKET_TYPE_ACCEL);
+        wifiReadData();
+
+        Serial.print(wifiBufferInput);
         break;
 
       case '}':
@@ -416,6 +418,12 @@ void OpenBCI_32bit_Library::useAccel(boolean yes) {
     curPacketType = PACKET_TYPE_ACCEL;
   } else {
     curPacketType = PACKET_TYPE_RAW_AUX;
+  }
+}
+
+void OpenBCI_32bit_Library::processCharWifi(uint8_t c) {
+  if (c != 0) {
+    Serial0.write(c);
   }
 }
 
@@ -2923,6 +2931,11 @@ void OpenBCI_32bit_Library::wifiFlushBuffer() {
   wifiBufferPosition = 0;
 }
 
+/**
+ * Used to write data out
+ * @param data [description]
+ * @param len  [description]
+ */
 void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
   uint8_t i = 0;
   byte b = 0;
@@ -2930,16 +2943,23 @@ void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
   xfer(0x02);
   xfer(0x00);
   while(len-- && i < WIFI_SPI_MAX_PACKET_SIZE) {
-      b = xfer(data[i++]);
-      if (iWifi.rx) {
-        processChar(b);
-      }
+    xfer(data[i++]);
   }
   while(i++ < WIFI_SPI_MAX_PACKET_SIZE) {
-      b = xfer(0); // Pad with zeros till 32
-      if (iWifi.rx) {
-        processChar(b);
-      }
+    xfer(0); // Pad with zeros till 32
+  }
+  csHigh(WIFI_SS);
+}
+
+/**
+ * Used to read data into the wifi input buffer
+ */
+void OpenBCI_32bit_Library::wifiReadData() {
+  csLow(WIFI_SS);
+  xfer(0x03);
+  xfer(0x00);
+  for(uint8_t i = 0; i < 32; i++) {
+    wifiBufferInput[i] = xfer(0);
   }
   csHigh(WIFI_SS);
 }
