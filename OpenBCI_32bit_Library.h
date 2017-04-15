@@ -158,10 +158,15 @@ public:
   void    updateDaisyData(void);
   void    updateDaisyData(boolean);
   void    useAccel(boolean);
+  void    wifiAttach(void);
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
   void    wifiFlushBuffer(void);
   void    wifiReadData(void);
+  uint32_t wifiReadStatus(void);
+  void    wifiRemove(void);
+  void    wifiReset(void);
+  boolean wifiSmell(void);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   void    writeAuxDataSerial(void);
@@ -185,6 +190,7 @@ public:
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
   boolean verbosity; // turn on/off Serial verbosity
+  boolean wifiPresent;
 
   byte boardChannelDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
   byte channelSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // array to hold current channel settings
@@ -266,6 +272,7 @@ private:
   void    printFailure();
   void    printHex(byte);
   void    printRegisterName(byte);
+  void    printSampleRate(void);
   void    printSuccess();
   void    processCharWifi(uint8_t);
   void    RDATA(int);   // read data one-shot
@@ -300,6 +307,8 @@ private:
   boolean settingSampleRate;
   boolean toggleWifiCS;
   boolean toggleWifiReset;
+  boolean soughtWifiShield;
+  boolean seekingWifi;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;
@@ -316,7 +325,7 @@ private:
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
   unsigned long timeOfWifiToggle;
-
+  unsigned long timeOfWifiStart;
 };
 
 // This let's us call into the class from within the library if necessary

@@ -11,7 +11,7 @@ void setup() {
   board.iWifi.rx = true;
   board.iWifi.tx = true;
 
-  board.curSampleRate = board.SAMPLE_RATE_250;
+  board.curSampleRate = board.SAMPLE_RATE_500;
 
   // Bring up the OpenBCI Board
   board.begin();

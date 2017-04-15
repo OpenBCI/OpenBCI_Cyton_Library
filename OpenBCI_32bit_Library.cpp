@@ -387,9 +387,11 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // TODO: REMOVE THIS
       case '.':
-        wifiReadData();
-
-        Serial.print(wifiBufferInput);
+        if (wifiSmell()) {
+          Serial0.println("wifi is present");
+        } else {
+          Serial0.println("wifi not present");
+        }
         break;
 
       case '}':
@@ -701,11 +703,38 @@ void OpenBCI_32bit_Library::setSampleRate(uint8_t newSampleRateCode) {
   initialize_ads();
 }
 
+void OpenBCI_32bit_Library::printSampleRate() {
+  switch (curSampleRate) {
+    case SAMPLE_RATE_16000:
+      Serial0.print("16000");
+      break;
+    case SAMPLE_RATE_8000:
+      Serial0.print("8000");
+      break;
+    case SAMPLE_RATE_4000:
+      Serial0.print("4000");
+      break;
+    case SAMPLE_RATE_2000:
+      Serial0.print("2000");
+      break;
+    case SAMPLE_RATE_1000:
+      Serial0.print("1000");
+      break;
+    case SAMPLE_RATE_500:
+      Serial0.print("500");
+      break;
+    case SAMPLE_RATE_250:
+    default:
+      Serial0.print("250");
+      break;
+
+  }
+}
+
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
   if (c == OPENBCI_SAMPLE_RATE_SET) {
     printSuccess();
-    Serial0.print("current sample rate is ");
-    Serial0.println(curSampleRate);
+    printSampleRate();
     sendEOT();
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
@@ -714,8 +743,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
         setSampleRate(digit);
         // initialize();
         printSuccess();
-        Serial0.print("set sample rate to ");
-        Serial0.println(curSampleRate);
+        printSampleRate();
         sendEOT();
       }
     } else {
@@ -925,14 +953,9 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
-  // Always keep pin low or else esp will fail to boot.
-  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS,LOW);
-  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
-  digitalWrite(OPENBCI_PIN_LED, LOW);
-  timeOfWifiToggle = millis();
-  toggleWifiCS = true;
-  toggleWifiReset = true;
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS, HIGH);
+  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, HIGH);
+  wifiReset();
 
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
@@ -957,6 +980,14 @@ void OpenBCI_32bit_Library::loop(void) {
       digitalWrite(OPENBCI_PIN_LED, HIGH);
       digitalWrite(WIFI_SS, HIGH); // Set back to high
       toggleWifiCS = false;
+      timeOfWifiToggle = millis();
+      seekingWifi = true;
+    }
+  }
+  if (seekingWifi) {
+    if ((millis() - timeOfWifiToggle) > 2000) {
+      seekingWifi = false;
+      wifiAttach();
     }
   }
 }
@@ -975,14 +1006,17 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   daisyPresent = false;
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
+  seekingWifi = false;
   sendTimeSyncUpPacket = false;
   settingBoardMode = false;
   settingSampleRate = false;
+  soughtWifiShield = false;
   streaming = false;
   timeSynced = false;
   toggleWifiCS = false;
   toggleWifiReset = false;
   verbosity = false; // when verbosity is true, there will be Serial feedback
+  wifiPresent = false;
 
   // Nums
   currentChannelSetting = 0;
@@ -991,6 +1025,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
   timeOfWifiToggle = 0;
+  timeOfWifiStart = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -2962,6 +2997,69 @@ void OpenBCI_32bit_Library::wifiReadData() {
     wifiBufferInput[i] = xfer(0);
   }
   csHigh(WIFI_SS);
+}
+
+/**
+ * Used to attach a wifi shield, only if there is actuall a wifi shield present
+ */
+void OpenBCI_32bit_Library::wifiAttach(void) {
+  wifiPresent = wifiSmell();
+  if(!wifiPresent) {
+    iWifi.rx = false;
+    iWifi.tx = false;
+    if(!isRunning) Serial0.println("no wifi shield to attach!");
+  } else {
+    iWifi.rx = true;
+    iWifi.tx = true;
+    if(!isRunning) Serial0.println("wifi attached");
+  }
+}
+
+/**
+ * Used to detach the wifi shield, sort of.
+ */
+void OpenBCI_32bit_Library::wifiRemove(void) {
+  iWifi.rx = false;
+  iWifi.tx = false;
+  wifiPresent = false;
+}
+
+/**
+ * Used to power on reset the ESP8266 wifi shield. Used in conjunction with `.loop()`
+ */
+void OpenBCI_32bit_Library::wifiReset(void) {
+  // Always keep pin low or else esp will fail to boot.
+  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
+  digitalWrite(WIFI_SS,LOW);
+  digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
+  digitalWrite(OPENBCI_PIN_LED, LOW); // Good visual indicator of what's going on
+  timeOfWifiToggle = millis();
+  toggleWifiCS = true;
+  toggleWifiReset = true;
+}
+
+/**
+ * Used to check and see if the wifi is present
+ * @return  [description]
+ */
+boolean OpenBCI_32bit_Library::wifiSmell(void){
+  boolean isWifi = false;
+  uint32_t uuid = wifiReadStatus();
+  if(verbosity){Serial0.print("Wifi ID 0x"); Serial0.println(uuid,HEX); sendEOT();}
+  if(uuid == 0) {isWifi = true;} // should read as 0x3E
+  return isWifi;
+}
+
+/**
+ * Used to read the status register from the ESP8266 wifi shield
+ * @return uint32_t the status
+ */
+uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
+  csLow(WIFI_SS);
+  xfer(0x04);
+  uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
+  csHigh(WIFI_SS);
+  return status;
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>
