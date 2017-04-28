@@ -26,11 +26,8 @@ void setup() {
   // Bring up the OpenBCI Board
   board.begin();
 
-  // Notify the board we don't want to use accel data
-  board.useAccel = false;
-
-  // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAux = true;
+  // Notify the board we don't want to use accel data and use aux
+  board.useAccel(false);
 
   // Configure two external triggers
   pinMode(leftButton, INPUT);    // set the button pin direction
@@ -73,7 +70,7 @@ void loop() {
         writeDataToSDcard(board.sampleCounter);
       }
 
-      // Send standard packet with channel data and accel data
+      // Send standard packet with channel data and aux data
       //  includes aux data because we set told the board to add it
       board.sendChannelData();
     }

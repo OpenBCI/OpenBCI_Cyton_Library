@@ -7,7 +7,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use accel data
-  board.useAccel = true;
+  board.useAccel(true);
 }
 
 void loop() {
@@ -26,11 +26,7 @@ void loop() {
       }
 
       // Send standard packet with channel data
-      if (board.timeSynced) {
-        board.sendChannelDataWithTimeAndAccel();
-      } else {
-        board.sendChannelDataWithAccel();
-      }
+      board.sendChannelData();
     }
   }
 

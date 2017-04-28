@@ -7,7 +7,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAux = true;
+  board.useAccel(false);
 }
 
 void loop() {
@@ -23,14 +23,9 @@ void loop() {
       // take a reading from the ADC. Result range from 0 to 1023
       board.auxData[0] = analogRead(A7);
 
-      // Send standard packet with channel data and accel data
+      // Send standard packet with channel data and aux data
       //  includes aux data because we set `useAux` in setup()
-      if (board.timeSynced) {
-        board.sendChannelDataWithTimeAndRawAux();
-      } else {
-        // Send standard packet with channel data
-        board.sendChannelDataWithRawAux();
-      }
+      board.sendChannelData();
     }
   }
 

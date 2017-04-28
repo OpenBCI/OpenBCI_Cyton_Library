@@ -10,6 +10,7 @@ boolean addAuxToSD = false; // On writeDataToSDCard() call adds Aux data to SD c
 boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file open
 
 void setup() {
+  board.useAccel(false);
   // Bring up the OpenBCI Board
   board.begin();
 }

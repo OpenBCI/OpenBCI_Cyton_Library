@@ -137,7 +137,11 @@ void loop() {
 ```
 The first `if` statement is only `true` if a `b` command is ran through the `processChar` function. The next `if` statement exploits a `volatile` interrupt driven `boolean` called `channelDataAvailable`. This interrupt driven system is new as of firmware version 2.0.0 a discussion of it can be [found here](https://github.com/OpenBCI/OpenBCI_32bit_Library/issues/22). If the ADS1299 has signaled to the Board new data is ready, the function `updateChannelData()` is executed. This function will grab new data from the Board's ADS1299 (and from the daisy's ADS1299) and store that data to the arrays: `lastBoardDataRaw`, `boardChannelDataRaw`, `meanBoardDataRaw`, `lastDaisyDataRaw`, `daisyChannelDataRaw`, `meanDaisyDataRaw`, which can be accessed to drive filters or whatever your heart desires.
 
+
 ## <a name="systemOverview"></a> System Overview:
+
+### Sending Channel Data
+In the OpenBCI system, and with most wireless systems, we are restricted by the rate at which we can send data.
 
 If you send a packet from the Pic32 to the Device RFduino and you start it with `0x41`, write 31 bytes, and follow with `0xCX` (where `X` can be `0-F` hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
 

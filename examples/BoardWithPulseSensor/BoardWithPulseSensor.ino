@@ -35,7 +35,7 @@ void setup() {
   board.begin();
 
   // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAux = true;
+  board.useAccel(false);
 
   // make an 'I'm alive' blink
   for(int i=0; i<3; i++){

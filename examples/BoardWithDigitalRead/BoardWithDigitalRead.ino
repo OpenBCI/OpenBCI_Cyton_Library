@@ -7,7 +7,7 @@ void setup() {
     board.begin();
 
     // Notify the board we want to use aux data, this effects `::sendChannelData()`
-    board.useAux = true;
+    board.useAccel(false);
 
     // Set pin to input A0-A5 can be digital input
     pinMode(17, INPUT);
@@ -26,14 +26,8 @@ void loop() {
         // take a reading from the ADC. Result range from 0 to 1023
         board.auxData[0] = digitalRead(17);
 
-        // Send standard packet with channel data and accel data
-        //  includes aux data because we set `useAux` in setup()
-        if (board.timeSynced) {
-            board.sendChannelDataWithTimeAndRawAux();
-        } else {
-            // Send standard packet with channel data
-            board.sendChannelDataWithRawAux();
-        }
+        // Send packet with channel data and auxData contents
+        board.sendChannelData();
       }
     }
 
