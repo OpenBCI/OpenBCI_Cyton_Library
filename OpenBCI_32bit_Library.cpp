@@ -354,22 +354,22 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // TIME SYNC
       case OPENBCI_TIME_SET:
         // Set flag to send time packet
-        if (streaming) {
-          sendTimeSyncUpPacket = true;
-        } else {
+        if (!streaming && iSerial0.tx) {
           Serial0.print("Time stamp ON");
           sendEOT();
         }
-        timeSynced = true;
+        curTimeSyncMode = TIME_SYNC_MODE_ON;
+        setCurPacketType();
         break;
 
       case OPENBCI_TIME_STOP:
         // Stop the Sync
-        timeSynced = false;
         if (!streaming) {
           Serial0.print("Time stamp OFF");
           sendEOT();
         }
+        curTimeSyncMode = TIME_SYNC_MODE_OFF;
+        setCurPacketType();
         break;
 
       // BOARD TYPE SET TYPE
@@ -415,18 +415,22 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   return true;
 }
 
+/**
+ * Used to turn on or off the accel, will change the current packet type!
+ * @param yes {boolean} - True if you want to use it
+ */
 void OpenBCI_32bit_Library::useAccel(boolean yes) {
-  if (yes) {
-    curPacketType = PACKET_TYPE_ACCEL;
-  } else {
-    curPacketType = PACKET_TYPE_RAW_AUX;
-  }
+  curAccelMode = yes ? ACCEL_MODE_ON : ACCEL_MODE_OFF;
+  setCurPacketType();
 }
 
-void OpenBCI_32bit_Library::processCharWifi(uint8_t c) {
-  if (c != 0) {
-    Serial0.write(c);
-  }
+/**
+ * Used to turn on or off time syncing/stamping, will change the current packet type!
+ * @param yes {boolean} - True if you want to use it
+ */
+void OpenBCI_32bit_Library::useTimeStamp(boolean yes) {
+  curTimeSyncMode = yes ? TIME_SYNC_MODE_ON : TIME_SYNC_MODE_OFF;
+  setCurPacketType();
 }
 
 /**
@@ -990,6 +994,15 @@ void OpenBCI_32bit_Library::loop(void) {
       wifiAttach();
     }
   }
+  if (wifiPresent && iWifi.rx) {
+    if ((millis() - timeOfLastRead) > 20) {
+      wifiReadData();
+      if (wifiBufferInput[0] == 0x01) {
+        processChar(wifiBufferInput[1]);
+      }
+      timeOfLastRead = millis();
+    }
+  }
 }
 
 // void __USER_ISR ADS_DRDY_Service() {
@@ -1012,7 +1025,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   settingSampleRate = false;
   soughtWifiShield = false;
   streaming = false;
-  timeSynced = false;
   toggleWifiCS = false;
   toggleWifiReset = false;
   verbosity = false; // when verbosity is true, there will be Serial feedback
@@ -1029,10 +1041,10 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
-  curAuxMode = AUX_MODE_ON;
   curBoardMode = BOARD_MODE_DEFAULT;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
+  curTimeSyncMode = TIME_SYNC_MODE_OFF;
 
   // Structs
   initializeSerialInfo(iSerial0);
@@ -1072,6 +1084,10 @@ void OpenBCI_32bit_Library::printAllRegisters(){
   }
 }
 
+void OpenBCI_32bit_Library::sendChannelData() {
+  sendChannelData(curPacketType);
+}
+
 /**
 * @description Writes data to wifi and/or serial port.
 *
@@ -1106,10 +1122,16 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
       accelWriteAxisDataSerial(); // 6 bytes
       break;
     case PACKET_TYPE_ACCEL_TIME_SET:
+      sendTimeWithAccelSerial();
+      curPacketType = PACKET_TYPE_ACCEL_TIME_SYNC;
+      break;
     case PACKET_TYPE_ACCEL_TIME_SYNC:
       sendTimeWithAccelSerial();
       break;
     case PACKET_TYPE_RAW_AUX_TIME_SET:
+      sendTimeWithRawAuxSerial();
+      curPacketType = PACKET_TYPE_RAW_AUX_TIME_SYNC;
+      break;
     case PACKET_TYPE_RAW_AUX_TIME_SYNC:
       sendTimeWithRawAuxSerial();
       break;
@@ -1119,16 +1141,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
       break;
   }
 
-  uint8_t end = (uint8_t)(PCKT_END | packetType);
-  if (sendTimeSyncUpPacket) {
-    sendTimeSyncUpPacket = false;
-    if (packetType == PACKET_TYPE_RAW_AUX_TIME_SYNC) {
-      end = (uint8_t)(PCKT_END | PACKET_TYPE_RAW_AUX_TIME_SET);
-    } else {
-      end = (uint8_t)(PCKT_END | PACKET_TYPE_ACCEL_TIME_SET);
-    }
-  }
-  writeSerial(end); // 1 byte
+  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
 }
 
 /**
@@ -1138,6 +1151,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean daisy) {
+
   wifiStoreByte((uint8_t)(PCKT_END | packetType)); // 1 byte
   wifiStoreByte(sampleCounter); // 1 byte
   ADS_writeChannelDataWifi(daisy);       // 24 bytes
@@ -1147,10 +1161,16 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
       accelWriteAxisDataWifi(); // 6 bytes
       break;
     case PACKET_TYPE_ACCEL_TIME_SET:
+      sendTimeWithAccelWifi();
+      curPacketType = PACKET_TYPE_ACCEL_TIME_SYNC;
+      break;
     case PACKET_TYPE_ACCEL_TIME_SYNC:
       sendTimeWithAccelWifi();
       break;
     case PACKET_TYPE_RAW_AUX_TIME_SET:
+      sendTimeWithRawAuxWifi();
+      curPacketType = PACKET_TYPE_RAW_AUX_TIME_SYNC;
+      break;
     case PACKET_TYPE_RAW_AUX_TIME_SYNC:
       sendTimeWithRawAuxWifi();
       break;
@@ -1238,6 +1258,22 @@ void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
       break;
   }
   writeTimeCurrentWifi(lastSampleTime); // 4 bytes
+}
+
+/**
+ * Using publically available state variables to drive packet type settings
+ */
+void OpenBCI_32bit_Library::setCurPacketType(void) {
+  if (curAccelMode == ACCEL_MODE_ON && curTimeSyncMode == TIME_SYNC_MODE_ON) {
+    curPacketType = PACKET_TYPE_ACCEL_TIME_SET;
+  } else if(curAccelMode == ACCEL_MODE_OFF && curTimeSyncMode == TIME_SYNC_MODE_ON) {
+    curPacketType = PACKET_TYPE_RAW_AUX_TIME_SET;
+  } else if(curAccelMode == ACCEL_MODE_OFF && curTimeSyncMode == TIME_SYNC_MODE_OFF) {
+    curPacketType = PACKET_TYPE_RAW_AUX;
+  } else { // default accel on mode
+    // curAccelMode == ACCEL_MODE_ON && curTimeSyncMode == TIME_SYNC_MODE_OFF
+    curPacketType = PACKET_TYPE_ACCEL;
+  }
 }
 
 /**
@@ -3007,11 +3043,13 @@ void OpenBCI_32bit_Library::wifiAttach(void) {
   if(!wifiPresent) {
     iWifi.rx = false;
     iWifi.tx = false;
-    if(!isRunning) Serial0.println("no wifi shield to attach!");
+    iSerial0.tx = true;
+    if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
   } else {
     iWifi.rx = true;
     iWifi.tx = true;
-    if(!isRunning) Serial0.println("wifi attached");
+    iSerial0.tx = false;
+    if(!isRunning) Serial0.println("wifi attached"); sendEOT();
   }
 }
 

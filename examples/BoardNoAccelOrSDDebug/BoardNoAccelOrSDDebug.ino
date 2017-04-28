@@ -5,6 +5,8 @@
 void setup() {
   // Bring up the OpenBCI Board
   board.beginDebug();
+  // don't use accel
+  board.useAccel(false);
 }
 
 void loop() {
@@ -13,13 +15,8 @@ void loop() {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       board.updateChannelData();
-
-      if (board.timeSynced) {
-        board.sendChannelDataWithTimeAndRawAux();
-      } else {
-        // Send standard packet with channel data
-        board.sendChannelDataWithRawAux();
-      }
+      // Send channel data
+      board.sendChannelData();
     }
   }
 

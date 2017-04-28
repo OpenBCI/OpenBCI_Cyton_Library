@@ -20,9 +20,9 @@ public:
     ACCEL_MODE_OFF
   };
 
-  typedef enum AUX_MODE {
-    AUX_MODE_ON,
-    AUX_MODE_OFF
+  typedef enum TIME_SYNC_MODE {
+    TIME_SYNC_MODE_ON,
+    TIME_SYNC_MODE_OFF
   };
 
   typedef enum BOARD_MODE {
@@ -158,6 +158,7 @@ public:
   void    updateDaisyData(void);
   void    updateDaisyData(boolean);
   void    useAccel(boolean);
+  void    useTimeStamp(boolean);
   void    wifiAttach(void);
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
@@ -186,7 +187,6 @@ public:
   boolean daisyPresent;
   boolean daisyUseSRB1;
   boolean streaming;
-  boolean timeSynced;
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
   boolean verbosity; // turn on/off Serial verbosity
@@ -224,10 +224,10 @@ public:
 
   // ENUMS
   ACCEL_MODE curAccelMode;
-  AUX_MODE curAuxMode;
   BOARD_MODE curBoardMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
+  TIME_SYNC_MODE curTimeSyncMode;
 
   // STRUCTS
   SerialInfo iSerial0;
@@ -302,7 +302,6 @@ private:
   boolean isProcessingIncomingSettingsLeadOff;
   boolean isProcessingIncomingSerialPassThru;
   boolean isRunning;
-  boolean sendTimeSyncUpPacket;
   boolean settingBoardMode;
   boolean settingSampleRate;
   boolean toggleWifiCS;

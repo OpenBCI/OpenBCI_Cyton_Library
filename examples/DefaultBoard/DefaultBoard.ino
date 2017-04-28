@@ -10,15 +10,8 @@ boolean addAuxToSD = false; // On writeDataToSDCard() call adds Aux data to SD c
 boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file open
 
 void setup() {
-
-  // Step 1: Configure the board
-  //  Use accel data
-  board.useAccel(true);
-
-  // Step 2: Call a begin function
   // Bring up the OpenBCI Board
   board.begin();
-
 }
 
 void loop() {
@@ -41,16 +34,8 @@ void loop() {
         // Write to the SD card, writes aux data
         writeDataToSDcard(board.sampleCounter);
       }
-      if (board.timeSynced) {
-        // Send time synced packet with channel data, current board time, and an accel reading
-        //  X axis is sent on sampleCounter % 10 == 7
-        //  Y axis is sent on sampleCounter % 10 == 8
-        //  Z axis is sent on sampleCounter % 10 == 9
-        board.sendChannelDataWithTimeAndAccel();
-      } else {
-        // Send standard packet with channel data
-        board.sendChannelDataWithAccel();
-      }
+
+      board.sendChannelData();
     }
   }
   // Check serial 0 for new data
