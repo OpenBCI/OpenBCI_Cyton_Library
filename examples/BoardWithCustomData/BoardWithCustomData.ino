@@ -17,7 +17,7 @@ void setup() {
 }
 
 void loop() {
-
+  board.loop();
   // Downsample
   if ((millis() - timer) > 10) {
     // Save new time
