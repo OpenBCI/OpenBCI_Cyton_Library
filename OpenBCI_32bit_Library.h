@@ -137,8 +137,10 @@ public:
   void    resetLeadOffArrayToDefault(byte leadOffArray[][OPENBCI_NUMBER_OF_LEAD_OFF_SETTINGS]);
   void    startADS(void);
   void    stopADS(void);
+  void    sendChannelData(void);
   void    sendChannelData(PACKET_TYPE);
   void    setChannelsToDefault(void);
+  void    setCurPacketType(void);
   void    setSampleRate(uint8_t newSampleRateCode);
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);

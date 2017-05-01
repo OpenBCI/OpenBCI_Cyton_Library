@@ -384,16 +384,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         settingSampleRate = true;
         break;
 
-
-      // TODO: REMOVE THIS
-      case '.':
-        if (wifiSmell()) {
-          Serial0.println("wifi is present");
-        } else {
-          Serial0.println("wifi not present");
-        }
-        break;
-
       case '}':
         if (iSerial1.tx) {
           char code = 'c';
@@ -989,7 +979,7 @@ void OpenBCI_32bit_Library::loop(void) {
     }
   }
   if (seekingWifi) {
-    if ((millis() - timeOfWifiToggle) > 2000) {
+    if ((millis() - timeOfWifiToggle) > 8000) {
       seekingWifi = false;
       wifiAttach();
     }
@@ -1020,7 +1010,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
   seekingWifi = false;
-  sendTimeSyncUpPacket = false;
   settingBoardMode = false;
   settingSampleRate = false;
   soughtWifiShield = false;
@@ -3044,12 +3033,12 @@ void OpenBCI_32bit_Library::wifiAttach(void) {
     iWifi.rx = false;
     iWifi.tx = false;
     iSerial0.tx = true;
-    if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
+    // if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
   } else {
     iWifi.rx = true;
     iWifi.tx = true;
     iSerial0.tx = false;
-    if(!isRunning) Serial0.println("wifi attached"); sendEOT();
+    // if(!isRunning) Serial0.println("wifi attached"); sendEOT();
   }
 }
 
@@ -3060,6 +3049,7 @@ void OpenBCI_32bit_Library::wifiRemove(void) {
   iWifi.rx = false;
   iWifi.tx = false;
   wifiPresent = false;
+  iSerial0.tx = true;
 }
 
 /**
