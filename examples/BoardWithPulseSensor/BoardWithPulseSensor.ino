@@ -46,7 +46,7 @@ void setup() {
 }
 
 void loop() {
-
+  board.loop();
   // The main dependency of this single threaded microcontroller is to
   //  stream data from the ADS.
   if (board.streaming) {

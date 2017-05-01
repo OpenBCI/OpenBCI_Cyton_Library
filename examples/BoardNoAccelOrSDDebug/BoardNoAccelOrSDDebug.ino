@@ -10,7 +10,7 @@ void setup() {
 }
 
 void loop() {
-
+  board.loop();
   if (board.streaming) {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
