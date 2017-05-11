@@ -947,7 +947,7 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS, HIGH);
+  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS, LOW);
   pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, HIGH);
   wifiReset();
 
@@ -970,7 +970,7 @@ void OpenBCI_32bit_Library::loop(void) {
     }
   }
   if (toggleWifiCS) {
-    if ((millis() - timeOfWifiToggle) > 2000) {
+    if ((millis() - timeOfWifiToggle) > 2200) {
       digitalWrite(OPENBCI_PIN_LED, HIGH);
       digitalWrite(WIFI_SS, HIGH); // Set back to high
       toggleWifiCS = false;
@@ -1025,6 +1025,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
+  sampleCounter = 0;
   timeOfWifiToggle = 0;
   timeOfWifiStart = 0;
 
