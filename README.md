@@ -39,7 +39,7 @@ You just opened your OpenBCI (congrats!) and want to get started programming the
 
 ## <a name="upgrading"></a> Upgrading:
 
-Checkout the [upgrade guide](./UPGRADE_GUIDE)!
+Checkout the [upgrade guide](./UPGRADE_GUIDE.md)!
 
 ## <a name="downgrading"></a> Downgrading:
 
