@@ -11,6 +11,7 @@
 ### Enhancements
 
 * `hasDataSerial0` and `hasDataSerial1` use new properties `SerialInfo` to determine if data should be received. Now safe to call every loop.
+* Stop calling setSpi
 
 ### Breaking Changes
 

@@ -1026,8 +1026,10 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedLeadOff = 0;
   numberOfIncomingSettingsProcessedBoardType = 0;
   sampleCounter = 0;
+  timeOfLastRead = 0;
   timeOfWifiToggle = 0;
   timeOfWifiStart = 0;
+  wifiBufferPosition = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -1395,27 +1397,21 @@ void OpenBCI_32bit_Library::csHigh(int SS)
   switch(SS){
     case BOARD_ADS:
       digitalWrite(BOARD_ADS, HIGH);
-      spi.setSpeed(20000000);
       break;
     case LIS3DH_SS:
       digitalWrite(LIS3DH_SS, HIGH);
-      spi.setSpeed(20000000);
       break;
     case SD_SS:
       digitalWrite(SD_SS, HIGH);
-      spi.setSpeed(4000000);
       break;
     case DAISY_ADS:
       digitalWrite(DAISY_ADS, HIGH);
-      spi.setSpeed(20000000);
       break;
     case BOTH_ADS:
       digitalWrite(BOARD_ADS, HIGH);
       digitalWrite(DAISY_ADS, HIGH);
-      spi.setSpeed(20000000); break;
     case WIFI_SS:
       digitalWrite(WIFI_SS, HIGH);
-      spi.setSpeed(10000000);
       break;
     default:
       break;
@@ -2943,32 +2939,7 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF ADS1299 FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>
 // ******************************************************************************
-// <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-/**
-* @description Creates a byteId for sending data spi to wifi shield
-* @param isStreamPacket {boolean} Set true if this is a streaming packet
-* @param isDaisy {boolean} Set true if daisy packet
-* @param packetNumber {uint8_t} What number packet are you trying to send?
-* @returns [char] The newly formed byteId where a byteId is defined as
-*           Bit 7 - Streaming byte packet
-*           Bits[6:3] - Packet count
-*           Bits[2:0] - Free
-* @author AJ Keller (@pushtheworldllc)
-*/
-// uint8_t OpenBCI_32bit_Library::wifiByteIdMake(boolean isStreamPacket, uint8_t packetNumber) {
-//   // Set output initially equal to 0
-//   uint8_t output = 0x00;
-//
-//   // Set first bit if this is a streaming packet
-//   if  (isStreamPacket) output = output | 0x80;
-//
-//   // Set packet count bits Bits[6:3] NOTE: 0xFF is error
-//   // convert int to char then shift then or
-//   output = output | ((packetNumber & 0x0F) << 3);
-//
-//   return output;
-// }
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>s
 
 /**
  * [OpenBCI_32bit_Library::wifiStoreByte description]
