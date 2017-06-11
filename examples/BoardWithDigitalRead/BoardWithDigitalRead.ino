@@ -22,7 +22,7 @@ void loop() {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       board.updateChannelData();
 
-      // Read from the analog sensor and store auxiliary position 0
+      // Read from the digital input and store auxiliary position 0
       // take a reading from the ADC. Result range from 0 to 1023
       board.auxData[0] = digitalRead(17);
 

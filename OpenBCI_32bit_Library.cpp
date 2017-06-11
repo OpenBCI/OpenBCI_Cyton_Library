@@ -607,89 +607,57 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
   }
 }
 
-/**
-* @description When a 'z' is found on the serial port, we jump to this function
-*                  where we continue to read from the serial port and read the
-*                  remaining 4 bytes.
-* @param `character` - {char} - The character you want to process...
-*/
 void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
   if (c == OPENBCI_BOARD_MODE_SET) {
-    if (numberOfIncomingSettingsProcessedBoardType > 0) {
-      // did we get an optional arg?
-      int newBaud = OPENBCI_BAUD_RATE;
-      if (optionalArgCounter > 0) {
-        switch (optionalArgCounter) {
-          case 5:
-            optionalArgBuffer5[4] = '\0';
-            newBaud = atoi(optionalArgBuffer7);
-            break;
-          case 6:
-            optionalArgBuffer6[5] = '\0';
-            newBaud = atoi(optionalArgBuffer7);
-            break;
-          case 7:
-            optionalArgBuffer7[6] = '\0';
-            newBaud = atoi(optionalArgBuffer7);
-            break;
-        }
-      }
-      if (curBoardMode == BOARD_MODE_DEBUG) {
-        beginSerial1(newBaud);
-      }
-
-      if (!streaming) {
-        printSuccess();
-        Serial0.print("Board type set to ");
-        Serial0.print(curBoardMode);
-        Serial0.print(" new baud is ");
-        Serial0.print(newBaud);
-        sendEOT();
-      }
-    } else if (numberOfIncomingSettingsProcessedBoardType == 0) {
-      if (!streaming) {
-        printSuccess();
-        Serial0.print("Current Board type set to ");
-        Serial0.print(curBoardMode);
-        sendEOT();
-      }
+    printSuccess();
+    printBoardMode();
+    sendEOT();
+  } else if (isDigit(c)) {
+    uint8_t digit = c - '0';
+    if (digit <= BOARD_MODE_DIGITAL) {
+      setBoardMode(digit);
+      printSuccess();
+      printBoardMode();
+      sendEOT();
     } else {
-      if (!streaming) {
-        printFailure();
-        Serial0.print("invalid board mode");
-        sendEOT();
-      }
+      printFailure();
+      Serial0.print("board mode value out of bounds. ");
+      sendEOT();
     }
-    settingBoardMode = false;
-    return;
+  } else {
+    printFailure();
+    Serial0.print("invalid board mode value.");
+    sendEOT();
   }
+  settingBoardMode = false;
+}
 
-  // This one is the board type always
-  if (numberOfIncomingSettingsProcessedBoardType == 0) {
-    if (isDigit(c)) {
-      curBoardMode = (BOARD_MODE)(c - '0');
-      numberOfIncomingSettingsProcessedBoardType = 1;
-    } else {
-      numberOfIncomingSettingsProcessedBoardType = -1;
-    }
-  } else if (numberOfIncomingSettingsProcessedBoardType > 0) {
-    // Is there an optional arg?
-    if (isDigit(c)) {
-      // convert the incoming byte to a char
-      // and add it to the string:
-      if (optionalArgCounter < 4) {
-        optionalArgBuffer5[optionalArgCounter] = c;
-      }
-      if (optionalArgCounter < 5) {
-        optionalArgBuffer6[optionalArgCounter] = c;
-      }
-      if (optionalArgCounter < 6) {
-        optionalArgBuffer7[optionalArgCounter] = c;
-      }
-      optionalArgCounter++;
-    }
-    // numberOfIncomingSettingsProcessedBoardType++;
+/**
+ * Used to set the board mode of the system.
+ * @param newBoardMode The board mode to swtich to
+ */
+void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
+  curBoardMode = (BOARD_MODE)newBoardMode;
+  switch (curBoardMode) {
+    case BOARD_MODE_ANALOG:
+      curAccelMode = ACCEL_MODE_OFF;
+      break;
+    case BOARD_MODE_DIGITAL:
+      curAccelMode = ACCEL_MODE_OFF;
+      pinMode(11, INPUT);
+      pinMode(12, INPUT);
+      pinMode(17, INPUT);
+      break;
+    case BOARD_MODE_DEBUG:
+      curAccelMode = ACCEL_MODE_ON;
+      boardBeginDebug();
+      break;
+    case BOARD_MODE_DEFAULT:
+      curAccelMode = ACCEL_MODE_ON;
+      boardBegin();
+      break;
   }
+  setCurPacketType();
 }
 
 void OpenBCI_32bit_Library::setSampleRate(uint8_t newSampleRateCode) {
@@ -720,6 +688,25 @@ void OpenBCI_32bit_Library::printSampleRate() {
     case SAMPLE_RATE_250:
     default:
       Serial0.print("250");
+      break;
+
+  }
+}
+
+void OpenBCI_32bit_Library::printBoardMode() {
+  switch (curBoardMode) {
+    case BOARD_MODE_DEBUG:
+      Serial0.print("debug");
+      break;
+    case BOARD_MODE_ANALOG:
+      Serial0.print("analog");
+      break;
+    case BOARD_MODE_DIGITAL:
+      Serial0.print("digital");
+      break;
+    case BOARD_MODE_DEFAULT:
+    default:
+      Serial0.print("default");
       break;
 
   }
@@ -2045,8 +2032,7 @@ void OpenBCI_32bit_Library::writeChannelSettings(byte N){
 }
 
 //  deactivate the given channel.
-void OpenBCI_32bit_Library::deactivateChannel(byte N)
-{
+void OpenBCI_32bit_Library::deactivateChannel(byte N) {
   byte setting, startChan, endChan, targetSS;
   if(N < 9){
     targetSS = BOARD_ADS; startChan = 0; endChan = 8;
@@ -2206,36 +2192,36 @@ void OpenBCI_32bit_Library::configureLeadOffDetection(byte amplitudeCode, byte f
   }
 }
 
-// //  deactivate the given channel.
-// void OpenBCI_32bit_Library::deactivateChannel(byte N)
-// {
-//     byte setting, startChan, endChan, targetSS;
-//     if(N < 9){
-//         targetSS = BOARD_ADS; startChan = 0; endChan = 8;
-//     }else{
-//         if(!daisyPresent) { return; }
-//         targetSS = DAISY_ADS; startChan = 8; endChan = 16;
-//     }
-//     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-//     N = constrain(N-1,startChan,endChan-1);  //subtracts 1 so that we're counting from 0, not 1
+//  deactivate the given channel.
+void OpenBCI_32bit_Library::deactivateChannel(byte N)
+{
+    byte setting, startChan, endChan, targetSS;
+    if(N < 9){
+        targetSS = BOARD_ADS; startChan = 0; endChan = 8;
+    }else{
+        if(!daisyPresent) { return; }
+        targetSS = DAISY_ADS; startChan = 8; endChan = 16;
+    }
+    SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+    N = constrain(N-1,startChan,endChan-1);  //subtracts 1 so that we're counting from 0, not 1
 
-//     setting = RREG(CH1SET+(N-startChan),targetSS); delay(1); // get the current channel settings
-//     bitSet(setting,7);     // set bit7 to shut down channel
-//     bitClear(setting,3);   // clear bit3 to disclude from SRB2 if used
-//     WREG(CH1SET+(N-startChan),setting,targetSS); delay(1);     // write the new value to disable the channel
+    setting = RREG(CH1SET+(N-startChan),targetSS); delay(1); // get the current channel settings
+    bitSet(setting,7);     // set bit7 to shut down channel
+    bitClear(setting,3);   // clear bit3 to disclude from SRB2 if used
+    WREG(CH1SET+(N-startChan),setting,targetSS); delay(1);     // write the new value to disable the channel
 
-//     //remove the channel from the bias generation...
-//     setting = RREG(BIAS_SENSP,targetSS); delay(1); //get the current bias settings
-//     bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
-//     WREG(BIAS_SENSP,setting,targetSS); delay(1);   //send the modified byte back to the ADS
+    //remove the channel from the bias generation...
+    setting = RREG(BIAS_SENSP,targetSS); delay(1); //get the current bias settings
+    bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
+    WREG(BIAS_SENSP,setting,targetSS); delay(1);   //send the modified byte back to the ADS
 
-//     setting = RREG(BIAS_SENSN,targetSS); delay(1); //get the current bias settings
-//     bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
-//     WREG(BIAS_SENSN,setting,targetSS); delay(1);   //send the modified byte back to the ADS
+    setting = RREG(BIAS_SENSN,targetSS); delay(1); //get the current bias settings
+    bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
+    WREG(BIAS_SENSN,setting,targetSS); delay(1);   //send the modified byte back to the ADS
 
-//     leadOffSettings[N][PCHAN] = leadOffSettings[N][NCHAN] = NO;
-//     leadOffSetForChannel(N+1, NO, NO);
-// }
+    leadOffSettings[N][PCHAN] = leadOffSettings[N][NCHAN] = NO;
+    leadOffSetForChannel(N+1, NO, NO);
+}
 
 // void OpenBCI_32bit_Library::activateChannel(byte N)
 // {
@@ -2472,6 +2458,21 @@ void OpenBCI_32bit_Library::updateChannelData(){
 
   updateBoardData(downsample);
   if(daisyPresent) {updateDaisyData(downsample);}
+
+  switch (curBoardMode) {
+    case BOARD_MODE_ANALOG:
+      auxData[0] = analogRead(A5);
+      auxData[1] = analogRead(A6);
+      break;
+    case BOARD_MODE_DIGITAL:
+      auxData[0] = digitalRead(11);
+      auxData[1] = digitalRead(12);
+      auxData[2] = digitalRead(17);
+      break;
+    case BOARD_MODE_DEBUG:
+    case BOARD_MODE_DEFAULT:
+      break;
+  }
 }
 
 void OpenBCI_32bit_Library::updateBoardData(void){

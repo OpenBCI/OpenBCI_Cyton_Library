@@ -27,7 +27,9 @@ public:
 
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
-    BOARD_MODE_DEBUG
+    BOARD_MODE_DEBUG,
+    BOARD_MODE_ANALOG,
+    BOARD_MODE_DIGITAL
   };
 
   typedef enum PACKET_TYPE {
