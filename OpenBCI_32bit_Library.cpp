@@ -2463,6 +2463,9 @@ void OpenBCI_32bit_Library::updateChannelData(){
     case BOARD_MODE_ANALOG:
       auxData[0] = analogRead(A5);
       auxData[1] = analogRead(A6);
+      if (!wifiPresent) {
+        auxData[2] = analogRead(A7);
+      }
       break;
     case BOARD_MODE_DIGITAL:
       auxData[0] = digitalRead(11);

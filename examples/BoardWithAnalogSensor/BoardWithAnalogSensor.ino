@@ -2,12 +2,19 @@
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32Bit_Library_Definitions.h>
 
+// NOTE: THIS DOES NOT HAVE SD
+
 void setup() {
   // Bring up the OpenBCI Board
   board.begin();
 
-  // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAccel(false);
+  // Read from the analog sensor and store auxiliary position 0
+  // take a reading from the ADC. Result range from 0 to 1023
+  // Will put 10 bits from:
+  //  Aux 1:2 D11 (A5)
+  //  Aux 3:4 D12 (A6)
+  //  Aux 5:6 D17 (A7)
+  board.setBoardMode(BOARD_MODE_ANALOG);
 }
 
 void loop() {
@@ -19,12 +26,7 @@ void loop() {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       board.updateChannelData();
 
-      // Read from the analog sensor and store auxiliary position 0
-      // take a reading from the ADC. Result range from 0 to 1023
-      board.auxData[0] = analogRead(A7);
-
       // Send standard packet with channel data and aux data
-      //  includes aux data because we set `useAux` in setup()
       board.sendChannelData();
     }
   }

@@ -6,11 +6,13 @@ void setup() {
   // Bring up the OpenBCI Board
   board.begin();
 
-  // Notify the board we want to use aux data, this effects `::sendChannelData()`
-  board.useAccel(false);
-
-  // Set pin to input A0-A5 can be digital input
-  pinMode(17, INPUT);
+  // Read from digital input and store auxiliary position 0
+  // take a reading from the ADC. Result range from 0 to 1023
+  // Will put 10 bits from:
+  //  Aux 1:2 D11
+  //  Aux 3:4 D12
+  //  Aux 5:6 D17
+  board.setBoardMode(BOARD_MODE_DIGITAL);
 }
 
 void loop() {
@@ -21,10 +23,6 @@ void loop() {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       board.updateChannelData();
-
-      // Read from the digital input and store auxiliary position 0
-      // take a reading from the ADC. Result range from 0 to 1023
-      board.auxData[0] = digitalRead(17);
 
       // Send packet with channel data and auxData contents
       board.sendChannelData();
