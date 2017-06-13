@@ -115,6 +115,7 @@ public:
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
   void    loop(void);
+  void    printBoardMode(void);
   void    printSerial(uint8_t);
   void    printSerial(uint8_t c, uint8_t arg);
   void    printSerial(uint8_t *, size_t len);
@@ -141,11 +142,12 @@ public:
   void    stopADS(void);
   void    sendChannelData(void);
   void    sendChannelData(PACKET_TYPE);
+  void    setBoardMode(uint8_t);
   void    setChannelsToDefault(void);
   void    setCurPacketType(void);
   void    setSampleRate(uint8_t newSampleRateCode);
   void    sendEOT(void);
-  void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
+  void    setSerialInfo(SerialInfo, boolean, boolean, uint32_t);
   boolean smellDaisy(void);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);

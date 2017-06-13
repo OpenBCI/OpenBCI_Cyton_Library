@@ -641,6 +641,9 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
   switch (curBoardMode) {
     case BOARD_MODE_ANALOG:
       curAccelMode = ACCEL_MODE_OFF;
+      pinMode(11, INPUT);
+      pinMode(12, INPUT);
+      if (!wifiPresent) pinMode(13, INPUT);
       break;
     case BOARD_MODE_DIGITAL:
       curAccelMode = ACCEL_MODE_OFF;
@@ -693,7 +696,7 @@ void OpenBCI_32bit_Library::printSampleRate() {
   }
 }
 
-void OpenBCI_32bit_Library::printBoardMode() {
+void OpenBCI_32bit_Library::printBoardMode(void) {
   switch (curBoardMode) {
     case BOARD_MODE_DEBUG:
       Serial0.print("debug");
@@ -951,7 +954,8 @@ void OpenBCI_32bit_Library::initialize(){
  */
 void OpenBCI_32bit_Library::loop(void) {
   if (toggleWifiReset) {
-    if ((millis() - timeOfWifiToggle) > 200) {
+    if ((millis() - timeOfWifiToggle) > 50) {
+      digitalWrite(WIFI_SS, LOW);
       digitalWrite(WIFI_RESET, HIGH);
       toggleWifiReset = false;
     }
@@ -974,8 +978,12 @@ void OpenBCI_32bit_Library::loop(void) {
   if (wifiPresent && iWifi.rx) {
     if ((millis() - timeOfLastRead) > 20) {
       wifiReadData();
-      if (wifiBufferInput[0] == 0x01) {
-        processChar(wifiBufferInput[1]);
+      uint8_t numChars = (uint8_t)wifiBufferInput[0];
+      if (numChars > 0) {
+        for(uint8_t i = 1; i < numChars; i++) {
+          Serial0.print(wifiBufferInput[i]);
+          // processChar(wifiBufferInput[i]);
+        }
       }
       timeOfLastRead = millis();
     }
@@ -2192,36 +2200,36 @@ void OpenBCI_32bit_Library::configureLeadOffDetection(byte amplitudeCode, byte f
   }
 }
 
-//  deactivate the given channel.
-void OpenBCI_32bit_Library::deactivateChannel(byte N)
-{
-    byte setting, startChan, endChan, targetSS;
-    if(N < 9){
-        targetSS = BOARD_ADS; startChan = 0; endChan = 8;
-    }else{
-        if(!daisyPresent) { return; }
-        targetSS = DAISY_ADS; startChan = 8; endChan = 16;
-    }
-    SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
-    N = constrain(N-1,startChan,endChan-1);  //subtracts 1 so that we're counting from 0, not 1
-
-    setting = RREG(CH1SET+(N-startChan),targetSS); delay(1); // get the current channel settings
-    bitSet(setting,7);     // set bit7 to shut down channel
-    bitClear(setting,3);   // clear bit3 to disclude from SRB2 if used
-    WREG(CH1SET+(N-startChan),setting,targetSS); delay(1);     // write the new value to disable the channel
-
-    //remove the channel from the bias generation...
-    setting = RREG(BIAS_SENSP,targetSS); delay(1); //get the current bias settings
-    bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
-    WREG(BIAS_SENSP,setting,targetSS); delay(1);   //send the modified byte back to the ADS
-
-    setting = RREG(BIAS_SENSN,targetSS); delay(1); //get the current bias settings
-    bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
-    WREG(BIAS_SENSN,setting,targetSS); delay(1);   //send the modified byte back to the ADS
-
-    leadOffSettings[N][PCHAN] = leadOffSettings[N][NCHAN] = NO;
-    leadOffSetForChannel(N+1, NO, NO);
-}
+// //  deactivate the given channel.
+// void OpenBCI_32bit_Library::deactivateChannel(byte N)
+// {
+//     byte setting, startChan, endChan, targetSS;
+//     if(N < 9){
+//         targetSS = BOARD_ADS; startChan = 0; endChan = 8;
+//     }else{
+//         if(!daisyPresent) { return; }
+//         targetSS = DAISY_ADS; startChan = 8; endChan = 16;
+//     }
+//     SDATAC(targetSS); delay(1);      // exit Read Data Continuous mode to communicate with ADS
+//     N = constrain(N-1,startChan,endChan-1);  //subtracts 1 so that we're counting from 0, not 1
+//
+//     setting = RREG(CH1SET+(N-startChan),targetSS); delay(1); // get the current channel settings
+//     bitSet(setting,7);     // set bit7 to shut down channel
+//     bitClear(setting,3);   // clear bit3 to disclude from SRB2 if used
+//     WREG(CH1SET+(N-startChan),setting,targetSS); delay(1);     // write the new value to disable the channel
+//
+//     //remove the channel from the bias generation...
+//     setting = RREG(BIAS_SENSP,targetSS); delay(1); //get the current bias settings
+//     bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
+//     WREG(BIAS_SENSP,setting,targetSS); delay(1);   //send the modified byte back to the ADS
+//
+//     setting = RREG(BIAS_SENSN,targetSS); delay(1); //get the current bias settings
+//     bitClear(setting,N-startChan);                  //clear this channel's bit to remove from bias generation
+//     WREG(BIAS_SENSN,setting,targetSS); delay(1);   //send the modified byte back to the ADS
+//
+//     leadOffSettings[N][PCHAN] = leadOffSettings[N][NCHAN] = NO;
+//     leadOffSetForChannel(N+1, NO, NO);
+// }
 
 // void OpenBCI_32bit_Library::activateChannel(byte N)
 // {

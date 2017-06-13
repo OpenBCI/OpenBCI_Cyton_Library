@@ -22,7 +22,7 @@ void loop() {
       board.updateChannelData();
 
       // Check to see if accel has new data
-      if (board.curAccelMode == ACCEL_MODE_ON) {
+      if (board.curAccelMode == board.ACCEL_MODE_ON) {
         if(board.accelHasNewData()) {
           // Get new accel data
           board.accelUpdateAxisData();
