@@ -173,6 +173,8 @@ public:
   uint32_t wifiReadStatus(void);
   void    wifiRemove(void);
   void    wifiReset(void);
+  void    wifiSendStringMulti(const char *);
+  void    wifiSendStringLast(const char *);
   boolean wifiSmell(void);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);

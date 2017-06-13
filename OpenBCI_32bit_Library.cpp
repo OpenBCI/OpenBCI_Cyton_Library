@@ -299,6 +299,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(!streaming) {
           Serial0.println("updating channel settings to default");
           sendEOT();
+          wifiSendStringMulti("updating channel settings to");
+          wifiSendStringLast(" default");
         }
         streamSafeSetAllChannelsToDefault();
         break;
@@ -320,8 +322,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         }
         if(daisyPresent){
           Serial0.print("16");
-        }else{
+          wifiSendStringLast("16");
+        } else {
           Serial0.print("8");
+          wifiSendStringLast("8");
         }
         sendEOT();
         break;
@@ -382,20 +386,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // Sample rate set
       case OPENBCI_SAMPLE_RATE_SET:
         settingSampleRate = true;
-        break;
-
-      case '}':
-        if (iSerial1.tx) {
-          char code = 'c';
-          Serial1.print("ADS1299_CONFIG1_DAISY: 0x");
-          Serial1.println(ADS1299_CONFIG1_DAISY, HEX);
-          Serial1.print("curSampleRate: 0x");
-          Serial1.println(curSampleRate, HEX);
-          code = (char)(ADS1299_CONFIG1_DAISY | curSampleRate);
-          Serial1.print("Sample Rate 0x");
-          Serial1.println(code, HEX);
-        }
-        sendEOT();
         break;
 
       default:
@@ -980,9 +970,8 @@ void OpenBCI_32bit_Library::loop(void) {
       wifiReadData();
       uint8_t numChars = (uint8_t)wifiBufferInput[0];
       if (numChars > 0) {
-        for(uint8_t i = 1; i < numChars; i++) {
-          Serial0.print(wifiBufferInput[i]);
-          // processChar(wifiBufferInput[i]);
+        for(uint8_t i = 0; i < numChars; i++) {
+          processChar(wifiBufferInput[i+1]);
         }
       }
       timeOfLastRead = millis();
@@ -1656,11 +1645,13 @@ void OpenBCI_32bit_Library::removeDaisy(void){
     daisyPresent = false;
     if(!isRunning) {
       Serial0.println("daisy removed");
+      wifiSendStringLast("daisy removed");
       sendEOT();
     }
   }else{
     if(!isRunning) {
       Serial0.println("no daisy to remove!");
+      wifiSendStringLast("no daisy to remove!");
       sendEOT();
     }
   }
@@ -1675,10 +1666,17 @@ void OpenBCI_32bit_Library::attachDaisy(void){
   if(!daisyPresent){
     WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT | curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
-    if(!isRunning) Serial0.println("no daisy to attach!");
+    if(!isRunning) {
+      Serial0.println("no daisy to attach!");
+      wifiSendStringMulti("no daisy to attach!");
+    }
   }else{
     numChannels = 16;   // expect up to 16 ADS channels
-    if(!isRunning) Serial0.println("daisy attached");
+    if(!isRunning) {
+      Serial0.println("daisy attached");
+      wifiSendStringMulti("daisy attached");
+
+    }
   }
 }
 
@@ -2631,8 +2629,6 @@ void OpenBCI_32bit_Library::stopADS()
 
 
 void OpenBCI_32bit_Library::printSerial(uint8_t c) {
-  Serial1.print("printSerial(uint8_t c)");
-
   if (iSerial0.tx) {
     Serial0.print(c);
   }
@@ -2642,8 +2638,6 @@ void OpenBCI_32bit_Library::printSerial(uint8_t c) {
 }
 
 void OpenBCI_32bit_Library::printSerial(uint8_t c, uint8_t arg) {
-  Serial1.print("printSerial(uint8_t c, uint8_t arg)");
-
   if (iSerial0.tx) {
     Serial0.print(c, arg);
   }
@@ -2653,8 +2647,6 @@ void OpenBCI_32bit_Library::printSerial(uint8_t c, uint8_t arg) {
 }
 
 void OpenBCI_32bit_Library::printSerial(uint8_t *c, size_t len) {
-  Serial1.print("printSerial(uint8_t *c, size_t len)");
-
   for (int i = 0; i < len; i++) {
     printSerial(c[i]);
   }
@@ -2960,17 +2952,59 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
  */
 boolean OpenBCI_32bit_Library::wifiStoreByte(uint8_t b) {
   if (wifiBufferPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
-
   wifiBuffer[wifiBufferPosition] = b;
   wifiBufferPosition++;
   return true;
 }
 
 /**
+ * Will send a const char string (less than 32 bytes) to the wifi shield, call
+ *  wifiSendStringLast to indicate to the wifi shield the multi part transmission is over.
+ * @param str const char * less than 32 bytes to be sent over SPI
+ */
+void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
+  if (!wifiPresent) return;
+  if (str == NULL) return;
+  int len = strlen(str);
+  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
+    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
+  }
+
+  wifiBuffer[0] = WIFI_SPI_MSG_MULTI;
+  wifiBufferPosition = 1;
+  for (int i = 0; i < len; i++) {
+    wifiStoreByte(str[i]);
+  }
+  wifiFlushBuffer();
+}
+
+/**
+ * This will tell the Wifi shield to send the contents of this message to the requesting
+ *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
+ *  then this will indicate the end of a multi byte message.
+ * @param str [description]
+ */
+void OpenBCI_32bit_Library::wifiSendStringLast(const char *str) {
+  if (!wifiPresent) return;
+  if (str == NULL) return;
+  int len = strlen(str);
+  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
+    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
+  }
+
+  wifiBuffer[0] = WIFI_SPI_MSG_LAST;
+  wifiBufferPosition = 1;
+  for (int i = 0; i < len; i++) {
+    wifiStoreByte(str[i]);
+  }
+  wifiFlushBuffer();
+}
+
+
+/**
  * Flush the 32 byte buffer to the wifi shield. Set byte id too...
  */
 void OpenBCI_32bit_Library::wifiFlushBuffer() {
-  // wifiBuffer[WIFI_SPI_BYTE_ID_POS] = wifiByteIdMake(streaming, daisyPresent, 0);
   wifiWriteData(wifiBuffer, WIFI_SPI_MAX_PACKET_SIZE);
   wifiBufferPosition = 0;
 }
