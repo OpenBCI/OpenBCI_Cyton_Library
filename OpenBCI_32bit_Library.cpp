@@ -813,12 +813,20 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
   if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL)) {
     // We are done processing channel settings...
 
+    const char infoBuf[] = "Channel set for ";
+
     if (!streaming) {
-      Serial0.print("Channel set for "); Serial0.println(currentChannelSetting + 1); sendEOT();
+      Serial0.print(infoBuf); Serial0.println(currentChannelSetting + 1); sendEOT();
     }
 
     if (curBoardMode == BOARD_MODE_DEBUG) {
-      Serial1.print("Channel set for  "); Serial1.println(currentChannelSetting + 1);
+      Serial1.print(infoBuf); Serial1.println(currentChannelSetting + 1);
+    }
+
+    char buf[2];
+    wifiSendStringMulti(infoBuf);
+    if (currentChannelSetting + 1 < 10) {
+      wifiSendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
 
     // Set channel settings
@@ -909,7 +917,6 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     }
     char buf[2];
     wifiSendStringMulti("Lead off set for ");
-
     if (currentChannelSetting + 1 < 10) {
       wifiSendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
@@ -976,8 +983,9 @@ void OpenBCI_32bit_Library::loop(void) {
       wifiReadData();
       uint8_t numChars = (uint8_t)wifiBufferInput[0];
       if (numChars > 0) {
+        // Serial0.print("Recieved "); Serial0.print(numChars); Serial0.print(" chars @ "); Serial0.println(micros());
         for(uint8_t i = 0; i < numChars; i++) {
-          // Serial0.println(wifiBufferInput[i+1]);
+          // Serial0.println(wifiBufferInput[i+1],HEX);
           processChar(wifiBufferInput[i+1]);
         }
       }
@@ -2954,6 +2962,16 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>s
 
 /**
+ * Clear the wifi buffer
+ */
+void OpenBCI_32bit_Library::wifiBufferClear(void) {
+  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
+    wifiBuffer[i] = 0;
+  }
+  wifiBufferPosition = 0;
+}
+
+/**
  * [OpenBCI_32bit_Library::wifiStoreByte description]
  * @param  b {uint8_t} A single byte to store
  * @return   {boolean} True if the byte was stored, false if the buffer is full.
@@ -2984,6 +3002,7 @@ void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
     wifiStoreByte(str[i]);
   }
   wifiFlushBuffer();
+  wifiBufferClear();
 }
 
 /**
@@ -3006,6 +3025,7 @@ void OpenBCI_32bit_Library::wifiSendStringLast(const char *str) {
     wifiStoreByte(str[i]);
   }
   wifiFlushBuffer();
+  wifiBufferClear();
 }
 
 
@@ -3054,6 +3074,7 @@ void OpenBCI_32bit_Library::wifiReadData() {
  * Used to attach a wifi shield, only if there is actuall a wifi shield present
  */
 void OpenBCI_32bit_Library::wifiAttach(void) {
+  Serial.println("wifiAttach");
   wifiPresent = wifiSmell();
   if(!wifiPresent) {
     iWifi.rx = false;
@@ -3099,8 +3120,9 @@ void OpenBCI_32bit_Library::wifiReset(void) {
 boolean OpenBCI_32bit_Library::wifiSmell(void){
   boolean isWifi = false;
   uint32_t uuid = wifiReadStatus();
-  if(verbosity){Serial0.print("Wifi ID 0x"); Serial0.println(uuid,HEX); sendEOT();}
-  if(uuid == 0) {isWifi = true;} // should read as 0x3E
+  if (verbosity) {Serial0.print("Wifi ID 0x"); Serial0.println(uuid,HEX);}
+  Serial.println(micros());sendEOT();
+  if(uuid == 209) {isWifi = true;} // should read as 0x3E
   return isWifi;
 }
 

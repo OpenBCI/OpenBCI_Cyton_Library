@@ -166,6 +166,7 @@ public:
   void    useAccel(boolean);
   void    useTimeStamp(boolean);
   void    wifiAttach(void);
+  void    wifiBufferClear(void);
   void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiStoreByte(uint8_t);
   void    wifiFlushBuffer(void);
