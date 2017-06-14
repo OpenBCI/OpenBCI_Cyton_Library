@@ -907,6 +907,12 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     if (curBoardMode == BOARD_MODE_DEBUG) {
       Serial1.print("Lead off set for  "); Serial1.println(currentChannelSetting + 1);
     }
+    char buf[2];
+    wifiSendStringMulti("Lead off set for ");
+
+    if (currentChannelSetting + 1 < 10) {
+      wifiSendStringLast(itoa(currentChannelSetting + 1, buf, 10));
+    }
 
     // Set lead off settings
     streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
@@ -951,7 +957,7 @@ void OpenBCI_32bit_Library::loop(void) {
     }
   }
   if (toggleWifiCS) {
-    if ((millis() - timeOfWifiToggle) > 2200) {
+    if ((millis() - timeOfWifiToggle) > 2500) {
       digitalWrite(OPENBCI_PIN_LED, HIGH);
       digitalWrite(WIFI_SS, HIGH); // Set back to high
       toggleWifiCS = false;
@@ -971,6 +977,7 @@ void OpenBCI_32bit_Library::loop(void) {
       uint8_t numChars = (uint8_t)wifiBufferInput[0];
       if (numChars > 0) {
         for(uint8_t i = 0; i < numChars; i++) {
+          // Serial0.println(wifiBufferInput[i+1]);
           processChar(wifiBufferInput[i+1]);
         }
       }
@@ -1025,6 +1032,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   // Structs
   initializeSerialInfo(iSerial0);
   initializeSerialInfo(iSerial1);
+  initializeSpiInfo(iWifi);
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
