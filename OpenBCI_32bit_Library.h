@@ -95,6 +95,7 @@ public:
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
   void    enable_accel(byte);  // start acceleromoeter with default settings
+  const char* getBoardMode(void);
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
   char    getCharSerial1(void);
@@ -103,6 +104,7 @@ public:
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
   char    getNumberForAsciiChar(char);
+  const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
   char    getYesOrNoForAsciiChar(char);
   boolean hasDataSerial0(void);
@@ -115,19 +117,15 @@ public:
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
   void    loop(void);
-  void    printBoardMode(void);
-  void    printSerial(uint8_t);
-  void    printSerial(uint8_t c, uint8_t arg);
-  void    printSerial(uint8_t *, size_t len);
-  void    printSerial(const char *data) {
-    printSerial((uint8_t *)data, strlen(data));
-  }
-  void    printlnSerial(uint8_t);
-  void    printlnSerial(uint8_t c, uint8_t arg);
-  void    printlnSerial(uint8_t *, size_t len);
-  void    printlnSerial(const char *data) {
-    printlnSerial((uint8_t *)data, strlen(data));
-  }
+  void    printSerial(int);
+  void    printSerial(char);
+  void    printSerial(int, int);
+  void    printSerial(const char *);
+  void    printlnSerial(void);
+  void    printlnSerial(char);
+  void    printlnSerial(int);
+  void    printlnSerial(int, int);
+  void    printlnSerial(const char *);
   boolean processChar(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
@@ -281,7 +279,6 @@ private:
   void    printFailure();
   void    printHex(byte);
   void    printRegisterName(byte);
-  void    printSampleRate(void);
   void    printSuccess();
   void    processCharWifi(uint8_t);
   void    RDATA(int);   // read data one-shot
