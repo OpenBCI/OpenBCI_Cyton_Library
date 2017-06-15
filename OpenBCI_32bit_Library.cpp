@@ -990,12 +990,12 @@ void OpenBCI_32bit_Library::loop(void) {
   if (wifiPresent && iWifi.rx) {
     if ((millis() - timeOfLastRead) > 20) {
       wifiReadData();
-      uint8_t numChars = (uint8_t)wifiBufferInput[0];
+      uint8_t numChars = (uint8_t)wifiBufferRx[0];
       if (numChars > 0) {
         // Serial0.print("Recieved "); Serial0.print(numChars); Serial0.print(" chars @ "); Serial0.println(micros());
         for(uint8_t i = 0; i < numChars; i++) {
-          // Serial0.println(wifiBufferInput[i+1],HEX);
-          processChar(wifiBufferInput[i+1]);
+          // Serial0.println(wifiBufferRx[i+1],HEX);
+          processChar(wifiBufferRx[i+1]);
         }
       }
       timeOfLastRead = millis();
@@ -1037,7 +1037,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   timeOfLastRead = 0;
   timeOfWifiToggle = 0;
   timeOfWifiStart = 0;
-  wifiBufferPosition = 0;
+  wifiBufferTxPosition = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -1157,8 +1157,8 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
 */
 void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean daisy) {
 
-  wifiStoreByte((uint8_t)(PCKT_END | packetType)); // 1 byte
-  wifiStoreByte(sampleCounter); // 1 byte
+  wifiStoreByteBufTx((uint8_t)(PCKT_END | packetType)); // 1 byte
+  wifiStoreByteBufTx(sampleCounter); // 1 byte
   ADS_writeChannelDataWifi(daisy);       // 24 bytes
 
   switch (packetType) {
@@ -1184,7 +1184,7 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
       writeAuxDataWifi(); // 6 bytes
       break;
   }
-  wifiFlushBuffer();
+  wifiFlushBufferTx();
 }
 
 /**
@@ -1258,8 +1258,8 @@ void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
       LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Z);
       break;
     default:
-      wifiStoreByte((byte)0x00); // high byte
-      wifiStoreByte((byte)0x00); // low byte
+      wifiStoreByteBufTx((byte)0x00); // high byte
+      wifiStoreByteBufTx((byte)0x00); // low byte
       break;
   }
   writeTimeCurrentWifi(lastSampleTime); // 4 bytes
@@ -1310,8 +1310,8 @@ void OpenBCI_32bit_Library::sendTimeWithRawAuxSerial(void) {
 *      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
 */
 void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
-  wifiStoreByte(highByte(auxData[0])); // 2 bytes of aux data
-  wifiStoreByte(lowByte(auxData[0]));
+  wifiStoreByteBufTx(highByte(auxData[0])); // 2 bytes of aux data
+  wifiStoreByteBufTx(lowByte(auxData[0]));
   writeTimeCurrentWifi(lastSampleTime); // 4 bytes
 }
 
@@ -1324,8 +1324,8 @@ void OpenBCI_32bit_Library::writeAuxDataSerial(void){
 
 void OpenBCI_32bit_Library::writeAuxDataWifi(void){
   for(int i = 0; i < 3; i++){
-    wifiStoreByte((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
-    wifiStoreByte((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    wifiStoreByteBufTx((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    wifiStoreByteBufTx((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
   }
 }
 
@@ -1353,7 +1353,7 @@ void OpenBCI_32bit_Library::writeTimeCurrentSerial(uint32_t newTime) {
 void OpenBCI_32bit_Library::writeTimeCurrentWifi(uint32_t newTime) {
   // serialize the number, placing the MSB in lower packets
   for (int j = 3; j >= 0; j--) {
-    wifiStoreByte((uint8_t)(newTime >> (j*8)));
+    wifiStoreByteBufTx((uint8_t)(newTime >> (j*8)));
   }
 }
 
@@ -1634,6 +1634,7 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 * @returns boolean if able to start streaming
 */
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
+  if (iWifi.tx) wifiSendGains();
   streaming = true;
   startADS();
   if (curBoardMode == BOARD_MODE_DEBUG) {
@@ -2716,7 +2717,7 @@ void OpenBCI_32bit_Library::printlnSerial(const char *c) {
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-  wifiStoreByte(b);
+  wifiStoreByteBufTx(b);
   writeSerial(b);
 }
 
@@ -2739,12 +2740,12 @@ void OpenBCI_32bit_Library::ADS_writeChannelDataWifi(boolean daisy) {
   if (daisy) {
     // Send daisy
     for(int i = 0; i < 24; i++) {
-      wifiStoreByte(daisyChannelDataRaw[i]);
+      wifiStoreByteBufTx(daisyChannelDataRaw[i]);
     }
   } else {
     // Send on board
     for(int i = 0; i < 24; i++) {
-      wifiStoreByte(boardChannelDataRaw[i]);
+      wifiStoreByteBufTx(boardChannelDataRaw[i]);
     }
   }
 }
@@ -2992,81 +2993,58 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>s
 
 /**
- * Clear the wifi buffer
+ * Used to attach a wifi shield, only if there is actuall a wifi shield present
  */
-void OpenBCI_32bit_Library::wifiBufferClear(void) {
-  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
-    wifiBuffer[i] = 0;
+void OpenBCI_32bit_Library::wifiAttach(void) {
+  wifiPresent = wifiSmell();
+  if(!wifiPresent) {
+    iWifi.rx = false;
+    iWifi.tx = false;
+    // if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
+  } else {
+    iWifi.rx = true;
+    iWifi.tx = true;
+    // if(!isRunning) Serial0.println("wifi attached"); sendEOT();
   }
-  wifiBufferPosition = 0;
 }
 
 /**
- * [OpenBCI_32bit_Library::wifiStoreByte description]
+ * Clear the wifi tx buffer
+ */
+void OpenBCI_32bit_Library::wifiBufferRxClear(void) {
+  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
+    wifiBufferRx[i] = 0;
+  }
+}
+
+/**
+ * Clear the wifi tx buffer
+ */
+void OpenBCI_32bit_Library::wifiBufferTxClear(void) {
+  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
+    wifiBufferTx[i] = 0;
+  }
+  wifiBufferTxPosition = 0;
+}
+
+/**
+ * [OpenBCI_32bit_Library::wifiStoreByteBufTx description]
  * @param  b {uint8_t} A single byte to store
  * @return   {boolean} True if the byte was stored, false if the buffer is full.
  */
-boolean OpenBCI_32bit_Library::wifiStoreByte(uint8_t b) {
-  if (wifiBufferPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
-  wifiBuffer[wifiBufferPosition] = b;
-  wifiBufferPosition++;
+boolean OpenBCI_32bit_Library::wifiStoreByteBufTx(uint8_t b) {
+  if (wifiBufferTxPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
+  wifiBufferTx[wifiBufferTxPosition] = b;
+  wifiBufferTxPosition++;
   return true;
 }
 
 /**
- * Will send a const char string (less than 32 bytes) to the wifi shield, call
- *  wifiSendStringLast to indicate to the wifi shield the multi part transmission is over.
- * @param str const char * less than 32 bytes to be sent over SPI
- */
-void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
-  if (!wifiPresent) return;
-  if (!iWifi.tx) return;
-  if (str == NULL) return;
-  int len = strlen(str);
-  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
-    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
-  }
-
-  wifiBuffer[0] = WIFI_SPI_MSG_MULTI;
-  wifiBufferPosition = 1;
-  for (int i = 0; i < len; i++) {
-    wifiStoreByte(str[i]);
-  }
-  wifiFlushBuffer();
-  wifiBufferClear();
-}
-
-/**
- * This will tell the Wifi shield to send the contents of this message to the requesting
- *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
- *  then this will indicate the end of a multi byte message.
- * @param str [description]
- */
-void OpenBCI_32bit_Library::wifiSendStringLast(const char *str) {
-  if (!wifiPresent) return;
-  if (!iWifi.tx) return;
-  if (str == NULL) return;
-  int len = strlen(str);
-  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
-    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
-  }
-
-  wifiBuffer[0] = WIFI_SPI_MSG_LAST;
-  wifiBufferPosition = 1;
-  for (int i = 0; i < len; i++) {
-    wifiStoreByte(str[i]);
-  }
-  wifiFlushBuffer();
-  wifiBufferClear();
-}
-
-
-/**
  * Flush the 32 byte buffer to the wifi shield. Set byte id too...
  */
-void OpenBCI_32bit_Library::wifiFlushBuffer() {
-  wifiWriteData(wifiBuffer, WIFI_SPI_MAX_PACKET_SIZE);
-  wifiBufferPosition = 0;
+void OpenBCI_32bit_Library::wifiFlushBufferTx() {
+  wifiWriteData(wifiBufferTx, WIFI_SPI_MAX_PACKET_SIZE);
+  wifiBufferTxPosition = 0;
 }
 
 /**
@@ -3097,25 +3075,21 @@ void OpenBCI_32bit_Library::wifiReadData() {
   xfer(0x03);
   xfer(0x00);
   for(uint8_t i = 0; i < 32; i++) {
-    wifiBufferInput[i] = xfer(0);
+    wifiBufferRx[i] = xfer(0);
   }
   csHigh(WIFI_SS);
 }
 
 /**
- * Used to attach a wifi shield, only if there is actuall a wifi shield present
+ * Used to read the status register from the ESP8266 wifi shield
+ * @return uint32_t the status
  */
-void OpenBCI_32bit_Library::wifiAttach(void) {
-  wifiPresent = wifiSmell();
-  if(!wifiPresent) {
-    iWifi.rx = false;
-    iWifi.tx = false;
-    // if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
-  } else {
-    iWifi.rx = true;
-    iWifi.tx = true;
-    // if(!isRunning) Serial0.println("wifi attached"); sendEOT();
-  }
+uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
+  csLow(WIFI_SS);
+  xfer(0x04);
+  uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
+  csHigh(WIFI_SS);
+  return status;
 }
 
 /**
@@ -3125,7 +3099,6 @@ void OpenBCI_32bit_Library::wifiRemove(void) {
   iWifi.rx = false;
   iWifi.tx = false;
   wifiPresent = false;
-  iSerial0.tx = true;
 }
 
 /**
@@ -3142,7 +3115,68 @@ void OpenBCI_32bit_Library::wifiReset(void) {
   timeOfWifiToggle = millis();
   toggleWifiCS = true;
   toggleWifiReset = true;
+}
 
+void OpenBCI_32bit_Library::wifiSendGains(void) {
+  if (!wifiPresent) return;
+  if (!iWifi.tx) return;
+
+  // Clear the wifi buffer
+  wifiBufferTxClear();
+
+  wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS);
+  wifiStoreByteBufTx(numChannels);
+  for (uint8_t i = 0; i < numChannels; i++) {
+    wifiStoreByteBufTx(channelSettings[i][GAIN_SET])
+  }
+  wifiFlushBufferTx
+
+}
+
+/**
+ * This will tell the Wifi shield to send the contents of this message to the requesting
+ *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
+ *  then this will indicate the end of a multi byte message.
+ * @param str [description]
+ */
+void OpenBCI_32bit_Library::wifiSendStringLast(const char *str) {
+  if (!wifiPresent) return;
+  if (!iWifi.tx) return;
+  if (str == NULL) return;
+  int len = strlen(str);
+  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
+    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
+  }
+  wifiBufferTxClear();
+  wifiStoreByteBufTx(WIFI_SPI_MSG_LAST);
+  for (int i = 0; i < len; i++) {
+    wifiStoreByteBufTx(str[i]);
+  }
+  wifiFlushBufferTx();
+  wifiBufferTxClear();
+}
+
+/**
+ * Will send a const char string (less than 32 bytes) to the wifi shield, call
+ *  wifiSendStringLast to indicate to the wifi shield the multi part transmission is over.
+ * @param str const char * less than 32 bytes to be sent over SPI
+ */
+void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
+  if (!wifiPresent) return;
+  if (!iWifi.tx) return;
+  if (str == NULL) return;
+  int len = strlen(str);
+  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
+    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
+  }
+
+  wifiBufferTxClear();
+  wifiStoreByteBufTx(WIFI_SPI_MSG_MULTI);
+  for (int i = 0; i < len; i++) {
+    wifiStoreByteBufTx(str[i]);
+  }
+  wifiFlushBufferTx();
+  wifiBufferTxClear();
 }
 
 /**
@@ -3160,18 +3194,6 @@ boolean OpenBCI_32bit_Library::wifiSmell(void){
   }
   if(uuid == 209) {isWifi = true;} // should read as 0x3E
   return isWifi;
-}
-
-/**
- * Used to read the status register from the ESP8266 wifi shield
- * @return uint32_t the status
- */
-uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
-  csLow(WIFI_SS);
-  xfer(0x04);
-  uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
-  csHigh(WIFI_SS);
-  return status;
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -3238,8 +3260,8 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisDataSerial(void){
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataWifi(void){
   for(int i = 0; i < 3; i++){
-    wifiStoreByte(highByte(axisData[i])); // write 16 bit axis data MSB first
-    wifiStoreByte(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+    wifiStoreByteBufTx(highByte(axisData[i])); // write 16 bit axis data MSB first
+    wifiStoreByteBufTx(lowByte(axisData[i]));  // axisData is array of type short (16bit)
   }
 }
 
@@ -3251,8 +3273,8 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisSerial(uint8_t axis) {
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisWifi(uint8_t axis) {
   if (axis > 2) axis = 0;
-  wifiStoreByte(highByte(axisData[axis])); // write 16 bit axis data MSB first
-  wifiStoreByte(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+  wifiStoreByteBufTx(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  wifiStoreByteBufTx(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
 }
 
 void OpenBCI_32bit_Library::LIS3DH_zeroAxisData(void){

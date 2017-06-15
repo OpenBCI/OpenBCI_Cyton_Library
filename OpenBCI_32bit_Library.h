@@ -164,17 +164,19 @@ public:
   void    useAccel(boolean);
   void    useTimeStamp(boolean);
   void    wifiAttach(void);
-  void    wifiBufferClear(void);
-  void    wifiSetInfo(SpiInfo, boolean, boolean);
-  boolean wifiStoreByte(uint8_t);
-  void    wifiFlushBuffer(void);
+  void    wifiBufferTxClear(void);
+  void    wifiBufferRxClear(void);
+  void    wifiFlushBufferTx(void);
   void    wifiReadData(void);
   uint32_t wifiReadStatus(void);
   void    wifiRemove(void);
   void    wifiReset(void);
+  void    wifiSendGains(void);
   void    wifiSendStringMulti(const char *);
   void    wifiSendStringLast(const char *);
+  void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiSmell(void);
+  boolean wifiStoreByteBufTx(uint8_t);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   void    writeAuxDataSerial(void);
@@ -221,9 +223,9 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
-  uint8_t wifiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
-  char wifiBufferInput[WIFI_SPI_MAX_PACKET_SIZE];
-  uint8_t wifiBufferPosition;
+  uint8_t wifiBufferTx[WIFI_SPI_MAX_PACKET_SIZE];
+  char wifiBufferRx[WIFI_SPI_MAX_PACKET_SIZE];
+  uint8_t wifiBufferTxPosition;
 
   unsigned long lastSampleTime;
 
