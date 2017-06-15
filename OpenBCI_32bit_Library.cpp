@@ -308,8 +308,6 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         reportDefaultChannelSettings();
         break;
 
-
-
       // DAISY MODULE COMMANDS
       case OPENBCI_CHANNEL_MAX_NUMBER_8:  // use 8 channel mode
         if(daisyPresent){
@@ -386,6 +384,12 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // Sample rate set
       case OPENBCI_SAMPLE_RATE_SET:
         settingSampleRate = true;
+        break;
+
+      case '{':
+        if (wifiPresent) {
+          wifiSendGains();
+        }
         break;
 
       default:
@@ -3127,10 +3131,9 @@ void OpenBCI_32bit_Library::wifiSendGains(void) {
   wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS);
   wifiStoreByteBufTx(numChannels);
   for (uint8_t i = 0; i < numChannels; i++) {
-    wifiStoreByteBufTx(channelSettings[i][GAIN_SET])
+    wifiStoreByteBufTx(channelSettings[i][GAIN_SET]);
   }
-  wifiFlushBufferTx
-
+  wifiFlushBufferTx();
 }
 
 /**
