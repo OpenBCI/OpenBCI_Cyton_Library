@@ -297,10 +297,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       case OPENBCI_CHANNEL_DEFAULT_ALL_SET:  // reset all channel settings to default
         if(!streaming) {
-          Serial0.println("updating channel settings to default");
+          printAll("updating channel settings to");
+          printAll(" default");
           sendEOT();
-          wifiSendStringMulti("updating channel settings to");
-          wifiSendStringLast(" default");
         }
         streamSafeSetAllChannelsToDefault();
         break;
@@ -319,11 +318,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
           attachDaisy();
         }
         if(daisyPresent){
-          Serial0.print("16");
-          wifiSendStringLast("16");
+          printAll("16");
         } else {
-          Serial0.print("8");
-          wifiSendStringLast("8");
+          printAll("8");
         }
         sendEOT();
         break;
@@ -333,6 +330,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(curAccelMode == ACCEL_MODE_ON){
           enable_accel(RATE_25HZ);
         }      // fire up the accelerometer if you want it
+        Serial0.println("streamStart - pc");
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
@@ -386,12 +384,35 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         settingSampleRate = true;
         break;
 
-      case '{':
-        if (wifiPresent) {
-          wifiSendGains();
+      case OPENBCI_WIFI_ATTACH:
+        if (wifiAttach()) {
+          printSuccess();
+          printSerial("Wifi attached");
+          sendEOT();
+        } else {
+          printFailure();
+          printSerial("Wifi not attached");
+          sendEOT();
         }
         break;
-
+      case OPENBCI_WIFI_REMOVE:
+        if (wifiRemove()) {
+          printSuccess();
+          printSerial("Wifi removed");
+        } else {
+          printFailure();
+          printSerial("Wifi not removed");
+        }
+        sendEOT();
+        break;
+      case OPENBCI_WIFI_STATUS:
+        if (wifiPresent) {
+          printAll("Wifi present");
+        } else {
+          printAll("Wifi not present, send {");
+          printAll(" to attach the shield");
+        }
+        sendEOT();
       default:
         return false;
     }
@@ -577,6 +598,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
   printSerial("$$$");
+  wifiSendStringLast();
 }
 
 void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
@@ -602,29 +624,23 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
 void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
   if (c == OPENBCI_BOARD_MODE_SET) {
     printSuccess();
-    printSerial(getBoardMode());
-    wifiSendStringLast(getBoardMode());
+    printAll(getBoardMode());
     sendEOT();
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
     if (digit <= BOARD_MODE_DIGITAL) {
       setBoardMode(digit);
       printSuccess();
-      printSerial(getBoardMode());
-      wifiSendStringLast(getBoardMode());
+      printAll(getBoardMode());
       sendEOT();
     } else {
-      const char buf[] = "board mode value out of bounds. ";
       printFailure();
-      printSerial(buf);
-      wifiSendStringLast(buf);
+      printAll("board mode value out of bounds.");
       sendEOT();
     }
   } else {
-    const char buf[] = "invalid board mode value.";
     printFailure();
-    printSerial(buf);
-    wifiSendStringLast(buf);
+    printAll("invalid board mode value.");
     sendEOT();
   }
   settingBoardMode = false;
@@ -703,35 +719,30 @@ const char* OpenBCI_32bit_Library::getBoardMode(void) {
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
   if (c == OPENBCI_SAMPLE_RATE_SET) {
     printSuccess();
-    printSerial(getSampleRate());
-    wifiSendStringLast(getSampleRate());
+    printAll(getSampleRate());
     sendEOT();
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
     if (digit <= SAMPLE_RATE_250) {
       if (!streaming) {
         setSampleRate(digit);
-        // initialize();
         printSuccess();
-        printSerial(getSampleRate());
-        wifiSendStringLast(getSampleRate());
+        printAll("Sample rate is ");
+        printAll(getSampleRate());
+        printAll("Hz");
         sendEOT();
       }
     } else {
       if (!streaming) {
         printFailure();
-        const char buf[] = "sample value out of bounds.";
-        printSerial(buf);
-        wifiSendStringLast(buf);
+        printAll("sample value out of bounds");
         sendEOT();
       }
     }
   } else {
     if (!streaming) {
-      const char buf[] = "invalid sample value.";
       printFailure();
-      printSerial(buf);
-      wifiSendStringLast(buf);
+      printAll("invalid sample value");
       sendEOT();
     }
   }
@@ -753,10 +764,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     isProcessingIncomingSettingsChannel = false;
 
     if (!streaming) {
-      const char buf[] = "too few chars";
       printFailure();
-      printSerial(buf);
-      wifiSendStringLast(buf);
+      printAll("too few chars");
       sendEOT();
     }
 
@@ -787,10 +796,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     case 8: // 'X' latch
       if (character != OPENBCI_CHANNEL_CMD_LATCH) {
         if (!streaming) {
-          const char buf[] = "Err: 9th char not X";
           printFailure();
-          printSerial(buf);
-          wifiSendStringLast(buf);
+          printAll("Err: 9th char not X");
           sendEOT();
         }
         // We failed somehow and should just abort
@@ -803,10 +810,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       break;
     default: // should have exited
       if (!streaming) {
-        const char buf[] = "Err: too many chars";
         printFailure();
-        printSerial(buf);
-        wifiSendStringLast(buf);
+        printAll("Err: too many chars");
         sendEOT();
       }
       // We failed somehow and should just abort
@@ -822,17 +827,12 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
 
   if (numberOfIncomingSettingsProcessedChannel == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_CHANNEL)) {
     // We are done processing channel settings...
-
-    const char infoBuf[] = "Channel set for ";
-
     if (!streaming) {
-      printSuccess(); printSerial(infoBuf); printlnSerial(currentChannelSetting + 1); sendEOT();
-    }
-
-    char buf[2];
-    wifiSendStringMulti(infoBuf);
-    if (currentChannelSetting + 1 < 10) {
-      wifiSendStringLast(itoa(currentChannelSetting + 1, buf, 10));
+      char buf[2];
+      printSuccess();
+      printAll("Channel set for ");
+      printAll(itoa(currentChannelSetting + 1, buf, 10));
+      sendEOT();
     }
 
     // Set channel settings
@@ -863,10 +863,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     isProcessingIncomingSettingsLeadOff = false;
 
     if (!streaming) {
-      const char buf[] = "too few chars";
       printFailure();
-      printSerial(buf);
-      wifiSendStringLast(buf);
+      printAll("too few chars");
       sendEOT();
     }
 
@@ -885,10 +883,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     case 4: // 'Z' latch
       if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
         if (!streaming) {
-          const char buf[] = "Err: 5th char not Z";
           printFailure();
-          printSerial(buf);
-          wifiSendStringLast(buf);
+          printAll("Err: 5th char not Z");
           sendEOT();
         }
         // We failed somehow and should just abort
@@ -902,10 +898,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       break;
     default: // should have exited
       if (!streaming) {
-        const char buf[] = "Err: too many chars";
         printFailure();
-        printSerial(buf);
-        wifiSendStringLast(buf);
+        printAll("Err: too many chars");
         sendEOT();
       }
       // We failed somehow and should just abort
@@ -923,15 +917,12 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
   if (numberOfIncomingSettingsProcessedLeadOff == (OPENBCI_NUMBER_OF_BYTES_SETTINGS_LEAD_OFF)) {
     // We are done processing lead off settings...
 
-    const char infoBuf[] = "Lead off set for ";
     if (!streaming) {
-      printSuccess(); printSerial(infoBuf); printSerial(currentChannelSetting + 1); sendEOT();
-    }
-
-    char buf[2];
-    wifiSendStringMulti(infoBuf);
-    if (currentChannelSetting + 1 < 10) {
-      wifiSendStringLast(itoa(currentChannelSetting + 1, buf, 10));
+      char buf[3];
+      printSuccess();
+      printAll("Lead off set for ");
+      printAll(itoa(currentChannelSetting + 1, buf, 10));
+      sendEOT();
     }
 
     // Set lead off settings
@@ -986,7 +977,7 @@ void OpenBCI_32bit_Library::loop(void) {
     }
   }
   if (seekingWifi) {
-    if ((millis() - timeOfWifiToggle) > 8000) {
+    if ((millis() - timeOfWifiToggle) > 4500) {
       seekingWifi = false;
       wifiAttach();
     }
@@ -1099,7 +1090,7 @@ void OpenBCI_32bit_Library::sendChannelData() {
 *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
 */
 void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
-  if (wifiPresent && iWifi.tx) {
+  if (iWifi.tx) {
     sendChannelDataWifi(packetType, false);
     if (daisyPresent) sendChannelDataWifi(packetType, true);
     if (iSerial1.tx) sendChannelDataSerial(packetType);  // Serial1 can work under high speed
@@ -1638,7 +1629,10 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 * @returns boolean if able to start streaming
 */
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
-  if (iWifi.tx) wifiSendGains();
+  if (iWifi.tx) {
+     wifiSendGains();
+     Serial0.println("sendGains - ss");
+  }
   streaming = true;
   startADS();
   if (curBoardMode == BOARD_MODE_DEBUG) {
@@ -1678,14 +1672,12 @@ void OpenBCI_32bit_Library::removeDaisy(void){
     STANDBY(DAISY_ADS);
     daisyPresent = false;
     if(!isRunning) {
-      Serial0.println("daisy removed");
-      wifiSendStringLast("daisy removed");
+      printAll("daisy removed");
       sendEOT();
     }
   }else{
     if(!isRunning) {
-      Serial0.println("no daisy to remove!");
-      wifiSendStringLast("no daisy to remove!");
+      printAll("no daisy to remove!");
       sendEOT();
     }
   }
@@ -1701,15 +1693,12 @@ void OpenBCI_32bit_Library::attachDaisy(void){
     WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT | curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
     if(!isRunning) {
-      Serial0.println("no daisy to attach!");
-      wifiSendStringMulti("no daisy to attach!");
+      printAll("no daisy to attach!");
     }
   }else{
     numChannels = 16;   // expect up to 16 ADS channels
     if(!isRunning) {
-      Serial0.println("daisy attached");
-      wifiSendStringMulti("daisy attached");
-
+      printAll("daisy attached");
     }
   }
 }
@@ -2999,15 +2988,17 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 /**
  * Used to attach a wifi shield, only if there is actuall a wifi shield present
  */
-void OpenBCI_32bit_Library::wifiAttach(void) {
+boolean OpenBCI_32bit_Library::wifiAttach(void) {
   wifiPresent = wifiSmell();
   if(!wifiPresent) {
     iWifi.rx = false;
     iWifi.tx = false;
+    return false;
     // if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
   } else {
     iWifi.rx = true;
     iWifi.tx = true;
+    return true;
     // if(!isRunning) Serial0.println("wifi attached"); sendEOT();
   }
 }
@@ -3099,10 +3090,14 @@ uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
 /**
  * Used to detach the wifi shield, sort of.
  */
-void OpenBCI_32bit_Library::wifiRemove(void) {
-  iWifi.rx = false;
-  iWifi.tx = false;
-  wifiPresent = false;
+boolean OpenBCI_32bit_Library::wifiRemove(void) {
+  if (wifiPresent) {
+    iWifi.rx = false;
+    iWifi.tx = false;
+    wifiPresent = false;
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -3134,6 +3129,16 @@ void OpenBCI_32bit_Library::wifiSendGains(void) {
     wifiStoreByteBufTx(channelSettings[i][GAIN_SET]);
   }
   wifiFlushBufferTx();
+}
+
+/**
+ * This will tell the Wifi shield to send the contents of this message to the requesting
+ *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
+ *  then this will indicate the end of a multi byte message.
+ * @param str [description]
+ */
+void OpenBCI_32bit_Library::wifiSendStringLast(void) {
+  wifiSendStringLast("");
 }
 
 /**
@@ -3370,53 +3375,53 @@ void OpenBCI_32bit_Library::LIS3DH_readAllRegs(){
 void OpenBCI_32bit_Library::printRegisterName(byte _address) {
   switch(_address){
     case ID_REG:
-    Serial0.print("ADS_ID, "); break;
+    printAll("ADS_ID, "); break;
     case CONFIG1:
-    Serial0.print("CONFIG1, "); break;
+    printAll("CONFIG1, "); break;
     case CONFIG2:
-    Serial0.print("CONFIG2, "); break;
+    printAll("CONFIG2, "); break;
     case CONFIG3:
-    Serial0.print("CONFIG3, "); break;
+    printAll("CONFIG3, "); break;
     case LOFF:
-    Serial0.print("LOFF, "); break;
+    printAll("LOFF, "); break;
     case CH1SET:
-    Serial0.print("CH1SET, "); break;
+    printAll("CH1SET, "); break;
     case CH2SET:
-    Serial0.print("CH2SET, "); break;
+    printAll("CH2SET, "); break;
     case CH3SET:
-    Serial0.print("CH3SET, "); break;
+    printAll("CH3SET, "); break;
     case CH4SET:
-    Serial0.print("CH4SET, "); break;
+    printAll("CH4SET, "); break;
     case CH5SET:
-    Serial0.print("CH5SET, "); break;
+    printAll("CH5SET, "); break;
     case CH6SET:
-    Serial0.print("CH6SET, "); break;
+    printAll("CH6SET, "); break;
     case CH7SET:
-    Serial0.print("CH7SET, "); break;
+    printAll("CH7SET, "); break;
     case CH8SET:
-    Serial0.print("CH8SET, "); break;
+    printAll("CH8SET, "); break;
     case BIAS_SENSP:
-    Serial0.print("BIAS_SENSP, "); break;
+    printAll("BIAS_SENSP, "); break;
     case BIAS_SENSN:
-    Serial0.print("BIAS_SENSN, "); break;
+    printAll("BIAS_SENSN, "); break;
     case LOFF_SENSP:
-    Serial0.print("LOFF_SENSP, "); break;
+    printAll("LOFF_SENSP, "); break;
     case LOFF_SENSN:
-    Serial0.print("LOFF_SENSN, "); break;
+    printAll("LOFF_SENSN, "); break;
     case LOFF_FLIP:
-    Serial0.print("LOFF_FLIP, "); break;
+    printAll("LOFF_FLIP, "); break;
     case LOFF_STATP:
-    Serial0.print("LOFF_STATP, "); break;
+    printAll("LOFF_STATP, "); break;
     case LOFF_STATN:
-    Serial0.print("LOFF_STATN, "); break;
+    printAll("LOFF_STATN, "); break;
     case GPIO:
-    Serial0.print("GPIO, "); break;
+    printAll("GPIO, "); break;
     case MISC1:
-    Serial0.print("MISC1, "); break;
+    printAll("MISC1, "); break;
     case MISC2:
-    Serial0.print("MISC2, "); break;
+    printAll("MISC2, "); break;
     case CONFIG4:
-    Serial0.print("CONFIG4, "); break;
+    printAll("CONFIG4, "); break;
     default:
     break;
   }
@@ -3430,15 +3435,21 @@ void OpenBCI_32bit_Library::printHex(byte _data){
 }
 
 void OpenBCI_32bit_Library::printFailure() {
-  const char buf[] = "Failure: ";
-  printSerial(buf);
-  wifiSendStringMulti(buf);
+  printAll("Failure: ");
 }
 
 void OpenBCI_32bit_Library::printSuccess() {
-  const char buf[] = "Success: ";
-  printSerial(buf);
-  wifiSendStringMulti(buf);
+  printAll("Success: ");
+}
+
+void OpenBCI_32bit_Library::printAll(const char *arr) {
+  printSerial(arr);
+  wifiSendStringMulti(arr);
+}
+
+void OpenBCI_32bit_Library::printlnAll(const char *arr) {
+  printlnSerial(arr);
+  wifiSendStringLast(arr);
 }
 
 /**

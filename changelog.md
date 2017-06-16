@@ -2,6 +2,9 @@
 
 ### New Features
 
+* Add wifi shield support
+   * Send channel gains to wifi shield at start of stream
+   * takes ~4 seconds for the wifi shield to be reachable
 * Add ability to turn external serial port `Serial1` on through commands.
 * Add ability to use ESP8266 through SPI port.
 * Change board types on the fly! No longer do you have to upload new code to the Cyton's Pic32 just to do an analog read. You can now read from analog or digital pins with the press send of a code! `/` now sets the board mode, where:
@@ -10,12 +13,15 @@
    * BOARD_MODE_ANALOG is `2`
    * BOARD_MODE_DIGITAL is `3`
 * Add loop function for internal timing operations related to power on reset for wifi shield, remove `loop` to free up pins and such and remove wifi capability.
-* Add function to turn time stamps on `useTimeStamp(true)`, time stamps are disabled by default.
+* Add function to turn time stamps on `useTimeStamp(true)`, time stamps are disabled by default. Note the Wifi shield will use NTP time stamps.
+* Add wifi commands:
+   * _OpenBCI Wifi Attach_ - `{`
+   * _OpenBCI Wifi Remove_ - `}`
+   * _OpenBCI Wifi Status_ - `:`
 
 ### Enhancements
 
 * `hasDataSerial0` and `hasDataSerial1` use new properties `SerialInfo` to determine if data should be received. Now safe to call every loop.
-* Stop calling setSpi
 
 ### Breaking Changes
 

@@ -334,6 +334,11 @@
 #define OPENBCI_TIME_SET '<'
 #define OPENBCI_TIME_STOP '>'
 
+/** Wifi Stuff */
+#define OPENBCI_WIFI_ATTACH '{'
+#define OPENBCI_WIFI_REMOVE '}'
+#define OPENBCI_WIFI_STATUS ':'
+
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
 #define OPENBCI_NUMBER_OF_CHANNELS_DEFAULT 8
