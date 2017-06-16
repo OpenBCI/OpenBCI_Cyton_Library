@@ -139,6 +139,18 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
   return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode || settingSampleRate;
 }
 
+
+/**
+* @description Process one char at a time from serial port. This is the main
+*  command processor for the OpenBCI system. Considered mission critical for
+*  normal operation.
+* @param `character` {char} - The character to process.
+* @return {boolean} - `true` if the command was recognized, `false` if not
+*/
+boolean OpenBCI_32bit_Library::processCharWifi(char character) {
+  // Serial0.print("pc wifi ");
+  return processChar(character);
+}
 /**
 * @description Process one char at a time from serial port. This is the main
 *  command processor for the OpenBCI system. Considered mission critical for
@@ -147,6 +159,7 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 * @return {boolean} - `true` if the command was recognized, `false` if not
 */
 boolean OpenBCI_32bit_Library::processChar(char character) {
+  // Serial0.print("pC: "); Serial0.print(character); Serial0.print(" 0x"); Serial0.println(character, HEX);
   if (curBoardMode == BOARD_MODE_DEBUG) {
     Serial1.print("pC: "); Serial1.println(character);
   }
@@ -663,7 +676,9 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_OFF;
       pinMode(11, INPUT);
       pinMode(12, INPUT);
+      if (!wifiPresent) pinMode(WIFI_SS, INPUT);
       pinMode(17, INPUT);
+      if (!wifiPresent) pinMode(WIFI_RESET, INPUT);
       break;
     case BOARD_MODE_DEBUG:
       curAccelMode = ACCEL_MODE_ON;
@@ -979,18 +994,24 @@ void OpenBCI_32bit_Library::loop(void) {
   if (seekingWifi) {
     if ((millis() - timeOfWifiToggle) > 4500) {
       seekingWifi = false;
-      wifiAttach();
+      if (!wifiAttach()) {
+        wifiAttachAttempts++;
+        if (wifiAttachAttempts < 2) {
+          seekingWifi = true;
+          timeOfWifiToggle = millis();
+        }
+      }
     }
   }
-  if (wifiPresent && iWifi.rx) {
+  if (iWifi.rx) {
     if ((millis() - timeOfLastRead) > 20) {
       wifiReadData();
       uint8_t numChars = (uint8_t)wifiBufferRx[0];
-      if (numChars > 0) {
+      if (numChars > 0 && numChars < WIFI_SPI_MAX_PACKET_SIZE) {
         // Serial0.print("Recieved "); Serial0.print(numChars); Serial0.print(" chars @ "); Serial0.println(micros());
         for(uint8_t i = 0; i < numChars; i++) {
           // Serial0.println(wifiBufferRx[i+1],HEX);
-          processChar(wifiBufferRx[i+1]);
+          processCharWifi(wifiBufferRx[i+1]);
         }
       }
       timeOfLastRead = millis();
@@ -1032,6 +1053,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   timeOfLastRead = 0;
   timeOfWifiToggle = 0;
   timeOfWifiStart = 0;
+  wifiAttachAttempts = 0;
   wifiBufferTxPosition = 0;
 
   // Enums
@@ -2499,7 +2521,9 @@ void OpenBCI_32bit_Library::updateChannelData(){
     case BOARD_MODE_DIGITAL:
       auxData[0] = digitalRead(11);
       auxData[1] = digitalRead(12);
-      auxData[2] = digitalRead(17);
+      auxData[2] = wifiPresent ? 0 : digitalRead(WIFI_SS);
+      auxData[3] = digitalRead(17);
+      auxData[4] = wifiPresent ? 0 : digitalRead(WIFI_RESET);
       break;
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:

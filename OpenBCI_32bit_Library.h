@@ -279,6 +279,7 @@ private:
   void    LIS3DH_writeAxisDataForAxisWifi(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
+  boolean processCharWifi(char character);
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
@@ -332,6 +333,7 @@ private:
   int     numberOfIncomingSettingsProcessedChannel;
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
+  int     wifiAttachAttempts;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
   unsigned long timeOfWifiToggle;
