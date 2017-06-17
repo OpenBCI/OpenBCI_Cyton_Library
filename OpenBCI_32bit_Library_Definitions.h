@@ -334,6 +334,11 @@
 #define OPENBCI_TIME_SET '<'
 #define OPENBCI_TIME_STOP '>'
 
+/** Wifi Stuff */
+#define OPENBCI_WIFI_ATTACH '{'
+#define OPENBCI_WIFI_REMOVE '}'
+#define OPENBCI_WIFI_STATUS ':'
+
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
 #define OPENBCI_NUMBER_OF_CHANNELS_DEFAULT 8
@@ -378,6 +383,8 @@
 #define WIFI_SPI_CMD_STATUS_READ 0x04
 #define WIFI_SPI_CMD_STATUS_WRITE 0x01
 #define WIFI_SPI_MAX_PACKET_SIZE 32
-// #define WIFI_SPI_BYTE_ID_POS 31
+#define WIFI_SPI_MSG_LAST 0x01
+#define WIFI_SPI_MSG_MULTI 0x02
+#define WIFI_SPI_MSG_GAINS 0x03
 
 #endif

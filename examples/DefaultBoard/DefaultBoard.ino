@@ -22,13 +22,18 @@ void loop() {
       board.updateChannelData();
 
       // Check to see if accel has new data
-      if(board.accelHasNewData()) {
-        // Get new accel data
-        board.accelUpdateAxisData();
+      if (board.curAccelMode == board.ACCEL_MODE_ON) {
+        if(board.accelHasNewData()) {
+          // Get new accel data
+          board.accelUpdateAxisData();
 
-        // Tell the SD_Card_Stuff.ino to add accel data in the next write to SD
-        addAccelToSD = true; // Set false after writeDataToSDcard()
+          // Tell the SD_Card_Stuff.ino to add accel data in the next write to SD
+          addAccelToSD = true; // Set false after writeDataToSDcard()
+        }
+      } else {
+        addAuxToSD = true;
       }
+
 
       // Verify the SD file is open
       if(SDfileOpen) {

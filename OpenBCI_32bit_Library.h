@@ -27,7 +27,9 @@ public:
 
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
-    BOARD_MODE_DEBUG
+    BOARD_MODE_DEBUG,
+    BOARD_MODE_ANALOG,
+    BOARD_MODE_DIGITAL
   };
 
   typedef enum PACKET_TYPE {
@@ -93,6 +95,7 @@ public:
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
   void    enable_accel(byte);  // start acceleromoeter with default settings
+  const char* getBoardMode(void);
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
   char    getCharSerial1(void);
@@ -101,6 +104,7 @@ public:
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
   char    getNumberForAsciiChar(char);
+  const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
   char    getYesOrNoForAsciiChar(char);
   boolean hasDataSerial0(void);
@@ -113,18 +117,17 @@ public:
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
   void    loop(void);
-  void    printSerial(uint8_t);
-  void    printSerial(uint8_t c, uint8_t arg);
-  void    printSerial(uint8_t *, size_t len);
-  void    printSerial(const char *data) {
-    printSerial((uint8_t *)data, strlen(data));
-  }
-  void    printlnSerial(uint8_t);
-  void    printlnSerial(uint8_t c, uint8_t arg);
-  void    printlnSerial(uint8_t *, size_t len);
-  void    printlnSerial(const char *data) {
-    printlnSerial((uint8_t *)data, strlen(data));
-  }
+  void    printAll(const char *arr);
+  void    printlnAll(const char *arr);
+  void    printlnSerial(void);
+  void    printlnSerial(char);
+  void    printlnSerial(int);
+  void    printlnSerial(int, int);
+  void    printlnSerial(const char *);
+  void    printSerial(int);
+  void    printSerial(char);
+  void    printSerial(int, int);
+  void    printSerial(const char *);
   boolean processChar(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
@@ -139,11 +142,12 @@ public:
   void    stopADS(void);
   void    sendChannelData(void);
   void    sendChannelData(PACKET_TYPE);
+  void    setBoardMode(uint8_t);
   void    setChannelsToDefault(void);
   void    setCurPacketType(void);
   void    setSampleRate(uint8_t newSampleRateCode);
   void    sendEOT(void);
-  void    setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate);
+  void    setSerialInfo(SerialInfo, boolean, boolean, uint32_t);
   boolean smellDaisy(void);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
@@ -161,15 +165,21 @@ public:
   void    updateDaisyData(boolean);
   void    useAccel(boolean);
   void    useTimeStamp(boolean);
-  void    wifiAttach(void);
-  void    wifiSetInfo(SpiInfo, boolean, boolean);
-  boolean wifiStoreByte(uint8_t);
-  void    wifiFlushBuffer(void);
+  boolean wifiAttach(void);
+  void    wifiBufferTxClear(void);
+  void    wifiBufferRxClear(void);
+  void    wifiFlushBufferTx(void);
   void    wifiReadData(void);
   uint32_t wifiReadStatus(void);
-  void    wifiRemove(void);
+  boolean wifiRemove(void);
   void    wifiReset(void);
+  void    wifiSendGains(void);
+  void    wifiSendStringMulti(const char *);
+  void    wifiSendStringLast();
+  void    wifiSendStringLast(const char *);
+  void    wifiSetInfo(SpiInfo, boolean, boolean);
   boolean wifiSmell(void);
+  boolean wifiStoreByteBufTx(uint8_t);
   void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   void    writeAuxDataSerial(void);
@@ -216,9 +226,9 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
-  uint8_t wifiBuffer[WIFI_SPI_MAX_PACKET_SIZE];
-  char wifiBufferInput[WIFI_SPI_MAX_PACKET_SIZE];
-  uint8_t wifiBufferPosition;
+  uint8_t wifiBufferTx[WIFI_SPI_MAX_PACKET_SIZE];
+  char wifiBufferRx[WIFI_SPI_MAX_PACKET_SIZE];
+  uint8_t wifiBufferTxPosition;
 
   unsigned long lastSampleTime;
 
@@ -269,12 +279,12 @@ private:
   void    LIS3DH_writeAxisDataForAxisWifi(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
+  boolean processCharWifi(char character);
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
   void    printHex(byte);
   void    printRegisterName(byte);
-  void    printSampleRate(void);
   void    printSuccess();
   void    processCharWifi(uint8_t);
   void    RDATA(int);   // read data one-shot
@@ -323,6 +333,7 @@ private:
   int     numberOfIncomingSettingsProcessedChannel;
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
+  int     wifiAttachAttempts;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
   unsigned long timeOfWifiToggle;

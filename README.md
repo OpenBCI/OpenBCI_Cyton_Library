@@ -99,13 +99,6 @@ void setup() {
 }
 ```
 
-#### Bare board
-```Arduino
-void setup() {
-  board.begin(); // Bring up the OpenBCI Board
-}
-```
-
 ### <a name="loop"></a> loop():
 
 We will start with the basics here, and work our way up... The loop function can be thought of as the meat and core executor of the OpenBCI_32bit_Library functionality. Keep in mind the main purpose of this library is to stream data from the ADS1299 to the computer, that's our focus, everything takes a back seat to that.
@@ -233,30 +226,96 @@ Called when the board ADS1299 has new data available. If there is a daisy module
 
 ## <a name="enums"></a> ENUMS:
 
-### PACKET_TYPE_ACCEL
+### BOARD_MODE
+
+Board mode changes the hardware pins.
+
+#### BOARD_MODE_DEFAULT
+
+`0` - Board will operate leave all pins in default mode.
+
+#### BOARD_MODE_DEBUG
+
+`1` - Board will output serial debug data out of the external serial port.
+
+#### BOARD_MODE_ANALOG
+
+`2` - Board will read from `A6` (`D11`), `A7` (`D12`), and `A8` (`D13`). `A8` is only is use when there is no wifi present. The analog to digital converter is 10bits and the data will be in .  
+
+|Pin|Aux Bytes|Notes|
+|----|----|----|
+|`A6`|0:1|`D11`|
+|`A7`|2:3|`D12`|
+|`A8`|4:5|`D13` - If wifi not present|
+
+#### BOARD_MODE_DIGITAL
+
+`3` - Board will read from `D11`, `D12`, `D13` (if wifi not present), `D17`, and `D18` (if wifi not present).
+
+|Pin|Aux Byte|Notes|
+|----|----|----|
+|`D11`|0||
+|`D11`|1||
+|`D13`|2|If wifi not present|
+|`D17`|3||
+|`D18`|4|If wifi not present|
+
+### PACKET_TYPE
+
+#### PACKET_TYPE_ACCEL
 
 `0` - End of standard stream packet.
 
-### PACKET_TYPE_RAW_AUX
+#### PACKET_TYPE_RAW_AUX
 
 `1` - End of stream packet with raw packet.
 
-### PACKET_TYPE_USER_DEFINED
+#### PACKET_TYPE_USER_DEFINED
 
 `2` - End of stream packet, user defined.
 
-### PACKET_TYPE_ACCEL_TIME_SET
+#### PACKET_TYPE_ACCEL_TIME_SET
 
 `3` - End of time sync up with accelerometer stream packet.
 
-### PACKET_TYPE_ACCEL_TIME_SYNC
+#### PACKET_TYPE_ACCEL_TIME_SYNC
 
 `4` - End of time synced stream packet.
 
-### PACKET_TYPE_RAW_AUX_TIME_SET
+#### PACKET_TYPE_RAW_AUX_TIME_SET
 
 `5` - End of time sync up stream packet.
 
-### PACKET_TYPE_RAW_AUX_TIME_SYNC
+#### PACKET_TYPE_RAW_AUX_TIME_SYNC
 
 `6` - End of time synced stream packet.
+
+### SAMPLE_RATE
+
+#### SAMPLE_RATE_16000
+
+`0` - Sample rate 16000Hz
+
+#### SAMPLE_RATE_8000
+
+`1` - Sample rate 8000Hz
+
+#### SAMPLE_RATE_4000
+
+`2` - Sample rate 4000Hz
+
+#### SAMPLE_RATE_2000
+
+`3` - Sample rate 2000Hz
+
+#### SAMPLE_RATE_1000
+
+`4` - Sample rate 1000Hz
+
+#### SAMPLE_RATE_500
+
+`5` - Sample rate 500Hz
+
+#### SAMPLE_RATE_250
+
+`6` - Sample rate 250Hz
