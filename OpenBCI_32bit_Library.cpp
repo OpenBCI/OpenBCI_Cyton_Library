@@ -343,7 +343,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(curAccelMode == ACCEL_MODE_ON){
           enable_accel(RATE_25HZ);
         }      // fire up the accelerometer if you want it
-        Serial0.println("streamStart - pc");
+        // Serial0.println("streamStart - pc");
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
@@ -996,7 +996,7 @@ void OpenBCI_32bit_Library::loop(void) {
       seekingWifi = false;
       if (!wifiAttach()) {
         wifiAttachAttempts++;
-        if (wifiAttachAttempts < 2) {
+        if (wifiAttachAttempts < 3) {
           seekingWifi = true;
           timeOfWifiToggle = millis();
         }
@@ -1653,7 +1653,7 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
   if (iWifi.tx) {
      wifiSendGains();
-     Serial0.println("sendGains - ss");
+    //  Serial0.println("sendGains - ss");
   }
   streaming = true;
   startADS();
@@ -2520,7 +2520,7 @@ void OpenBCI_32bit_Library::updateChannelData(){
       break;
     case BOARD_MODE_DIGITAL:
       auxData[0] = digitalRead(11) << 8 | digitalRead(12);
-      auxData[1] = wifiPresent ? 0 : digitalRead(WIFI_SS) << 8 | digitalRead(17);
+      auxData[1] = (wifiPresent ? 0 : digitalRead(WIFI_SS) << 8) | digitalRead(17);
       auxData[2] = wifiPresent ? 0 : digitalRead(WIFI_RESET);
       break;
     case BOARD_MODE_DEBUG:
@@ -3103,7 +3103,6 @@ void OpenBCI_32bit_Library::wifiReadData() {
  */
 uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
   // TODO: Remove this line
-  Serial0.println("status request");
   csLow(WIFI_SS);
   xfer(0x04);
   uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
