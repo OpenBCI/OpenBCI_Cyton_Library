@@ -240,7 +240,13 @@ Board mode changes the hardware pins.
 
 #### BOARD_MODE_ANALOG
 
-`2` - Board will read from `A6` (`D11`), `A7` (`D12`), and `A8` (`D13`). `A8` is only is use when there is no wifi present. The analog to digital converter is 10bits and where `A6` is in Aux bytes 0:1, `A7` is in Aux bytes 2:3, `A8` is in Aux bytes 4:5.  
+`2` - Board will read from `A6` (`D11`), `A7` (`D12`), and `A8` (`D13`). `A8` is only is use when there is no wifi present. The analog to digital converter is 10bits and the data will be in .  
+
+|Pin|Aux Bytes|Notes|
+|----|----|----|
+|`A6`|0:1|`D11`|
+|`A7`|2:3|`D12`|
+|`A8`|4:5|`D13` - If wifi not present|
 
 #### BOARD_MODE_DIGITAL
 
@@ -284,7 +290,7 @@ Board mode changes the hardware pins.
 
 `6` - End of time synced stream packet.
 
-### SAMPLE_RATE 
+### SAMPLE_RATE
 
 #### SAMPLE_RATE_16000
 
@@ -292,24 +298,24 @@ Board mode changes the hardware pins.
 
 #### SAMPLE_RATE_8000
 
-`0` - Sample rate 8000Hz
+`1` - Sample rate 8000Hz
 
 #### SAMPLE_RATE_4000
 
-`0` - Sample rate 4000Hz
+`2` - Sample rate 4000Hz
 
 #### SAMPLE_RATE_2000
 
-`0` - Sample rate 2000Hz
+`3` - Sample rate 2000Hz
 
 #### SAMPLE_RATE_1000
 
-`0` - Sample rate 1000Hz
+`4` - Sample rate 1000Hz
 
 #### SAMPLE_RATE_500
 
-`0` - Sample rate 500Hz
+`5` - Sample rate 500Hz
 
 #### SAMPLE_RATE_250
 
-`0` - Sample rate 250Hz
+`6` - Sample rate 250Hz

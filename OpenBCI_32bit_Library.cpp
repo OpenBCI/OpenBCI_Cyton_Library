@@ -2519,11 +2519,9 @@ void OpenBCI_32bit_Library::updateChannelData(){
       }
       break;
     case BOARD_MODE_DIGITAL:
-      auxData[0] = digitalRead(11);
-      auxData[1] = digitalRead(12);
-      auxData[2] = wifiPresent ? 0 : digitalRead(WIFI_SS);
-      auxData[3] = digitalRead(17);
-      auxData[4] = wifiPresent ? 0 : digitalRead(WIFI_RESET);
+      auxData[0] = digitalRead(11) << 8 | digitalRead(12);
+      auxData[1] = wifiPresent ? 0 : digitalRead(WIFI_SS) << 8 | digitalRead(17);
+      auxData[2] = wifiPresent ? 0 : digitalRead(WIFI_RESET);
       break;
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:
@@ -3104,6 +3102,8 @@ void OpenBCI_32bit_Library::wifiReadData() {
  * @return uint32_t the status
  */
 uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
+  // TODO: Remove this line
+  Serial0.println("status request");
   csLow(WIFI_SS);
   xfer(0x04);
   uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
