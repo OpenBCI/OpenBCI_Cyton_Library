@@ -426,6 +426,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
           printAll(" to attach the shield");
         }
         sendEOT();
+        break;
+      case OPENBCI_WIFI_RESET:
+        wifiReset();
+        break;
       default:
         return false;
     }
@@ -593,7 +597,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
 */
 void OpenBCI_32bit_Library::boardReset(void) {
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
-  delay(500);
+  // delay(500);
   configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
   Serial0.println("OpenBCI V3 8-16 channel");
   Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
@@ -960,7 +964,7 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
   pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS, LOW);
-  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, HIGH);
+  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, LOW);
   wifiReset();
 
   spi.begin();
@@ -976,14 +980,15 @@ void OpenBCI_32bit_Library::initialize(){
  */
 void OpenBCI_32bit_Library::loop(void) {
   if (toggleWifiReset) {
-    if ((millis() - timeOfWifiToggle) > 50) {
+    if ((millis() - timeOfWifiToggle) > 100) {
       digitalWrite(WIFI_SS, LOW);
+      delay(10);
       digitalWrite(WIFI_RESET, HIGH);
       toggleWifiReset = false;
     }
   }
   if (toggleWifiCS) {
-    if ((millis() - timeOfWifiToggle) > 2500) {
+    if ((millis() - timeOfWifiToggle) > 2000) {
       digitalWrite(OPENBCI_PIN_LED, HIGH);
       digitalWrite(WIFI_SS, HIGH); // Set back to high
       toggleWifiCS = false;
@@ -992,7 +997,7 @@ void OpenBCI_32bit_Library::loop(void) {
     }
   }
   if (seekingWifi) {
-    if ((millis() - timeOfWifiToggle) > 4500) {
+    if ((millis() - timeOfWifiToggle) > 3000) {
       seekingWifi = false;
       if (!wifiAttach()) {
         wifiAttachAttempts++;
@@ -3127,16 +3132,17 @@ boolean OpenBCI_32bit_Library::wifiRemove(void) {
  * Used to power on reset the ESP8266 wifi shield. Used in conjunction with `.loop()`
  */
 void OpenBCI_32bit_Library::wifiReset(void) {
-  initializeSpiInfo(iWifi);
-  wifiPresent = false;
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
   digitalWrite(WIFI_SS,LOW);
+  delay(1);
   digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
   digitalWrite(OPENBCI_PIN_LED, LOW); // Good visual indicator of what's going on
-  timeOfWifiToggle = millis();
+  initializeSpiInfo(iWifi);
+  wifiPresent = false;
   toggleWifiCS = true;
   toggleWifiReset = true;
+  timeOfWifiToggle = millis();
 }
 
 void OpenBCI_32bit_Library::wifiSendGains(void) {

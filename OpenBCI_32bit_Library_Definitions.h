@@ -338,6 +338,7 @@
 #define OPENBCI_WIFI_ATTACH '{'
 #define OPENBCI_WIFI_REMOVE '}'
 #define OPENBCI_WIFI_STATUS ':'
+#define OPENBCI_WIFI_RESET ';'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
