@@ -426,6 +426,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
           printAll(" to attach the shield");
         }
         sendEOT();
+        break;
+      case OPENBCI_WIFI_RESET:
+        wifiReset();
+        break;
       default:
         return false;
     }
@@ -603,6 +607,8 @@ void OpenBCI_32bit_Library::boardReset(void) {
   Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
   Serial0.println("Firmware: v3.0.0");
   sendEOT();
+  delay(5);
+  wifiReset();
 }
 
 /**
@@ -631,6 +637,10 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
   // Restart stream if need be
   if (wasStreaming) {
     streamStart();
+  } else {
+    printSuccess();
+    printAll("Configured internal test signal.");
+    sendEOT();
   }
 }
 
@@ -959,9 +969,8 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
-  pinMode(WIFI_SS,OUTPUT); digitalWrite(WIFI_SS, LOW);
-  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, HIGH);
-  wifiReset();
+  pinMode(WIFI_SS, INPUT);
+  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, LOW);
 
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
@@ -976,35 +985,42 @@ void OpenBCI_32bit_Library::initialize(){
  */
 void OpenBCI_32bit_Library::loop(void) {
   if (toggleWifiReset) {
-    if ((millis() - timeOfWifiToggle) > 50) {
-      digitalWrite(WIFI_SS, LOW);
+    if (millis() > timeOfWifiToggle + 500) {
       digitalWrite(WIFI_RESET, HIGH);
       toggleWifiReset = false;
+      toggleWifiCS = true;
     }
   }
   if (toggleWifiCS) {
-    if ((millis() - timeOfWifiToggle) > 2500) {
+    if (millis() > timeOfWifiToggle + 3000) {
       digitalWrite(OPENBCI_PIN_LED, HIGH);
-      digitalWrite(WIFI_SS, HIGH); // Set back to high
+      pinMode(WIFI_SS, OUTPUT); digitalWrite(WIFI_SS, HIGH); // Set back to high
       toggleWifiCS = false;
       timeOfWifiToggle = millis();
       seekingWifi = true;
     }
   }
   if (seekingWifi) {
-    if ((millis() - timeOfWifiToggle) > 4500) {
+    if (millis() > timeOfWifiToggle + 4000) {
       seekingWifi = false;
+      Serial0.print("seeking wifi");
       if (!wifiAttach()) {
+        Serial0.println(" not attached");
         wifiAttachAttempts++;
-        if (wifiAttachAttempts < 3) {
+        if (wifiAttachAttempts < 10) {
           seekingWifi = true;
           timeOfWifiToggle = millis();
         }
+      } else {
+        Serial0.println(" attached sending gains");
+
+        // Send gains
+        wifiSendGains();
       }
     }
   }
   if (iWifi.rx) {
-    if ((millis() - timeOfLastRead) > 20) {
+    if (millis() > timeOfLastRead + 20) {
       wifiReadData();
       uint8_t numChars = (uint8_t)wifiBufferRx[0];
       if (numChars > 0 && numChars < WIFI_SPI_MAX_PACKET_SIZE) {
@@ -3127,16 +3143,15 @@ boolean OpenBCI_32bit_Library::wifiRemove(void) {
  * Used to power on reset the ESP8266 wifi shield. Used in conjunction with `.loop()`
  */
 void OpenBCI_32bit_Library::wifiReset(void) {
-  initializeSpiInfo(iWifi);
-  wifiPresent = false;
   // Always keep pin low or else esp will fail to boot.
   // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  digitalWrite(WIFI_SS,LOW);
+  pinMode(WIFI_SS, INPUT);
   digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
   digitalWrite(OPENBCI_PIN_LED, LOW); // Good visual indicator of what's going on
-  timeOfWifiToggle = millis();
-  toggleWifiCS = true;
+  initializeSpiInfo(iWifi);
+  wifiPresent = false;
   toggleWifiReset = true;
+  timeOfWifiToggle = millis();
 }
 
 void OpenBCI_32bit_Library::wifiSendGains(void) {
@@ -3147,6 +3162,7 @@ void OpenBCI_32bit_Library::wifiSendGains(void) {
   wifiBufferTxClear();
 
   wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS);
+  wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS); // Redundancy
   wifiStoreByteBufTx(numChannels);
   for (uint8_t i = 0; i < numChannels; i++) {
     wifiStoreByteBufTx(channelSettings[i][GAIN_SET]);
@@ -3217,12 +3233,13 @@ void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
 boolean OpenBCI_32bit_Library::wifiSmell(void){
   boolean isWifi = false;
   uint32_t uuid = wifiReadStatus();
-  if (verbosity) {
+  // if (verbosity) {
     Serial0.print("Wifi ID 0x");
     Serial0.println(uuid,HEX);
     Serial.println(micros());
     sendEOT();
-  }
+  // }
+
   if(uuid == 209) {isWifi = true;} // should read as 0x3E
   return isWifi;
 }
