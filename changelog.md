@@ -30,6 +30,7 @@
 * Removed `sniffMode` in place for `curBoardMode == OPENBCI_BOARD_MODE_DEBUG`
 * Removed public `waitForNewChannelData()`
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
+* Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
 # v2.0.1
 
