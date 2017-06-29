@@ -429,6 +429,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         break;
       case OPENBCI_WIFI_RESET:
         wifiReset();
+        printSerial("Wifi soft reset");
+        sendEOT();
         break;
       default:
         return false;
@@ -1003,17 +1005,13 @@ void OpenBCI_32bit_Library::loop(void) {
   if (seekingWifi) {
     if (millis() > timeOfWifiToggle + 4000) {
       seekingWifi = false;
-      Serial0.print("seeking wifi");
       if (!wifiAttach()) {
-        Serial0.println(" not attached");
         wifiAttachAttempts++;
         if (wifiAttachAttempts < 10) {
           seekingWifi = true;
           timeOfWifiToggle = millis();
         }
       } else {
-        Serial0.println(" attached sending gains");
-
         // Send gains
         wifiSendGains();
       }

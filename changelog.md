@@ -18,6 +18,21 @@
    * _OpenBCI Wifi Attach_ - `{`
    * _OpenBCI Wifi Remove_ - `}`
    * _OpenBCI Wifi Status_ - `:`
+   * _OpenBCI Wifi Reset_ - `;`
+* Variable sample rate in the format of **~(COMMAND)**. This works similar to the Channel Settings commands, however, there is no latching character. Changing the sample rate requires sending a `v` or soft-reset to ensure all systems are correct. Power cycling the OpenBCI board will cause the sample rate to reset back to default of 250Hz. **IMPORTANT!** The Cyton cannot and will not stream data over 250SPS. Plug in the wifi shield to get speeds over 250SPS streaming. You may still write to an SD card though, the firmware will not send EEG data over the Bluetooth radios. Check out the new commands:
+   * 0 = 16000 Hz
+   * 1 = 8000 Hz
+   * 2 = 4000 Hz
+   * 3 = 2000 Hz
+   * 4 = 1000 Hz
+   * 5 = 500 Hz
+   * 6 = 250 Hz
+   * ~ = Get current sample rate
+   * **EXAMPLE**
+      * First, user sends **~~**
+      * **returns** `Sample rate is 250Hz$$$`
+      * Then, user sends **~5**
+      * **returns** Sample rate set to 500Hz$$$
 
 ### Enhancements
 
