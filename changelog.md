@@ -2,11 +2,11 @@
 
 ### New Features
 
-* Add wifi shield support
+* Add wifi shield support.
+   * Simply add [OpenBCI_Wifi_Master](https://github.com/OpenBCI/OpenBCI_Wifi_Master_Library) to your `DefaultBoard.ino` and add `wifi.loop()` to your loop function. If you want to read from it checkout the `DefaultBoard.ino` for it's simple interface.
    * Send channel gains to wifi shield at start of stream
    * takes ~4 seconds for the wifi shield to be reachable
 * Add ability to turn external serial port `Serial1` on through commands.
-* Add ability to use ESP8266 through SPI port.
 * Change board types on the fly! No longer do you have to upload new code to the Cyton's Pic32 just to do an analog read. You can now read from analog or digital pins with the press send of a code! `/` now sets the board mode, where:
    * BOARD_MODE_DEFAULT is `0`
    * BOARD_MODE_DEBUG is `1`

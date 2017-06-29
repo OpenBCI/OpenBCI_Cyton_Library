@@ -139,18 +139,6 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
   return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode || settingSampleRate;
 }
 
-
-/**
-* @description Process one char at a time from serial port. This is the main
-*  command processor for the OpenBCI system. Considered mission critical for
-*  normal operation.
-* @param `character` {char} - The character to process.
-* @return {boolean} - `true` if the command was recognized, `false` if not
-*/
-boolean OpenBCI_32bit_Library::processCharWifi(char character) {
-  // Serial0.print("pc wifi ");
-  return processChar(character);
-}
 /**
 * @description Process one char at a time from serial port. This is the main
 *  command processor for the OpenBCI system. Considered mission critical for
@@ -397,8 +385,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         settingSampleRate = true;
         break;
 
+#ifdef __OpenBCI_Wifi_Master__
       case OPENBCI_WIFI_ATTACH:
-        if (wifiAttach()) {
+        if (wifi.attach()) {
           printSuccess();
           printSerial("Wifi attached");
           sendEOT();
@@ -409,7 +398,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         }
         break;
       case OPENBCI_WIFI_REMOVE:
-        if (wifiRemove()) {
+        if (wifi.remove()) {
           printSuccess();
           printSerial("Wifi removed");
         } else {
@@ -419,7 +408,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         sendEOT();
         break;
       case OPENBCI_WIFI_STATUS:
-        if (wifiPresent) {
+        if (wifi.present) {
           printAll("Wifi present");
         } else {
           printAll("Wifi not present, send {");
@@ -428,10 +417,11 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         sendEOT();
         break;
       case OPENBCI_WIFI_RESET:
-        wifiReset();
+        wifi.reset();
         printSerial("Wifi soft reset");
         sendEOT();
         break;
+#endif
       default:
         return false;
     }
@@ -481,12 +471,14 @@ void OpenBCI_32bit_Library::accelWriteAxisDataSerial(void) {
   LIS3DH_writeAxisDataSerial();
 }
 
+#ifdef __OpenBCI_Wifi_Master__
 /**
 * @description Reads from the accelerometer to get new X, Y, and Z data.
 */
 void OpenBCI_32bit_Library::accelWriteAxisDataWifi(void) {
   LIS3DH_writeAxisDataWifi();
 }
+#endif
 
 /**
 * @description: This is a function that is called once and confiures all pins on
@@ -610,7 +602,9 @@ void OpenBCI_32bit_Library::boardReset(void) {
   Serial0.println("Firmware: v3.0.0");
   sendEOT();
   delay(5);
-  wifiReset();
+#ifdef __OpenBCI_Wifi_Master__
+  wifi.reset();
+#endif
 }
 
 /**
@@ -619,7 +613,9 @@ void OpenBCI_32bit_Library::boardReset(void) {
 */
 void OpenBCI_32bit_Library::sendEOT(void) {
   printSerial("$$$");
-  wifiSendStringLast();
+#ifdef __OpenBCI_Wifi_Master__
+  wifi.sendStringLast();
+#endif
 }
 
 void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode)
@@ -682,15 +678,24 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_OFF;
       pinMode(11, INPUT);
       pinMode(12, INPUT);
-      if (!wifiPresent) pinMode(13, INPUT);
+#ifdef __OpenBCI_Wifi_Master__
+      if (!wifi.present) pinMode(13, INPUT);
+#else
+      pinMode(13, INPUT);
+#endif
       break;
     case BOARD_MODE_DIGITAL:
       curAccelMode = ACCEL_MODE_OFF;
       pinMode(11, INPUT);
       pinMode(12, INPUT);
-      if (!wifiPresent) pinMode(WIFI_SS, INPUT);
       pinMode(17, INPUT);
-      if (!wifiPresent) pinMode(WIFI_RESET, INPUT);
+#ifdef __OpenBCI_Wifi_Master__
+      if (!wifi.present) pinMode(13, INPUT);
+      if (!wifi.present) pinMode(18, INPUT);
+#else
+      pinMode(13, INPUT);
+      pinMode(18, INPUT);
+#endif
       break;
     case BOARD_MODE_DEBUG:
       curAccelMode = ACCEL_MODE_ON;
@@ -971,66 +976,16 @@ void OpenBCI_32bit_Library::initialize(){
   pinMode(BOARD_ADS, OUTPUT); digitalWrite(BOARD_ADS,HIGH);
   pinMode(DAISY_ADS, OUTPUT); digitalWrite(DAISY_ADS,HIGH);
   pinMode(LIS3DH_SS,OUTPUT); digitalWrite(LIS3DH_SS,HIGH);
-  pinMode(WIFI_SS, INPUT);
-  pinMode(WIFI_RESET,OUTPUT); digitalWrite(WIFI_RESET, LOW);
+
+#ifdef __OpenBCI_Wifi_Master__
+  wifi.begin();
+#endif
 
   spi.begin();
   spi.setSpeed(4000000);  // use 4MHz for ADS and LIS3DH
   spi.setMode(DSPI_MODE0);  // default to SD card mode!
   initialize_ads(); // hard reset ADS, set pin directions
   initialize_accel(SCALE_4G); // set pin directions, G scale, DRDY interrupt, power down
-}
-
-/**
- * OpenBCI_32bit_Library::loop used to run internal library looping functions
- *  mainly used for timers and such.
- */
-void OpenBCI_32bit_Library::loop(void) {
-  if (toggleWifiReset) {
-    if (millis() > timeOfWifiToggle + 500) {
-      digitalWrite(WIFI_RESET, HIGH);
-      toggleWifiReset = false;
-      toggleWifiCS = true;
-    }
-  }
-  if (toggleWifiCS) {
-    if (millis() > timeOfWifiToggle + 3000) {
-      digitalWrite(OPENBCI_PIN_LED, HIGH);
-      pinMode(WIFI_SS, OUTPUT); digitalWrite(WIFI_SS, HIGH); // Set back to high
-      toggleWifiCS = false;
-      timeOfWifiToggle = millis();
-      seekingWifi = true;
-    }
-  }
-  if (seekingWifi) {
-    if (millis() > timeOfWifiToggle + 4000) {
-      seekingWifi = false;
-      if (!wifiAttach()) {
-        wifiAttachAttempts++;
-        if (wifiAttachAttempts < 10) {
-          seekingWifi = true;
-          timeOfWifiToggle = millis();
-        }
-      } else {
-        // Send gains
-        wifiSendGains();
-      }
-    }
-  }
-  if (iWifi.rx) {
-    if (millis() > timeOfLastRead + 20) {
-      wifiReadData();
-      uint8_t numChars = (uint8_t)wifiBufferRx[0];
-      if (numChars > 0 && numChars < WIFI_SPI_MAX_PACKET_SIZE) {
-        // Serial0.print("Recieved "); Serial0.print(numChars); Serial0.print(" chars @ "); Serial0.println(micros());
-        for(uint8_t i = 0; i < numChars; i++) {
-          // Serial0.println(wifiBufferRx[i+1],HEX);
-          processCharWifi(wifiBufferRx[i+1]);
-        }
-      }
-      timeOfLastRead = millis();
-    }
-  }
 }
 
 // void __USER_ISR ADS_DRDY_Service() {
@@ -1047,15 +1002,10 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   daisyPresent = false;
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
-  seekingWifi = false;
   settingBoardMode = false;
   settingSampleRate = false;
-  soughtWifiShield = false;
   streaming = false;
-  toggleWifiCS = false;
-  toggleWifiReset = false;
   verbosity = false; // when verbosity is true, there will be Serial feedback
-  wifiPresent = false;
 
   // Nums
   currentChannelSetting = 0;
@@ -1065,10 +1015,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedBoardType = 0;
   sampleCounter = 0;
   timeOfLastRead = 0;
-  timeOfWifiToggle = 0;
-  timeOfWifiStart = 0;
-  wifiAttachAttempts = 0;
-  wifiBufferTxPosition = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;
@@ -1080,7 +1026,6 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   // Structs
   initializeSerialInfo(iSerial0);
   initializeSerialInfo(iSerial1);
-  initializeSpiInfo(iWifi);
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
@@ -1089,15 +1034,6 @@ void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
 
 void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx, uint32_t baudRate) {
   si.baudRate = baudRate;
-  si.rx = rx;
-  si.tx = tx;
-}
-
-void OpenBCI_32bit_Library::initializeSpiInfo(SpiInfo si) {
-  wifiSetInfo(si, false, false);
-}
-
-void OpenBCI_32bit_Library::wifiSetInfo(SpiInfo si, boolean rx, boolean tx) {
   si.rx = rx;
   si.tx = tx;
 }
@@ -1126,15 +1062,15 @@ void OpenBCI_32bit_Library::sendChannelData() {
 *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
 */
 void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
-  if (iWifi.tx) {
+#ifdef __OpenBCI_Wifi_Master__
+  if (wifi.tx) {
     sendChannelDataWifi(packetType, false);
     if (daisyPresent) sendChannelDataWifi(packetType, true);
-    if (iSerial1.tx) sendChannelDataSerial(packetType);  // Serial1 can work under high speed
-  } else {
-    // Send over bluetooth
-    if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
   }
+#endif
 
+  // Send over bluetooth
+  if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
 
   if (packetType == PACKET_TYPE_ACCEL) LIS3DH_zeroAxisData();
   if (packetType == PACKET_TYPE_RAW_AUX || packetType == PACKET_TYPE_RAW_AUX_TIME_SYNC) zeroAuxData();
@@ -1180,6 +1116,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
   writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
 }
 
+#ifdef __OpenBCI_Wifi_Master__
 /**
 * @description Writes channel data to wifi in the correct stream packet format.
 * @param `packetType` {PACKET_TYPE} - The type of packet to send
@@ -1188,8 +1125,8 @@ void OpenBCI_32bit_Library::sendChannelDataSerial(PACKET_TYPE packetType)  {
 */
 void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean daisy) {
 
-  wifiStoreByteBufTx((uint8_t)(PCKT_END | packetType)); // 1 byte
-  wifiStoreByteBufTx(sampleCounter); // 1 byte
+  wifi.storeByteBufTx((uint8_t)(PCKT_END | packetType)); // 1 byte
+  wifi.storeByteBufTx(sampleCounter); // 1 byte
   ADS_writeChannelDataWifi(daisy);       // 24 bytes
 
   switch (packetType) {
@@ -1215,9 +1152,8 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
       writeAuxDataWifi(); // 6 bytes
       break;
   }
-  wifiFlushBufferTx();
+  wifi.flushBufferTx();
 }
-
 /**
 * @description Writes channel data and `auxData` array to serial port in
 *  the correct stream packet format.
@@ -1227,6 +1163,7 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
 void OpenBCI_32bit_Library::sendRawAuxWifi(void) {
   writeAuxDataWifi();  // 6 bytes
 }
+#endif
 
 /**
 * @description Writes channel data, `axisData` array, and 4 byte unsigned time
@@ -1276,6 +1213,7 @@ void OpenBCI_32bit_Library::sendTimeWithAccelSerial(void) {
 *  Else if `sendTimeSyncUpPacket` is `false` then:
 *      Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
 */
+#ifdef __OpenBCI_Wifi_Master__
 void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
@@ -1289,12 +1227,13 @@ void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
       LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Z);
       break;
     default:
-      wifiStoreByteBufTx((byte)0x00); // high byte
-      wifiStoreByteBufTx((byte)0x00); // low byte
+      wifi.storeByteBufTx((byte)0x00); // high byte
+      wifi.storeByteBufTx((byte)0x00); // low byte
       break;
   }
   writeTimeCurrentWifi(lastSampleTime); // 4 bytes
 }
+#endif
 
 /**
  * Using publically available state variables to drive packet type settings
@@ -1329,23 +1268,6 @@ void OpenBCI_32bit_Library::sendTimeWithRawAuxSerial(void) {
   writeTimeCurrentSerial(lastSampleTime); // 4 bytes
 }
 
-/**
-* @description Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned
-*  time stamp in ms to serial port in the correct stream packet format.
-*
-*  If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar`
-*   getting a time sync set `<` command) then:
-*      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket`
-*      to `false`.
-*  Else if `sendTimeSyncUpPacket` is `false` then:
-*      Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
-*/
-void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
-  wifiStoreByteBufTx(highByte(auxData[0])); // 2 bytes of aux data
-  wifiStoreByteBufTx(lowByte(auxData[0]));
-  writeTimeCurrentWifi(lastSampleTime); // 4 bytes
-}
-
 void OpenBCI_32bit_Library::writeAuxDataSerial(void){
   for(int i = 0; i < 3; i++){
     writeSerial((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
@@ -1353,12 +1275,24 @@ void OpenBCI_32bit_Library::writeAuxDataSerial(void){
   }
 }
 
+#ifdef __OpenBCI_Wifi_Master__
+/**
+* @description Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned
+*  time stamp in ms to serial port in the correct stream packet format.
+*/
+void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
+  wifi.storeByteBufTx(highByte(auxData[0])); // 2 bytes of aux data
+  wifi.storeByteBufTx(lowByte(auxData[0]));
+  writeTimeCurrentWifi(lastSampleTime); // 4 bytes
+}
+
 void OpenBCI_32bit_Library::writeAuxDataWifi(void){
   for(int i = 0; i < 3; i++){
-    wifiStoreByteBufTx((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
-    wifiStoreByteBufTx((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    wifi.storeByteBufTx((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
+    wifi.storeByteBufTx((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
   }
 }
+#endif
 
 void OpenBCI_32bit_Library::zeroAuxData(void) {
   for(int i = 0; i < 3; i++){
@@ -1380,13 +1314,14 @@ void OpenBCI_32bit_Library::writeTimeCurrentSerial(uint32_t newTime) {
   }
 }
 
-
+#ifdef __OpenBCI_Wifi_Master__
 void OpenBCI_32bit_Library::writeTimeCurrentWifi(uint32_t newTime) {
   // serialize the number, placing the MSB in lower packets
   for (int j = 3; j >= 0; j--) {
-    wifiStoreByteBufTx((uint8_t)(newTime >> (j*8)));
+    wifi.storeByteBufTx((uint8_t)(newTime >> (j*8)));
   }
 }
+#endif
 
 //SPI communication method
 byte OpenBCI_32bit_Library::xfer(byte _data)
@@ -1426,11 +1361,6 @@ void OpenBCI_32bit_Library::csLow(int SS)
       digitalWrite(BOARD_ADS,LOW);
       digitalWrite(DAISY_ADS,LOW);
       break;
-    case WIFI_SS:
-      spi.setMode(DSPI_MODE0);
-      spi.setSpeed(10000000);
-      digitalWrite(WIFI_SS, LOW);
-      break;
     default:
       break;
   }
@@ -1454,9 +1384,6 @@ void OpenBCI_32bit_Library::csHigh(int SS)
     case BOTH_ADS:
       digitalWrite(BOARD_ADS, HIGH);
       digitalWrite(DAISY_ADS, HIGH);
-    case WIFI_SS:
-      digitalWrite(WIFI_SS, HIGH);
-      break;
     default:
       break;
   }
@@ -1665,10 +1592,12 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 * @returns boolean if able to start streaming
 */
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
-  if (iWifi.tx) {
-     wifiSendGains();
-    //  Serial0.println("sendGains - ss");
+
+#ifdef __OpenBCI_Wifi_Master__
+  if (wifi.tx) {
+    wifi.sendGains();
   }
+#endif
   streaming = true;
   startADS();
   if (curBoardMode == BOARD_MODE_DEBUG) {
@@ -2528,14 +2457,23 @@ void OpenBCI_32bit_Library::updateChannelData(){
     case BOARD_MODE_ANALOG:
       auxData[0] = analogRead(A5);
       auxData[1] = analogRead(A6);
-      if (!wifiPresent) {
+#ifdef __OpenBCI_Wifi_Master__
+      if (!wifi.present) {
         auxData[2] = analogRead(A7);
       }
+#else
+      auxData[2] = analogRead(A7);
+#endif
       break;
     case BOARD_MODE_DIGITAL:
       auxData[0] = digitalRead(11) << 8 | digitalRead(12);
-      auxData[1] = (wifiPresent ? 0 : digitalRead(WIFI_SS) << 8) | digitalRead(17);
-      auxData[2] = wifiPresent ? 0 : digitalRead(WIFI_RESET);
+#ifdef __OpenBCI_Wifi_Master__
+      auxData[1] = (wifi.present ? 0 : digitalRead(13) << 8) | digitalRead(17);
+      auxData[2] = wifi.present ? 0 : digitalRead(18);
+#else
+      auxData[1] = (digitalRead(13) << 8) | digitalRead(17);
+      auxData[2] = digitalRead(18);
+#endif
       break;
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:
@@ -2746,7 +2684,9 @@ void OpenBCI_32bit_Library::printlnSerial(const char *c) {
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-  wifiStoreByteBufTx(b);
+#ifdef __OpenBCI_Wifi_Master__
+  wifi.storeByteBufTx(b);
+#endif
   writeSerial(b);
 }
 
@@ -2764,21 +2704,21 @@ void OpenBCI_32bit_Library::ADS_writeChannelData() {
   ADS_writeChannelDataNoAvgDaisy();
 }
 
-
+#ifdef __OpenBCI_Wifi_Master__
 void OpenBCI_32bit_Library::ADS_writeChannelDataWifi(boolean daisy) {
   if (daisy) {
     // Send daisy
     for(int i = 0; i < 24; i++) {
-      wifiStoreByteBufTx(daisyChannelDataRaw[i]);
+      wifi.storeByteBufTx(daisyChannelDataRaw[i]);
     }
   } else {
     // Send on board
     for(int i = 0; i < 24; i++) {
-      wifiStoreByteBufTx(boardChannelDataRaw[i]);
+      wifi.storeByteBufTx(boardChannelDataRaw[i]);
     }
   }
 }
-
+#endif
 void OpenBCI_32bit_Library::ADS_writeChannelDataAvgDaisy() {
   if (iSerial0.tx || (iSerial1.tx && iSerial1.baudRate <= OPENBCI_BAUD_RATE_MIN_NO_AVG)) {
     if (daisyPresent) {
@@ -3019,231 +2959,6 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF ADS1299 FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>
 // ******************************************************************************
-// <<<<<<<<<<<<<<<<<<<<<<<<<<<  WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>s
-
-/**
- * Used to attach a wifi shield, only if there is actuall a wifi shield present
- */
-boolean OpenBCI_32bit_Library::wifiAttach(void) {
-  wifiPresent = wifiSmell();
-  if(!wifiPresent) {
-    iWifi.rx = false;
-    iWifi.tx = false;
-    return false;
-    // if(!isRunning) Serial0.print("no wifi shield to attach!"); sendEOT();
-  } else {
-    iWifi.rx = true;
-    iWifi.tx = true;
-    return true;
-    // if(!isRunning) Serial0.println("wifi attached"); sendEOT();
-  }
-}
-
-/**
- * Clear the wifi tx buffer
- */
-void OpenBCI_32bit_Library::wifiBufferRxClear(void) {
-  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
-    wifiBufferRx[i] = 0;
-  }
-}
-
-/**
- * Clear the wifi tx buffer
- */
-void OpenBCI_32bit_Library::wifiBufferTxClear(void) {
-  for (uint8_t i = 0; i < WIFI_SPI_MAX_PACKET_SIZE; i++) {
-    wifiBufferTx[i] = 0;
-  }
-  wifiBufferTxPosition = 0;
-}
-
-/**
- * [OpenBCI_32bit_Library::wifiStoreByteBufTx description]
- * @param  b {uint8_t} A single byte to store
- * @return   {boolean} True if the byte was stored, false if the buffer is full.
- */
-boolean OpenBCI_32bit_Library::wifiStoreByteBufTx(uint8_t b) {
-  if (wifiBufferTxPosition >= WIFI_SPI_MAX_PACKET_SIZE) return false;
-  wifiBufferTx[wifiBufferTxPosition] = b;
-  wifiBufferTxPosition++;
-  return true;
-}
-
-/**
- * Flush the 32 byte buffer to the wifi shield. Set byte id too...
- */
-void OpenBCI_32bit_Library::wifiFlushBufferTx() {
-  wifiWriteData(wifiBufferTx, WIFI_SPI_MAX_PACKET_SIZE);
-  wifiBufferTxPosition = 0;
-}
-
-/**
- * Used to write data out
- * @param data [description]
- * @param len  [description]
- */
-void OpenBCI_32bit_Library::wifiWriteData(uint8_t * data, size_t len) {
-  uint8_t i = 0;
-  byte b = 0;
-  csLow(WIFI_SS);
-  xfer(0x02);
-  xfer(0x00);
-  while(len-- && i < WIFI_SPI_MAX_PACKET_SIZE) {
-    xfer(data[i++]);
-  }
-  while(i++ < WIFI_SPI_MAX_PACKET_SIZE) {
-    xfer(0); // Pad with zeros till 32
-  }
-  csHigh(WIFI_SS);
-}
-
-/**
- * Used to read data into the wifi input buffer
- */
-void OpenBCI_32bit_Library::wifiReadData() {
-  csLow(WIFI_SS);
-  xfer(0x03);
-  xfer(0x00);
-  for(uint8_t i = 0; i < 32; i++) {
-    wifiBufferRx[i] = xfer(0);
-  }
-  csHigh(WIFI_SS);
-}
-
-/**
- * Used to read the status register from the ESP8266 wifi shield
- * @return uint32_t the status
- */
-uint32_t OpenBCI_32bit_Library::wifiReadStatus(void){
-  // TODO: Remove this line
-  csLow(WIFI_SS);
-  xfer(0x04);
-  uint32_t status = (xfer(0x00) | ((uint32_t)(xfer(0x00)) << 8) | ((uint32_t)(xfer(0x00)) << 16) | ((uint32_t)(xfer(0x00)) << 24));
-  csHigh(WIFI_SS);
-  return status;
-}
-
-/**
- * Used to detach the wifi shield, sort of.
- */
-boolean OpenBCI_32bit_Library::wifiRemove(void) {
-  if (wifiPresent) {
-    iWifi.rx = false;
-    iWifi.tx = false;
-    wifiPresent = false;
-    return true;
-  }
-  return false;
-}
-
-/**
- * Used to power on reset the ESP8266 wifi shield. Used in conjunction with `.loop()`
- */
-void OpenBCI_32bit_Library::wifiReset(void) {
-  // Always keep pin low or else esp will fail to boot.
-  // See https://github.com/esp8266/Arduino/blob/master/libraries/SPISlave/examples/SPISlave_SafeMaster/SPISlave_SafeMaster.ino#L12-L15
-  pinMode(WIFI_SS, INPUT);
-  digitalWrite(WIFI_RESET, LOW); // Reset the ESP8266
-  digitalWrite(OPENBCI_PIN_LED, LOW); // Good visual indicator of what's going on
-  initializeSpiInfo(iWifi);
-  wifiPresent = false;
-  toggleWifiReset = true;
-  timeOfWifiToggle = millis();
-}
-
-void OpenBCI_32bit_Library::wifiSendGains(void) {
-  if (!wifiPresent) return;
-  if (!iWifi.tx) return;
-
-  // Clear the wifi buffer
-  wifiBufferTxClear();
-
-  wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS);
-  wifiStoreByteBufTx(WIFI_SPI_MSG_GAINS); // Redundancy
-  wifiStoreByteBufTx(numChannels);
-  for (uint8_t i = 0; i < numChannels; i++) {
-    wifiStoreByteBufTx(channelSettings[i][GAIN_SET]);
-  }
-  wifiFlushBufferTx();
-}
-
-/**
- * This will tell the Wifi shield to send the contents of this message to the requesting
- *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
- *  then this will indicate the end of a multi byte message.
- * @param str [description]
- */
-void OpenBCI_32bit_Library::wifiSendStringLast(void) {
-  wifiSendStringLast("");
-}
-
-/**
- * This will tell the Wifi shield to send the contents of this message to the requesting
- *  client, if there was one... if this functions sister function, wifiSendStringMulti was used
- *  then this will indicate the end of a multi byte message.
- * @param str [description]
- */
-void OpenBCI_32bit_Library::wifiSendStringLast(const char *str) {
-  if (!wifiPresent) return;
-  if (!iWifi.tx) return;
-  if (str == NULL) return;
-  int len = strlen(str);
-  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
-    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
-  }
-  wifiBufferTxClear();
-  wifiStoreByteBufTx(WIFI_SPI_MSG_LAST);
-  for (int i = 0; i < len; i++) {
-    wifiStoreByteBufTx(str[i]);
-  }
-  wifiFlushBufferTx();
-  wifiBufferTxClear();
-}
-
-/**
- * Will send a const char string (less than 32 bytes) to the wifi shield, call
- *  wifiSendStringLast to indicate to the wifi shield the multi part transmission is over.
- * @param str const char * less than 32 bytes to be sent over SPI
- */
-void OpenBCI_32bit_Library::wifiSendStringMulti(const char *str) {
-  if (!wifiPresent) return;
-  if (!iWifi.tx) return;
-  if (str == NULL) return;
-  int len = strlen(str);
-  if (len > WIFI_SPI_MAX_PACKET_SIZE - 1) {
-    return; // Don't send more than 31 bytes at a time -o-o- (deal with it)
-  }
-
-  wifiBufferTxClear();
-  wifiStoreByteBufTx(WIFI_SPI_MSG_MULTI);
-  for (int i = 0; i < len; i++) {
-    wifiStoreByteBufTx(str[i]);
-  }
-  wifiFlushBufferTx();
-  wifiBufferTxClear();
-}
-
-/**
- * Used to check and see if the wifi is present
- * @return  [description]
- */
-boolean OpenBCI_32bit_Library::wifiSmell(void){
-  boolean isWifi = false;
-  uint32_t uuid = wifiReadStatus();
-  // if (verbosity) {
-    Serial0.print("Wifi ID 0x");
-    Serial0.println(uuid,HEX);
-    Serial.println(micros());
-    sendEOT();
-  // }
-
-  if(uuid == 209) {isWifi = true;} // should read as 0x3E
-  return isWifi;
-}
-
-// <<<<<<<<<<<<<<<<<<<<<<<<<  END OF WIFI FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>
-// ******************************************************************************
 // <<<<<<<<<<<<<<<<<<<<<<<<<  LIS3DH FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -3304,24 +3019,25 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisDataSerial(void){
   }
 }
 
-void OpenBCI_32bit_Library::LIS3DH_writeAxisDataWifi(void){
-  for(int i = 0; i < 3; i++){
-    wifiStoreByteBufTx(highByte(axisData[i])); // write 16 bit axis data MSB first
-    wifiStoreByteBufTx(lowByte(axisData[i]));  // axisData is array of type short (16bit)
-  }
-}
-
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisSerial(uint8_t axis) {
   if (axis > 2) axis = 0;
   writeSerial(highByte(axisData[axis])); // write 16 bit axis data MSB first
   writeSerial(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
 }
 
+#ifdef __OpenBCI_Wifi_Master__
+void OpenBCI_32bit_Library::LIS3DH_writeAxisDataWifi(void){
+  for(int i = 0; i < 3; i++){
+    wifi.storeByteBufTx(highByte(axisData[i])); // write 16 bit axis data MSB first
+    wifi.storeByteBufTx(lowByte(axisData[i]));  // axisData is array of type short (16bit)
+  }
+}
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisWifi(uint8_t axis) {
   if (axis > 2) axis = 0;
-  wifiStoreByteBufTx(highByte(axisData[axis])); // write 16 bit axis data MSB first
-  wifiStoreByteBufTx(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
+  wifi.storeByteBufTx(highByte(axisData[axis])); // write 16 bit axis data MSB first
+  wifi.storeByteBufTx(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
 }
+#endif
 
 void OpenBCI_32bit_Library::LIS3DH_zeroAxisData(void){
   for(int i = 0; i < 3; i++){
@@ -3482,12 +3198,16 @@ void OpenBCI_32bit_Library::printSuccess() {
 
 void OpenBCI_32bit_Library::printAll(const char *arr) {
   printSerial(arr);
+#ifdef __OpenBCI_Wifi_Master__
   wifiSendStringMulti(arr);
+#endif
 }
 
 void OpenBCI_32bit_Library::printlnAll(const char *arr) {
   printlnSerial(arr);
+#ifdef __OpenBCI_Wifi_Master__
   wifiSendStringLast(arr);
+#endif
 }
 
 /**
