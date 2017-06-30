@@ -271,6 +271,8 @@ private:
   void    RREGS(byte,byte,int);      // read multiple ADS registers
   void    SDATAC(int);  // get out of read data continuous mode
   void    sendChannelDataSerial(PACKET_TYPE);
+  void    sendTimeWithAccelSerial(void);
+  void    sendTimeWithRawAuxSerial(void);
   void    STANDBY(int); // go into low power mode
   void    START(int);   // start data acquisition
   void    STOP(int);    // stop data acquisition
@@ -310,8 +312,6 @@ private:
   void    sendChannelDataWifi(PACKET_TYPE, boolean);
   void    sendRawAuxWifi(void);
   void    sendTimeWithAccelWifi(void);
-  void    sendTimeWithAccelSerial(void);
-  void    sendTimeWithRawAuxSerial(void);
   void    sendTimeWithRawAuxWifi(void);
 #endif
 };

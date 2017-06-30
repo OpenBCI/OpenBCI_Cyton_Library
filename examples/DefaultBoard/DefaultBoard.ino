@@ -1,6 +1,8 @@
+#define USE_WIFI
 #include <DSPI.h>
 #include <OBCI32_SD.h>
 #include <EEPROM.h>
+#include <OpenBCI_Wifi_Master_Definitions.h>
 #include <OpenBCI_Wifi_Master.h>
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32bit_Library_Definitions.h>

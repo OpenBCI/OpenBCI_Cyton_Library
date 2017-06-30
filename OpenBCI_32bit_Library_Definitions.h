@@ -26,10 +26,10 @@
 #define SD_SS 2  	          // SD card chip select
 #define LIS3DH_SS	1         // LIS3DH chip select
 #define LIS3DH_DRDY 0	      // LIS3DH data ready pin
-#define WIFI_SS 13          // Wifi Chip Select
+// #define WIFI_SS 13          // Wifi Chip Select
 #define OPENBCI_PIN_LED 11
 #define OPENBCI_PIN_PGC 12
-#define WIFI_RESET 18
+// #define WIFI_RESET 18
 
 #define OPENBCI_PIN_SERIAL1_TX 11
 #define OPENBCI_PIN_SERIAL1_RX 12
@@ -376,16 +376,5 @@
 
 #define OPENBCI_ADS_BYTES_PER_CHAN 3
 #define OPENBCI_ADS_CHANS_PER_BOARD 8
-
-// WIFI SPI stuff
-#define WIFI_SPI_CMD_NULL 0x00
-#define WIFI_SPI_CMD_DATA_READ 0x03
-#define WIFI_SPI_CMD_DATA_WRITE 0x02
-#define WIFI_SPI_CMD_STATUS_READ 0x04
-#define WIFI_SPI_CMD_STATUS_WRITE 0x01
-#define WIFI_SPI_MAX_PACKET_SIZE 32
-#define WIFI_SPI_MSG_LAST 0x01
-#define WIFI_SPI_MSG_MULTI 0x02
-#define WIFI_SPI_MSG_GAINS 0x03
 
 #endif
