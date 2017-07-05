@@ -47,9 +47,9 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
-## Beta3
+## Beta4
 
-The overall goal was to clean the wifi code out of the library so it would not be needed when you are building a bare board. 
+The overall goal was to clean the wifi code out of the library so it would not be needed when you are building a bare board.
 
 ### Bug Fixes
 
@@ -63,6 +63,12 @@ The overall goal was to clean the wifi code out of the library so it would not b
 ### Files
 
 * Add `BoardWithWifi.ino` example that shows a bare board with just wifi. No SD or ACCEL for example.
+
+## Beta3
+
+### Bug Fixes
+
+* Fixes erroneous print out on seeking wifi overall `Serial0`.
 
 ## Beta2
 
