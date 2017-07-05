@@ -1,8 +1,7 @@
 [![Stories in Ready](https://badge.waffle.io/OpenBCI/OpenBCI_32bit_Library.png?label=ready&title=Ready)](https://waffle.io/OpenBCI/OpenBCI_32bit_Library)
 # OpenBCI 32bit Library
 
-The (soon to be) official library for the OpenBCI 32bit Board.
-
+The official library for the OpenBCI 32bit Board.
 
 ## Table of Contents:
 
@@ -17,7 +16,7 @@ The (soon to be) official library for the OpenBCI 32bit Board.
 4. [System Overview](#systemOverview)
 5. [Reference Guide](#referenceGuide)
   1. [Functions](#functions)
-  2. [Constants](#constants)
+  2. [Enums](#enums)
 
 ## <a name="minimums"></a> Minimums:
 
@@ -88,7 +87,7 @@ You do not need to declare any variables...
 ```Arduino
 void setup() {
   board.begin(); // Bring up the OpenBCI Board
-  board.useAccel = true; // Notify the board we want to use accel data, this effects `::sendChannelData()`
+  // The board will use accel data by default
 }
 ```
 
@@ -96,14 +95,7 @@ void setup() {
 ```Arduino
 void setup() {
   board.begin(); // Bring up the OpenBCI Board
-  board.useAux = true; // Notify the board we want to use aux data, this effects `::sendChannelData()`
-}
-```
-
-#### Bare board
-```Arduino
-void setup() {
-  board.begin(); // Bring up the OpenBCI Board
+  board.useAccel(false); // Notify the board we want to use aux data, this effects `::sendChannelData()`
 }
 ```
 
@@ -114,17 +106,13 @@ We will start with the basics here, and work our way up... The loop function can
 A bare board, not using the SD, accel, or aux data must have the following:
 ```Arduino
 void loop() {
+  board.loop();
   if (board.streaming) {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
       board.updateChannelData();
 
-      if (board.timeSynced) {
-        board.sendChannelDataWithTimeAndRawAux();
-      } else {
-        // Send standard packet with channel data
-        board.sendChannelDataWithRawAux();
-      }
+      board.sendChannelData();
     }
   }
 
@@ -137,7 +125,11 @@ void loop() {
 ```
 The first `if` statement is only `true` if a `b` command is ran through the `processChar` function. The next `if` statement exploits a `volatile` interrupt driven `boolean` called `channelDataAvailable`. This interrupt driven system is new as of firmware version 2.0.0 a discussion of it can be [found here](https://github.com/OpenBCI/OpenBCI_32bit_Library/issues/22). If the ADS1299 has signaled to the Board new data is ready, the function `updateChannelData()` is executed. This function will grab new data from the Board's ADS1299 (and from the daisy's ADS1299) and store that data to the arrays: `lastBoardDataRaw`, `boardChannelDataRaw`, `meanBoardDataRaw`, `lastDaisyDataRaw`, `daisyChannelDataRaw`, `meanDaisyDataRaw`, which can be accessed to drive filters or whatever your heart desires.
 
+
 ## <a name="systemOverview"></a> System Overview:
+
+### Sending Channel Data
+In the OpenBCI system, and with most wireless systems, we are restricted by the rate at which we can send data.
 
 If you send a packet from the Pic32 to the Device RFduino and you start it with `0x41`, write 31 bytes, and follow with `0xCX` (where `X` can be `0-F` hex) then the packet will immediately be sent from the Device radio. This is counter to how if you want to send a message longer than 31 bytes (takes over two packets to transmit from Device radio to Host radio (Board to Dongle)) then you simply write the message, and that message will be sent in a multipacket format that allows it to be reassembled on the Dongle. This reassembling of data is critical to over the air programming.
 
@@ -185,6 +177,14 @@ Called in every `loop()` and checks `Serial0`.
 
 `true` if there is data ready to be read.
 
+### hasDataSerial1()
+
+Called in every `loop()` and checks `Serial1`.
+
+**_Returns_** {boolean}
+
+`true` if there is data ready to be read.
+
 ### processChar(character)
 
 Process one char at a time from serial port. This is the main command processor for the OpenBCI system. Considered mission critical for normal operation.
@@ -205,87 +205,117 @@ If `hasDataSerial0()` is `true` then this function is called. Reads from `Serial
 
 The character from the serial port.
 
+### getCharSerial1()
+
+If `hasDataSerial1()` is `true` then this function is called. Reads from `Serial1` which comes from the external serial port. If no data is available then returns a `0x00` which is NOT a command that the system will recognize as a safe guard.
+
+**_Returns_** {char}
+
+The character from the serial port.
+
 ### sendChannelData()
 
-Writes channel data, aux data, and footer to serial port. This is the old way to send channel data. Based on global variables `useAux` and `useAccel` Must keep for portability. Will look to deprecate in 3.0.0.
+Writes channel data, aux data, and footer to serial port or over wifi. Based on global variables `useAux` and `useAccel` Must keep for portability.
 
-If `useAccel` is `true` then sends data from `axisData` array and sets the contents of `axisData` to `0`.
-
-If `useAux` is `true` then sends data from `auxData` array and sets the contents of `auxData` to `0`.
-
-Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
-
-### sendChannelDataWithAccel()
-
-Writes channel data and `axisData` array to serial port in the correct stream packet format.
-
-Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See Constants below for more info.
-
-### sendChannelDataWithRawAux()
-
-Writes channel data and `auxData` array to serial port in the correct stream packet format.
-
-Adds stop byte `OPENBCI_EOP_STND_RAW_AUX`. See Constants below for more info.
-
-### sendChannelDataWithTimeAndAccel()
-
-Writes channel data, `axisData` array, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
-
-`axisData` will be split up and sent on the samples with `sampleCounter` of 7, 8, and 9 for X, Y, and Z respectively. Driver writers parse accordingly.
-
-If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
-    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
-
-Else if `sendTimeSyncUpPacket` is `false` then:
-    Adds stop byte `OPENBCI_EOP_ACCEL_TIME_SYNCED`
-
-### sendChannelDataWithTimeAndRawAux()
-
-Writes channel data, `auxData[0]` 2 bytes, and 4 byte unsigned time stamp in ms to serial port in the correct stream packet format.
-
-If the global variable `sendTimeSyncUpPacket` is `true` (set by `processChar` getting a time sync set `<` command) then:
-    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SET` and sets `sendTimeSyncUpPacket` to `false`.
-Else if `sendTimeSyncUpPacket` is `false` then:
-    Adds stop byte `OPENBCI_EOP_RAW_AUX_TIME_SYNCED`
+If `curAccelMode` is ACCEL_MODE_OFF then  then sends data from `auxData` array and sets the contents of `auxData` to `0` after send. `board.useAccel(false)`
+If `curAccelMode` is ACCEL_MODE_ON then  then sends data from `axisData` array and sets the contents of `axisData` to `0` after send. `board.useAccel(true)`
 
 ### updateChannelData()
 
 Called when the board ADS1299 has new data available. If there is a daisy module attached, that data is also fetched here.
 
-### waitForNewChannelData()
+## <a name="enums"></a> ENUMS:
 
-Check status register to see if data is available from the ADS1299.
+### BOARD_MODE
 
-**_Returns_** {boolean}
+Board mode changes the hardware pins.
 
-`true` if data is available.  
+#### BOARD_MODE_DEFAULT
 
-## <a name="constants"></a> Constants:
+`0` - Board will operate leave all pins in default mode.
 
-### OPENBCI_EOP_STND_ACCEL
+#### BOARD_MODE_DEBUG
 
-`0xC0` - End of standard stream packet.
+`1` - Board will output serial debug data out of the external serial port.
 
-### OPENBCI_EOP_STND_RAW_AUX
+#### BOARD_MODE_ANALOG
 
-`0xC1` - End of stream packet with raw packet.
+`2` - Board will read from `A6` (`D11`), `A7` (`D12`), and `A8` (`D13`). `A8` is only is use when there is no wifi present. The analog to digital converter is 10bits and the data will be in .  
 
-### OPENBCI_EOP_USER_DEFINED
+|Pin|Aux Bytes|Notes|
+|----|----|----|
+|`A6`|0:1|`D11`|
+|`A7`|2:3|`D12`|
+|`A8`|4:5|`D13` - If wifi not present|
 
-`0xC2` - End of stream packet, user defined.
+#### BOARD_MODE_DIGITAL
 
-### OPENBCI_EOP_ACCEL_TIME_SET
+`3` - Board will read from `D11`, `D12`, `D13` (if wifi not present), `D17`, and `D18` (if wifi not present).
 
-`0xC3` - End of time sync up with accelerometer stream packet.
+|Pin|Aux Byte|Notes|
+|----|----|----|
+|`D11`|0||
+|`D11`|1||
+|`D13`|2|If wifi not present|
+|`D17`|3||
+|`D18`|4|If wifi not present|
 
-### OPENBCI_EOP_ACCEL_TIME_SYNCED
+### PACKET_TYPE
 
-`0xC4` - End of time synced stream packet.
+#### PACKET_TYPE_ACCEL
 
-### OPENBCI_EOP_RAW_AUX_TIME_SET
+`0` - End of standard stream packet.
 
-`0xC5` - End of time sync up stream packet.
+#### PACKET_TYPE_RAW_AUX
 
-### OPENBCI_EOP_RAW_AUX_TIME_SYNCED
+`1` - End of stream packet with raw packet.
 
-`0xC6` - End of time synced stream packet.
+#### PACKET_TYPE_USER_DEFINED
+
+`2` - End of stream packet, user defined.
+
+#### PACKET_TYPE_ACCEL_TIME_SET
+
+`3` - End of time sync up with accelerometer stream packet.
+
+#### PACKET_TYPE_ACCEL_TIME_SYNC
+
+`4` - End of time synced stream packet.
+
+#### PACKET_TYPE_RAW_AUX_TIME_SET
+
+`5` - End of time sync up stream packet.
+
+#### PACKET_TYPE_RAW_AUX_TIME_SYNC
+
+`6` - End of time synced stream packet.
+
+### SAMPLE_RATE
+
+#### SAMPLE_RATE_16000
+
+`0` - Sample rate 16000Hz
+
+#### SAMPLE_RATE_8000
+
+`1` - Sample rate 8000Hz
+
+#### SAMPLE_RATE_4000
+
+`2` - Sample rate 4000Hz
+
+#### SAMPLE_RATE_2000
+
+`3` - Sample rate 2000Hz
+
+#### SAMPLE_RATE_1000
+
+`4` - Sample rate 1000Hz
+
+#### SAMPLE_RATE_500
+
+`5` - Sample rate 500Hz
+
+#### SAMPLE_RATE_250
+
+`6` - Sample rate 250Hz

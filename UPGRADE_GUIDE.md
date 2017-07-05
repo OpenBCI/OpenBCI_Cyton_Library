@@ -1,6 +1,38 @@
 # OpenBCI 32bit Upgrade Guide
 
-The purpose of this document is to provide instruction, resources, and advice for upgrading an OpenBCI 32bit 8-16 channel board firmware.
+The purpose of this document is to provide instruction, resources, and advice for upgrading an OpenBCI Cyton 8-16 channel board firmware.
+
+## Upgrading to 3.0.0
+
+### Upgrading from 2.x.x
+
+Flash the `Pic` with [`DefaultBoard`](https://github.com/OpenBCI/OpenBCI_32bit_Library/blob/master/examples/DefaultBoard/DefaultBoard.ino)
+
+#### Awesome New Features
+
+* Wifi shield support
+* Read from analog or digital ports in a single line or command. (board mode)
+* Simplified user experience
+* Variable sample rate with wifi shield or Serial1 (with baud of 468000)
+
+#### What this update set out to solve
+
+* Have a single `.sendChannelData()` data function to call that manages the stop byte behind the scenes. I.e. if accel data should be added to aux bytes vs. reading from analog input pins and putting that in the aux bytes.
+* Add wifi support without breaking any firmware v2.0.0 or v1.0.0 features.
+* Prevent users from having to upload custom code to the pic
+
+#### In depth tutorials
+* [How to get/install/upload code to Pic32 `Board`](http://docs.openbci.com/tutorials/02-Upload_Code_to_OpenBCI_Board#upload-code-to-openbci-board-32bit-upload-how-to-firmware-version-2xx-fall-2016)
+
+#### New commands
+
+* [Set Board Mode]()
+* [Set sample rate]()
+* [Wifi attach/remove/status]()
+
+### Upgrading from 1.x.x
+
+Read *Upgrading to 2.0.0* below:
 
 ## Upgrading to 2.0.0
 
