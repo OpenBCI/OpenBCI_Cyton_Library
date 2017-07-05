@@ -54,6 +54,7 @@ The overall goal was to clean the wifi code out of the library so it would not b
 ### Bug Fixes
 
 * Fixed the `BoardWithAnalogSensor.ino`, `BoardWithDigitalRead.ino` and `BoardWithCustomData.ino` examples.
+* Board did not send serial data with allowed sample rates over bluetooth.
 
 ### Breaking Changes
 
