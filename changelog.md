@@ -47,6 +47,33 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Beta3
+
+The overall goal was to clean the wifi code out of the library so it would not be needed when you are building a bare board. 
+
+### Bug Fixes
+
+* Fixed the `BoardWithAnalogSensor.ino`, `BoardWithDigitalRead.ino` and `BoardWithCustomData.ino` examples.
+
+### Breaking Changes
+
+* Removed all wifi code and put into [new library](https://github.com/OpenBCI/OpenBCI_Wifi_Master_Library) that must be included! The new library is a called [OpenBCI_Wifi_Master_Library](https://github.com/OpenBCI/OpenBCI_Wifi_Master_Library). It is simply included when wifi is wanted.
+* Removed `.loop()` function from library.
+
+### Files
+
+* Add `BoardWithWifi.ino` example that shows a bare board with just wifi. No SD or ACCEL for example.
+
+## Beta2
+
+### Breaking Changes
+
+* Setting internal test signal now, when not streaming, returns a success message, with EOT $$$
+
+## Beta1
+
+* Initial Release
+
 # v2.0.1
 
 ### Bug Fixes

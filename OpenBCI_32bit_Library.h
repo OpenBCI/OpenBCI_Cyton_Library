@@ -8,6 +8,8 @@ insert header here
 
 #include <DSPI.h>
 #include <Arduino.h>
+#include <OpenBCI_Wifi_Master.h>
+#include <OpenBCI_Wifi_Master_Definitions.h>
 #include "OpenBCI_32bit_Library_Definitions.h"
 
 void __USER_ISR ADS_DRDY_Service(void);
@@ -223,12 +225,12 @@ public:
   // Class Objects
   DSPI0 spi;  // use DSPI library
 
-#ifdef __OpenBCI_Wifi_Master__
+// #ifdef __OpenBCI_Wifi_Master__
   void    accelWriteAxisDataWifi(void);
   void    ADS_writeChannelDataWifi(boolean daisy);
   void    writeAuxDataWifi(void);
   void    writeTimeCurrentWifi(uint32_t newTime);
-#endif
+// #endif
 
 private:
 

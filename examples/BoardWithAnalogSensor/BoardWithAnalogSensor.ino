@@ -14,11 +14,10 @@ void setup() {
   //  Aux 1:2 D11 (A5)
   //  Aux 3:4 D12 (A6)
   //  Aux 5:6 D17 (A7)
-  board.setBoardMode(BOARD_MODE_ANALOG);
+  board.setBoardMode(board.BOARD_MODE_ANALOG);
 }
 
 void loop() {
-  board.loop();
   // The main dependency of this single threaded microcontroller is to
   //  stream data from the ADS.
   if (board.streaming) {
