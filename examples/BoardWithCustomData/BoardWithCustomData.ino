@@ -17,7 +17,6 @@ void setup() {
 }
 
 void loop() {
-  board.loop();
   // Downsample
   if ((millis() - timer) > 10) {
     // Save new time
@@ -49,7 +48,7 @@ void sendLEDStatus() {
   Serial0.write(LEDState); // 1 byte
   // Fill the rest with fake data
   for (int i = 0; i < 30; i++) {
-    Serial0.write(0x00);
+    Serial0.write((uint8_t)0x00);
   }
   // Send a stop byte with an `B` or `1011` in the last nibble to indicate a
   //  different packet type.

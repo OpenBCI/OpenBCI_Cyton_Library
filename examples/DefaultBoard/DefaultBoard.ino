@@ -1,6 +1,8 @@
 #include <DSPI.h>
 #include <OBCI32_SD.h>
 #include <EEPROM.h>
+#include <OpenBCI_Wifi_Master_Definitions.h>
+#include <OpenBCI_Wifi_Master.h>
 #include <OpenBCI_32bit_Library.h>
 #include <OpenBCI_32bit_Library_Definitions.h>
 
@@ -12,10 +14,11 @@ boolean SDfileOpen = false; // Set true by SD_Card_Stuff.ino on successful file 
 void setup() {
   // Bring up the OpenBCI Board
   board.begin();
+  // Bring up wifi
+  wifi.begin(true, true);
 }
 
 void loop() {
-  board.loop();
   if (board.streaming) {
     if (board.channelDataAvailable) {
       // Read from the ADS(s), store data, set channelDataAvailable flag to false
@@ -44,6 +47,10 @@ void loop() {
       board.sendChannelData();
     }
   }
+
+  // Call to wifi loop
+  wifi.loop();
+
   // Check serial 0 for new data
   if (board.hasDataSerial0()) {
     // Read one char from the serial 0 port
@@ -64,6 +71,17 @@ void loop() {
     sdProcessChar(newChar);
 
     // Read one char and process it
+    board.processChar(newChar);
+  }
+
+  if (wifi.hasData()) {
+    // Read one char from the wifi shield
+    char newChar = wifi.getChar();
+
+    // Send to the sd library for processing
+    sdProcessChar(newChar);
+
+    // Send to the board library
     board.processChar(newChar);
   }
 }

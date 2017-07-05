@@ -8,6 +8,8 @@ insert header here
 
 #include <DSPI.h>
 #include <Arduino.h>
+#include <OpenBCI_Wifi_Master.h>
+#include <OpenBCI_Wifi_Master_Definitions.h>
 #include "OpenBCI_32bit_Library_Definitions.h"
 
 void __USER_ISR ADS_DRDY_Service(void);
@@ -69,13 +71,11 @@ public:
   boolean accelHasNewData(void);
   void    accelUpdateAxisData(void);
   void    accelWriteAxisDataSerial(void);
-  void    accelWriteAxisDataWifi(void);
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
   void    ADS_writeChannelData(void);
   void    ADS_writeChannelDataAvgDaisy(void);
   void    ADS_writeChannelDataNoAvgDaisy(void);
-  void    ADS_writeChannelDataWifi(boolean daisy);
   void    attachDaisy(void);
   void    begin(void);
   void    beginDebug(void);
@@ -165,32 +165,14 @@ public:
   void    updateDaisyData(boolean);
   void    useAccel(boolean);
   void    useTimeStamp(boolean);
-  boolean wifiAttach(void);
-  void    wifiBufferTxClear(void);
-  void    wifiBufferRxClear(void);
-  void    wifiFlushBufferTx(void);
-  void    wifiReadData(void);
-  uint32_t wifiReadStatus(void);
-  boolean wifiRemove(void);
-  void    wifiReset(void);
-  void    wifiSendGains(void);
-  void    wifiSendStringMulti(const char *);
-  void    wifiSendStringLast();
-  void    wifiSendStringLast(const char *);
-  void    wifiSetInfo(SpiInfo, boolean, boolean);
-  boolean wifiSmell(void);
-  boolean wifiStoreByteBufTx(uint8_t);
-  void    wifiWriteData(uint8_t *, size_t);
   void    write(uint8_t);
   void    writeAuxDataSerial(void);
-  void    writeAuxDataWifi(void);
   void    writeChannelSettings(void);
   void    writeChannelSettings(byte);
   void    writeSerial(uint8_t);
   void    writeSpi(uint8_t);
   void    writeTimeCurrent(void);
   void    writeTimeCurrentSerial(uint32_t newTime);
-  void    writeTimeCurrentWifi(uint32_t newTime);
   void    writeZeroAux(void);
   void    zeroAuxData(void);
 
@@ -202,7 +184,6 @@ public:
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
   boolean verbosity; // turn on/off Serial verbosity
-  boolean wifiPresent;
 
   byte boardChannelDataRaw[OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE];    // array to hold raw channel data
   byte channelSettings[OPENBCI_NUMBER_OF_CHANNELS_DAISY][OPENBCI_NUMBER_OF_CHANNEL_SETTINGS];  // array to hold current channel settings
@@ -226,10 +207,6 @@ public:
   short auxData[3]; // This is user faceing
   short axisData[3];
 
-  uint8_t wifiBufferTx[WIFI_SPI_MAX_PACKET_SIZE];
-  char wifiBufferRx[WIFI_SPI_MAX_PACKET_SIZE];
-  uint8_t wifiBufferTxPosition;
-
   unsigned long lastSampleTime;
 
   volatile boolean channelDataAvailable;
@@ -244,10 +221,16 @@ public:
   // STRUCTS
   SerialInfo iSerial0;
   SerialInfo iSerial1;
-  SpiInfo iWifi;
 
   // Class Objects
   DSPI0 spi;  // use DSPI library
+
+// #ifdef __OpenBCI_Wifi_Master__
+  void    accelWriteAxisDataWifi(void);
+  void    ADS_writeChannelDataWifi(boolean daisy);
+  void    writeAuxDataWifi(void);
+  void    writeTimeCurrentWifi(uint32_t newTime);
+// #endif
 
 private:
 
@@ -274,19 +257,15 @@ private:
   boolean LIS3DH_DataAvailable(void); // check LIS3DH STATUS_REG2
   void    LIS3DH_readAllRegs(void);
   void    LIS3DH_writeAxisDataSerial(void);
-  void    LIS3DH_writeAxisDataWifi(void);
   void    LIS3DH_writeAxisDataForAxisSerial(uint8_t);
-  void    LIS3DH_writeAxisDataForAxisWifi(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
-  boolean processCharWifi(char character);
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
   void    printHex(byte);
   void    printRegisterName(byte);
   void    printSuccess();
-  void    processCharWifi(uint8_t);
   void    RDATA(int);   // read data one-shot
   void    RDATAC(int);  // go into read data continuous mode
   void    RESET(int);   // set all register values to default
@@ -294,12 +273,8 @@ private:
   void    RREGS(byte,byte,int);      // read multiple ADS registers
   void    SDATAC(int);  // get out of read data continuous mode
   void    sendChannelDataSerial(PACKET_TYPE);
-  void    sendChannelDataWifi(PACKET_TYPE, boolean);
-  void    sendRawAuxWifi(void);
-  void    sendTimeWithAccelWifi(void);
   void    sendTimeWithAccelSerial(void);
   void    sendTimeWithRawAuxSerial(void);
-  void    sendTimeWithRawAuxWifi(void);
   void    STANDBY(int); // go into low power mode
   void    START(int);   // start data acquisition
   void    STOP(int);    // stop data acquisition
@@ -316,10 +291,6 @@ private:
   boolean isRunning;
   boolean settingBoardMode;
   boolean settingSampleRate;
-  boolean toggleWifiCS;
-  boolean toggleWifiReset;
-  boolean soughtWifiShield;
-  boolean seekingWifi;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;
@@ -333,11 +304,18 @@ private:
   int     numberOfIncomingSettingsProcessedChannel;
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
-  int     wifiAttachAttempts;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
-  unsigned long timeOfWifiToggle;
-  unsigned long timeOfWifiStart;
+
+#ifdef __OpenBCI_Wifi_Master__
+  // functions
+  void    LIS3DH_writeAxisDataWifi(void);
+  void    LIS3DH_writeAxisDataForAxisWifi(uint8_t);
+  void    sendChannelDataWifi(PACKET_TYPE, boolean);
+  void    sendRawAuxWifi(void);
+  void    sendTimeWithAccelWifi(void);
+  void    sendTimeWithRawAuxWifi(void);
+#endif
 };
 
 // This let's us call into the class from within the library if necessary
