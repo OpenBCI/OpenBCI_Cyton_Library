@@ -670,24 +670,15 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_OFF;
       pinMode(11, INPUT);
       pinMode(12, INPUT);
-#ifdef USE_WIFI
       if (!wifi.present) pinMode(13, INPUT);
-#else
-      pinMode(13, INPUT);
-#endif
       break;
     case BOARD_MODE_DIGITAL:
       curAccelMode = ACCEL_MODE_OFF;
       pinMode(11, INPUT);
       pinMode(12, INPUT);
       pinMode(17, INPUT);
-// #if USE_WIFI
       if (!wifi.present) pinMode(13, INPUT);
       if (!wifi.present) pinMode(18, INPUT);
-// #else
-      // pinMode(13, INPUT);
-      // pinMode(18, INPUT);
-// #endif
       break;
     case BOARD_MODE_DEBUG:
       curAccelMode = ACCEL_MODE_ON;
@@ -1050,7 +1041,7 @@ void OpenBCI_32bit_Library::sendChannelData() {
 *  Adds stop byte `OPENBCI_EOP_STND_ACCEL`. See `OpenBCI_32bit_Library_Definitions.h`
 */
 void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
-  if (wifi.tx) {
+  if (wifi.present && wifi.tx) {
     sendChannelDataWifi(packetType, false);
     if (daisyPresent) sendChannelDataWifi(packetType, true);
   }
@@ -1573,7 +1564,7 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 */
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
 
-  if (wifi.tx) {
+  if (wifi.present && wifi.tx) {
     uint8_t gains[numChannels];
     for (uint8_t i = 0; i < numChannels; i++) {
       gains[i] = channelSettings[i][GAIN_SET];
@@ -2440,23 +2431,14 @@ void OpenBCI_32bit_Library::updateChannelData(){
     case BOARD_MODE_ANALOG:
       auxData[0] = analogRead(A5);
       auxData[1] = analogRead(A6);
-#ifdef USE_WIFI
       if (!wifi.present) {
         auxData[2] = analogRead(A7);
       }
-#else
-      auxData[2] = analogRead(A7);
-#endif
       break;
     case BOARD_MODE_DIGITAL:
       auxData[0] = digitalRead(11) << 8 | digitalRead(12);
-#ifdef USE_WIFI
       auxData[1] = (wifi.present ? 0 : digitalRead(13) << 8) | digitalRead(17);
       auxData[2] = wifi.present ? 0 : digitalRead(18);
-#else
-      auxData[1] = (digitalRead(13) << 8) | digitalRead(17);
-      auxData[2] = digitalRead(18);
-#endif
       break;
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:
@@ -2667,9 +2649,7 @@ void OpenBCI_32bit_Library::printlnSerial(const char *c) {
 }
 
 void OpenBCI_32bit_Library::write(uint8_t b) {
-#ifdef USE_WIFI
   wifi.storeByteBufTx(b);
-#endif
   writeSerial(b);
 }
 
@@ -3181,16 +3161,16 @@ void OpenBCI_32bit_Library::printSuccess() {
 
 void OpenBCI_32bit_Library::printAll(const char *arr) {
   printSerial(arr);
-// #ifdef USE_WIFI
-  wifi.sendStringMulti(arr);
-// #endif
+  if (wifi.present && wifi.tx) {
+    wifi.sendStringMulti(arr);
+  }
 }
 
 void OpenBCI_32bit_Library::printlnAll(const char *arr) {
   printlnSerial(arr);
-// #ifdef USE_WIFI
-  wifi.sendStringLast(arr);
-// #endif
+  if (wifi.present && wifi.tx) {
+    wifi.sendStringLast(arr);
+  }
 }
 
 /**

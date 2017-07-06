@@ -47,6 +47,10 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## rc1
+
+The first release candidate for Cyton
+
 ## Beta4
 
 The overall goal was to clean the wifi code out of the library so it would not be needed when you are building a bare board.
