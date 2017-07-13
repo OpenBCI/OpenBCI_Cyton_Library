@@ -47,6 +47,16 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Beta5
+
+### New Features
+
+* Send gains after connecting to Wifi shield
+
+### Breaking Changes
+
+* Don't send streaming data over bluetooth when wifi is present and attached
+
 ## Beta4
 
 The overall goal was to clean the wifi code out of the library so it would not be needed when you are building a bare board.

@@ -48,9 +48,6 @@ void loop() {
     }
   }
 
-  // Call to wifi loop
-  wifi.loop();
-
   // Check serial 0 for new data
   if (board.hasDataSerial0()) {
     // Read one char from the serial 0 port
@@ -74,6 +71,9 @@ void loop() {
     board.processChar(newChar);
   }
 
+  // Call to wifi loop
+  wifi.loop();
+
   if (wifi.hasData()) {
     // Read one char from the wifi shield
     char newChar = wifi.getChar();
@@ -83,5 +83,11 @@ void loop() {
 
     // Send to the board library
     board.processChar(newChar);
+  }
+
+  if (!wifi.sentGains) {
+    if(wifi.present && wifi.tx) {
+      wifi.sendGains(board.numChannels, board.getGains());
+    }
   }
 }
