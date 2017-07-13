@@ -47,9 +47,15 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
-## rc1
+## Beta5
 
-The first release candidate for Cyton
+### New Features
+
+* Send gains after connecting to Wifi shield
+
+### Breaking Changes
+
+* Don't send streaming data over bluetooth when wifi is present and attached
 
 ## Beta4
 

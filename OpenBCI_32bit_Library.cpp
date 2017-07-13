@@ -1044,10 +1044,10 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
   if (wifi.present && wifi.tx) {
     sendChannelDataWifi(packetType, false);
     if (daisyPresent) sendChannelDataWifi(packetType, true);
+  } else {
+    // Send over bluetooth
+    if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
   }
-
-  // Send over bluetooth
-  if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
 
   if (packetType == PACKET_TYPE_ACCEL) LIS3DH_zeroAxisData();
   if (packetType == PACKET_TYPE_RAW_AUX || packetType == PACKET_TYPE_RAW_AUX_TIME_SYNC) zeroAuxData();
@@ -1559,18 +1559,26 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
 }
 
 /**
+ * Return an array of gains in coded ADS form i.e. 0-6 where 6 is x24 and so on.
+ * @return  [description]
+ */
+uint8_t *OpenBCI_32bit_Library::getGains(void) {
+  uint8_t gains[numChannels];
+  for (uint8_t i = 0; i < numChannels; i++) {
+    gains[i] = channelSettings[i][GAIN_SET];
+  }
+  return gains;
+}
+
+/**
 * @description Call this to start the streaming data from the ADS1299
 * @returns boolean if able to start streaming
 */
 void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
 
   if (wifi.present && wifi.tx) {
-    uint8_t gains[numChannels];
-    for (uint8_t i = 0; i < numChannels; i++) {
-      gains[i] = channelSettings[i][GAIN_SET];
-    }
     // TODO: Remove this debug line
-    wifi.sendGains(numChannels, gains);
+    wifi.sendGains(numChannels, getGains());
   }
   streaming = true;
   startADS();

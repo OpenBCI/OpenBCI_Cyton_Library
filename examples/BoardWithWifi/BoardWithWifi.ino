@@ -47,4 +47,10 @@ void loop() {
     // Send to the board library
     board.processChar(newChar);
   }
+
+  if (!wifi.sentGains) {
+    if(wifi.present && wifi.tx) {
+      wifi.sendGains(board.numChannels, board.getGains());
+    }
+  }
 }

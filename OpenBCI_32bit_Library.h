@@ -103,6 +103,7 @@ public:
   byte    getDefaultChannelSettingForSetting(byte);
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
+  uint8_t * getGains(void);
   char    getNumberForAsciiChar(char);
   const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
