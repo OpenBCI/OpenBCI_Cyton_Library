@@ -87,6 +87,7 @@ void loop() {
 
   if (!wifi.sentGains) {
     if(wifi.present && wifi.tx) {
+      Serial0.println("Synced with Wifi$$$");
       wifi.sendGains(board.numChannels, board.getGains());
     }
   }
