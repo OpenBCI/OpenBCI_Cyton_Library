@@ -47,6 +47,10 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Release Candidate 2
+
+Had to fix the library.properties file
+
 ## Release Candidate 1
 
 ### Breaking Changes
