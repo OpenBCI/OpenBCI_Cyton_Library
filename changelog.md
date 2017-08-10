@@ -47,6 +47,12 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Release Candidate 1
+
+### Breaking Changes
+
+* Stop sending wifi connection status on connect
+
 ## Beta5
 
 ### New Features
