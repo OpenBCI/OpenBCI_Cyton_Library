@@ -62,14 +62,13 @@ The order of programming should go as follows
 
 ## Resources
 ### In depth tutorials
-* [How to get/install/upload code to Pic32 `Board`](http://docs.openbci.com/tutorials/02-Upload_Code_to_OpenBCI_Board#upload-code-to-openbci-board-32bit-upload-how-to-firmware-version-2xx-fall-2016)
-* [How to get/install/upload code to `Host` and `Device`](http://docs.openbci.com/tutorials/03-Upload_Code_to_OpenBCI_Dongle#upload-code-to-openbci-radios-setting-up-your-system-to-program-openbci-radios-getting-radio-firmware-version-2xx-fall-2016)
-* [Packet protocol, including the new stop byte](http://docs.openbci.com/software/02-OpenBCI_Streaming_Data_Format#openbci-v3-data-format-binary-format)
-* [Writing custom firmware in a version 2.0.0 world; a peaceful experience](http://docs.openbci.com/tutorials/04-Updating_Custom_Firmware_to_2.0)
+* [How to get/install/upload code to Pic32 `Board`](http://docs.openbci.com/Hardware/05-Cyton_Board_Programming_Tutorial)
+* [How to get/install/upload code to `Host` and `Device`](http://docs.openbci.com/Hardware/06-Cyton_Radios_Programming_Tutorial)
+* [Packet protocol, including the new stop byte](http://docs.openbci.com/Hardware/03-Cyton_Data_Format)
 
 ### New commands
-* [Time stamping/syncing commands](http://docs.openbci.com/software/01-OpenBCI_SDK#firmware-v200-new-commands-time-stamping)
-* [Radio channel commands](http://docs.openbci.com/software/01-OpenBCI_SDK#firmware-v200-new-commands-radio-configuration-commands)
+* [Time stamping/syncing commands](http://docs.openbci.com/OpenBCI%20Software/04-OpenBCI_Cyton_SDK#firmware-v200-new-commands-time-stamping)
+* [Radio channel commands](http://docs.openbci.com/OpenBCI%20Software/04-OpenBCI_Cyton_SDK#firmware-v200-new-commands-radio-configuration-commands)
 
 ## Installing Previous Versions
 
