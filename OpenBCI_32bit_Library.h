@@ -118,8 +118,10 @@ public:
   void    leadOffSetForChannel(byte, byte, byte);
   void    ledFlash(int);
   void    loop(void);
-  void    printAll(const char *arr);
-  void    printlnAll(const char *arr);
+  void    printAll(char);
+  void    printAll(const char *);
+  void    printlnAll(void);
+  void    printlnAll(const char *);
   void    printlnSerial(void);
   void    printlnSerial(char);
   void    printlnSerial(int);
@@ -265,6 +267,7 @@ private:
   void    printAllRegisters(void);
   void    printFailure();
   void    printHex(byte);
+  void    printlnHex(byte);
   void    printRegisterName(byte);
   void    printSuccess();
   void    RDATA(int);   // read data one-shot

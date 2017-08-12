@@ -47,6 +47,17 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Release Candidate 4
+
+### Enhancements
+
+* Can now send long messages to Wifi shield which will allow for the GUI to understand the the channel settings for each channel on the Cyton. Required changing a ton of `Serial0.print` to `printAll` and `Serial0.println` to `printlnAll`.
+* Send response when stopping and starting streaming to wifi shield if present, will not send to Serial ever.
+
+## Release Candidate 3
+
+Fix the library.properties file again...
+
 ## Release Candidate 2
 
 Had to fix the library.properties file

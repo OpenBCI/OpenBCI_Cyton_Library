@@ -147,7 +147,6 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 * @return {boolean} - `true` if the command was recognized, `false` if not
 */
 boolean OpenBCI_32bit_Library::processChar(char character) {
-  // Serial0.print("pC: "); Serial0.print(character); Serial0.print(" 0x"); Serial0.println(character, HEX);
   if (curBoardMode == BOARD_MODE_DEBUG) {
     Serial1.print("pC: "); Serial1.println(character);
   }
@@ -331,7 +330,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(curAccelMode == ACCEL_MODE_ON){
           enable_accel(RATE_25HZ);
         }      // fire up the accelerometer if you want it
-        // Serial0.println("streamStart - pc");
+        if (wifi.present && wifi.tx) {
+          wifi.sendStringLast("Stream started");
+        }
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
@@ -339,6 +340,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
           disable_accel();
         }  // shut down the accelerometer if you're using it
         streamStop();
+        if (wifi.present && wifi.tx) {
+          wifi.sendStringLast("Stream stopped");
+        }
         break;
 
       //  INITIALIZE AND VERIFY
@@ -355,8 +359,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // TIME SYNC
       case OPENBCI_TIME_SET:
         // Set flag to send time packet
-        if (!streaming && iSerial0.tx) {
-          Serial0.print("Time stamp ON");
+        if (!streaming) {
+          printAll("Time stamp ON");
           sendEOT();
         }
         curTimeSyncMode = TIME_SYNC_MODE_ON;
@@ -366,7 +370,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       case OPENBCI_TIME_STOP:
         // Stop the Sync
         if (!streaming) {
-          Serial0.print("Time stamp OFF");
+          printAll("Time stamp OFF");
           sendEOT();
         }
         curTimeSyncMode = TIME_SYNC_MODE_OFF;
@@ -589,13 +593,13 @@ void OpenBCI_32bit_Library::boardReset(void) {
   initialize(); // initalizes accelerometer and on-board ADS and on-daisy ADS if present
   delay(500);
   configureLeadOffDetection(LOFF_MAG_6NA, LOFF_FREQ_31p2HZ);
-  Serial0.println("OpenBCI V3 8-16 channel");
-  Serial0.print("On Board ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_BOARD),HEX);
+  printlnAll("OpenBCI V3 8-16 channel");
+  printAll("On Board ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_BOARD));
   if(daisyPresent){  // library will set this in initialize() if daisy present and functional
-    Serial0.print("On Daisy ADS1299 Device ID: 0x"); Serial0.println(ADS_getDeviceID(ON_DAISY),HEX);
+    printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
-  Serial0.print("LIS3DH Device ID: 0x"); Serial0.println(LIS3DH_getDeviceID(),HEX);
-  Serial0.println("Firmware: v3.0.0");
+  printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
+  printlnAll("Firmware: v3.0.0");
   sendEOT();
   delay(5);
   wifi.reset();
@@ -1019,13 +1023,13 @@ void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx,
 
 void OpenBCI_32bit_Library::printAllRegisters(){
   if(!isRunning){
-    Serial0.println("\nBoard ADS Registers");
+    printlnAll("\nBoard ADS Registers");
     printADSregisters(BOARD_ADS);
     if(daisyPresent){
-      Serial0.println("\nDaisy ADS Registers");
+      printlnAll("\nDaisy ADS Registers");
       printADSregisters(DAISY_ADS);
     }
-    Serial0.println("\nLIS3DH Registers");
+    printlnAll("\nLIS3DH Registers");
     LIS3DH_readAllRegs();
     sendEOT();
   }
@@ -1606,7 +1610,7 @@ void OpenBCI_32bit_Library::streamStop(){
 boolean OpenBCI_32bit_Library::smellDaisy(void){ // check if daisy present
   boolean isDaisy = false;
   byte setting = RREG(ID_REG,DAISY_ADS); // try to read the daisy product ID
-  if(verbosity){Serial0.print("Daisy ID 0x"); Serial0.println(setting,HEX); sendEOT();}
+  if(verbosity){printAll("Daisy ID 0x"); printlnHex(setting); sendEOT();}
   if(setting == ADS_ID) {isDaisy = true;} // should read as 0x3E
   return isDaisy;
 }
@@ -2736,17 +2740,17 @@ void OpenBCI_32bit_Library::printADSregisters(int targetSS)
 {
   boolean prevverbosityState = verbosity;
   verbosity = true;						// set up for verbosity output
-  RREGS(0x00,0x0C,targetSS);     	// read out the first registers
+  RREGS(0x00, 0x0C, targetSS);     	// read out the first registers
   delay(10);  						// stall to let all that data get read by the PC
-  RREGS(0x0D,0x17-0x0D,targetSS);	// read out the rest
+  RREGS(0x0D, 0x17-0x0D, targetSS);	// read out the rest
   verbosity = prevverbosityState;
 }
 
 byte OpenBCI_32bit_Library::ADS_getDeviceID(int targetSS) {      // simple hello world com check
   byte data = RREG(ID_REG,targetSS);
   if(verbosity){            // verbosity otuput
-    Serial0.print("On Board ADS ID ");
-    printHex(data); Serial0.println();
+    printAll("On Board ADS ID ");
+    printHex(data); printlnAll();
     sendEOT();
   }
   return data;
@@ -2852,15 +2856,16 @@ byte OpenBCI_32bit_Library::RREG(byte _address,int targetSS) {    //  reads ONE 
   if (verbosity){           //  verbosity output
     printRegisterName(_address);
     printHex(_address);
-    Serial0.print(", ");
+    printAll(", ");
     printHex(regData[_address]);
-    Serial0.print(", ");
+    printAll(", ");
     for(byte j = 0; j<8; j++){
-      Serial0.print(bitRead(regData[_address], 7-j));
-      if(j!=7) Serial0.print(", ");
+      char buf[3];
+      printAll(itoa(bitRead(regData[_address], 7-j), buf, DEC));
+      if(j!=7) printAll(", ");
     }
 
-    Serial0.println();
+    printlnAll();
   }
   return regData[_address];     // return requested register value
 }
@@ -2881,14 +2886,15 @@ void OpenBCI_32bit_Library::RREGS(byte _address, byte _numRegistersMinusOne, int
     for(int i = 0; i<= _numRegistersMinusOne; i++){
       printRegisterName(_address + i);
       printHex(_address + i);
-      Serial0.print(", ");
+      printAll(", ");
       printHex(regData[_address + i]);
-      Serial0.print(", ");
+      printAll(", ");
       for(int j = 0; j<8; j++){
-        Serial0.print(bitRead(regData[_address + i], 7-j));
-        if(j!=7) Serial0.print(", ");
+        char buf[3];
+        printAll(itoa(bitRead(regData[_address + i], 7-j), buf, DEC));
+        if(j!=7) printAll(", ");
       }
-      Serial0.println();
+      printlnAll();
       delay(30);
     }
   }
@@ -2903,9 +2909,9 @@ void OpenBCI_32bit_Library::WREG(byte _address, byte _value, int target_SS) { //
   csHigh(target_SS);       //  close SPI
   regData[_address] = _value;     //  update the mirror array
   if(verbosity){            //  verbosity output
-    Serial0.print("Register ");
+    printAll("Register ");
     printHex(_address);
-    Serial0.println(" modified.");
+    printlnAll(" modified.");
     sendEOT();
   }
 }
@@ -2920,10 +2926,10 @@ void OpenBCI_32bit_Library::WREGS(byte _address, byte _numRegistersMinusOne, int
   }
   csHigh(targetSS);
   if(verbosity){
-    Serial0.print("Registers ");
-    printHex(_address); Serial0.print(" to ");
+    printAll("Registers ");
+    printHex(_address); printAll(" to ");
     printHex(_address + _numRegistersMinusOne);
-    Serial0.println(" modified");
+    printlnAll(" modified");
     sendEOT();
   }
 }
@@ -3066,25 +3072,25 @@ void OpenBCI_32bit_Library::LIS3DH_readAllRegs(){
 
   for (int i = STATUS_REG_AUX; i <= WHO_AM_I; i++){
     inByte = LIS3DH_read(i);
-    Serial0.print("0x0");Serial0.print(i,HEX);
-    Serial0.print("\t");Serial0.println(inByte,HEX);
+    printAll("0x"); printHex(i);
+    printAll(" "); printlnHex(inByte);
     delay(20);
   }
-  Serial0.println();
+  printlnAll();
 
   for (int i = TMP_CFG_REG; i <= INT1_DURATION; i++){
     inByte = LIS3DH_read(i);
     // printRegisterName(i);
-    Serial0.print("0x");Serial0.print(i,HEX);
-    Serial0.print("\t");Serial0.println(inByte,HEX);
+    printAll("0x"); printHex(i);
+    printAll(" "); printlnHex(inByte);
     delay(20);
   }
-  Serial0.println();
+  printlnAll();
 
   for (int i = CLICK_CFG; i <= TIME_WINDOW; i++){
     inByte = LIS3DH_read(i);
-    Serial0.print("0x");Serial0.print(i,HEX);
-    Serial0.print("\t");Serial0.println(inByte,HEX);
+    printAll("0x"); printHex(i);
+    printAll(" "); printlnHex(inByte);
     delay(20);
   }
 
@@ -3154,9 +3160,15 @@ void OpenBCI_32bit_Library::printRegisterName(byte _address) {
 
 // Used for printing HEX in verbosity feedback mode
 void OpenBCI_32bit_Library::printHex(byte _data){
-  Serial0.print("0x");
-  if(_data < 0x10) Serial0.print("0");
-  Serial0.print(_data, HEX);
+  if(_data < 0x10) printAll("0");
+  char buf[4];
+  // Serial.print(_data);
+  printAll(itoa(_data, buf, HEX));
+}
+
+void OpenBCI_32bit_Library::printlnHex(byte _data){
+  printHex(_data);
+  printlnAll();
 }
 
 void OpenBCI_32bit_Library::printFailure() {
@@ -3165,6 +3177,13 @@ void OpenBCI_32bit_Library::printFailure() {
 
 void OpenBCI_32bit_Library::printSuccess() {
   printAll("Success: ");
+}
+
+void OpenBCI_32bit_Library::printAll(char c) {
+  printSerial(c);
+  if (wifi.present && wifi.tx) {
+    wifi.sendStringMulti(c);
+  }
 }
 
 void OpenBCI_32bit_Library::printAll(const char *arr) {
@@ -3177,7 +3196,15 @@ void OpenBCI_32bit_Library::printAll(const char *arr) {
 void OpenBCI_32bit_Library::printlnAll(const char *arr) {
   printlnSerial(arr);
   if (wifi.present && wifi.tx) {
-    wifi.sendStringLast(arr);
+    wifi.sendStringMulti(arr);
+    wifi.sendStringMulti("\n");
+  }
+}
+
+void OpenBCI_32bit_Library::printlnAll(void) {
+  printlnSerial();
+  if (wifi.present && wifi.tx) {
+    wifi.sendStringMulti("\n");
   }
 }
 
@@ -3235,10 +3262,10 @@ char OpenBCI_32bit_Library::getChannelCommandForAsciiChar(char asciiChar) {
 char OpenBCI_32bit_Library::getYesOrNoForAsciiChar(char asciiChar) {
   switch (asciiChar) {
     case '1':
-    return ACTIVATE;
+      return ACTIVATE;
     case '0':
     default:
-    return DEACTIVATE;
+      return DEACTIVATE;
   }
 }
 
