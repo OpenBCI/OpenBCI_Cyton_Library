@@ -521,32 +521,7 @@ void OpenBCI_32bit_Library::boardBeginADSInterrupt(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
-  // Initalize the serial port baud rate
-  Serial0.begin(OPENBCI_BAUD_RATE);
-  iSerial0.tx = true;
-  iSerial0.rx = true;
-  iSerial0.baudRate = OPENBCI_BAUD_RATE;
-
-  // setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
-  // Serial1.print("begin S0 tx "); Serial1.println(iSerial0.tx ? "on" : "off");
-
-
-  // Initalize the serial debug port
-  Serial1.begin(OPENBCI_BAUD_RATE);
-  iSerial1.tx = true;
-  iSerial1.rx = true;
-  iSerial1.baudRate = OPENBCI_BAUD_RATE;
-  // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
-  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
-
-
-  // Startup for interrupt
-  boardBeginADSInterrupt();
-
-  // Do a soft reset
-  boardReset();
-
-  return true;
+  boardBeginDebug(OPENBCI_BAUD_RATE);
 }
 
 /**
@@ -554,13 +529,13 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
 * @param baudRate {int} - The baudRate you want the secondary serial port to run at.
 * @author: AJ Keller (@pushtheworldllc)
 */
-boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
+boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   // Initalize the serial port baud rate
   Serial0.begin(OPENBCI_BAUD_RATE);
   iSerial0.tx = true;
   iSerial0.rx = true;
   iSerial0.baudRate = OPENBCI_BAUD_RATE;
-
+  // Serial0.println("HIII");
   // setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
   // Serial1.print("begin S0 tx "); Serial1.println(iSerial0.tx ? "on" : "off");
 
@@ -571,7 +546,10 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(uint8_t baudRate) {
   iSerial1.rx = true;
   iSerial1.baudRate = baudRate;
   // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
-  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+  Serial0.print("begin S1 tx "); Serial0.println(iSerial1.tx ? "on" : "off");
+  Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+
+  curBoardMode = BOARD_MODE_DEBUG;
 
 
   // Startup for interrupt
@@ -647,6 +625,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
     uint8_t digit = c - '0';
     if (digit <= BOARD_MODE_DIGITAL) {
       setBoardMode(digit);
+      delay(100);
       printSuccess();
       printAll(getBoardMode());
       sendEOT();
@@ -686,10 +665,14 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       break;
     case BOARD_MODE_DEBUG:
       curAccelMode = ACCEL_MODE_ON;
+      if (Serial0) Serial0.end();
+      if (Serial1) Serial1.end();
       boardBeginDebug();
       break;
     case BOARD_MODE_DEFAULT:
       curAccelMode = ACCEL_MODE_ON;
+      if (Serial0) Serial0.end();
+      if (Serial1) Serial1.end();
       boardBegin();
       break;
   }

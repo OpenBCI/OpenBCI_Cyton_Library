@@ -241,7 +241,7 @@ private:
   void    boardBeginADSInterrupt(void);
   boolean boardBegin(void);
   boolean boardBeginDebug(void);
-  boolean boardBeginDebug(uint8_t);
+  boolean boardBeginDebug(int);
   void    changeInputType(byte);
   int     getX(void);
   int     getY(void);

@@ -47,6 +47,12 @@
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 
+## Release Candidate 5
+
+### Bug Fixes
+
+* Calling `boardBeginDebug(void)` would result in debug not working.
+
 ## Release Candidate 4
 
 ### Enhancements
