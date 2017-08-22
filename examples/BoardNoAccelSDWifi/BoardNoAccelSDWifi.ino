@@ -23,4 +23,8 @@ void loop() {
     // Read one char and process it
     board.processChar(board.getCharSerial0());
   }
+  // Used to abort multi part messages
+  if (board.isProcessingMultibyteMsg()) {
+    board.tryMultiAbort();
+  }
 }
