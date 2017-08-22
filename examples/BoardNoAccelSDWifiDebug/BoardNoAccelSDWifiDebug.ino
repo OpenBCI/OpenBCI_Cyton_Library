@@ -28,4 +28,8 @@ void loop() {
     // Read one char and process it
     board.processChar(board.getCharSerial1());
   }
+
+  if (board.isProcessingMultibyteMsg()) {
+    board.tryMultiAbort();
+  }
 }

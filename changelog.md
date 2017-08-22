@@ -52,6 +52,7 @@
 ### Bug Fixes
 
 * Calling `boardBeginDebug(void)` would result in debug not working.
+* Closes #69 with once second timeout on multi byte messages.
 
 ## Release Candidate 4
 

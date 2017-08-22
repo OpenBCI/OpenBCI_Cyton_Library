@@ -70,6 +70,11 @@ void loop() {
     board.processChar(newChar);
   }
 
+  // Used to abort multi part messages
+  if (board.isProcessingMultibyteMsg()) {
+    board.tryMultiAbort();
+  }
+
   // Call to wifi loop
   wifi.loop();
 

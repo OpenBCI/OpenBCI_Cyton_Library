@@ -103,4 +103,8 @@ void loop() {
          break;
     }
   }
+  // Used to abort multi part messages
+  if (board.isProcessingMultibyteMsg()) {
+    board.tryMultiAbort();
+  }
 }

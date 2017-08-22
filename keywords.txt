@@ -20,8 +20,10 @@ getCharSerial1                      KEYWORD2
 hasDataSerial0                      KEYWORD2
 hasDataSerial1                      KEYWORD2
 isADSDataAvailable                  KEYWORD2
+isProcessingMultibyteMsg            KEYWORD2
 loop                                KEYWORD2
 processChar                         KEYWORD2
+tryMultiAbort                       KEYWORD2
 updateChannelData                   KEYWORD2
 useAccel                            KEYWORD2
 useTimeStamp                        KEYWORD2

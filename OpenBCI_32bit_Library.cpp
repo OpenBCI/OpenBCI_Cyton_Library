@@ -140,6 +140,20 @@ boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
 }
 
 /**
+ * Used to abort a multipack message
+ */
+void OpenBCI_32bit_Library::tryMultiAbort(void) {
+  if (millis() > timeOfMultiByteMsgStart + 1000) {
+    isProcessingIncomingSettingsChannel = false;
+    isProcessingIncomingSettingsLeadOff = false;
+    settingBoardMode = false;
+    settingSampleRate = false;
+    printAll("Timeout processing multi byte message - please send all commands at once as of v2");
+    sendEOT();
+  }
+}
+
+/**
 * @description Process one char at a time from serial port. This is the main
 *  command processor for the OpenBCI system. Considered mission critical for
 *  normal operation.
@@ -286,12 +300,14 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // CHANNEL SETTING COMMANDS
       case OPENBCI_CHANNEL_CMD_SET:  // This is the first byte that tells us to expect more commands
         isProcessingIncomingSettingsChannel = true;
+        timeOfMultiByteMsgStart = millis();
         numberOfIncomingSettingsProcessedChannel = 1;
         break;
 
       // LEAD OFF IMPEDANCE DETECTION COMMANDS
       case OPENBCI_CHANNEL_IMPEDANCE_SET:
         isProcessingIncomingSettingsLeadOff = true;
+        timeOfMultiByteMsgStart = millis();
         numberOfIncomingSettingsProcessedLeadOff = 1;
         break;
 
@@ -380,13 +396,14 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       // BOARD TYPE SET TYPE
       case OPENBCI_BOARD_MODE_SET:
         settingBoardMode = true;
-        numberOfIncomingSettingsProcessedBoardType = 0;
+        timeOfMultiByteMsgStart = millis();
         optionalArgCounter = 0;
         break;
 
       // Sample rate set
       case OPENBCI_SAMPLE_RATE_SET:
         settingSampleRate = true;
+        timeOfMultiByteMsgStart = millis();
         break;
 
       case OPENBCI_WIFI_ATTACH:
@@ -546,7 +563,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   iSerial1.rx = true;
   iSerial1.baudRate = baudRate;
   // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
-  Serial0.print("begin S1 tx "); Serial0.println(iSerial1.tx ? "on" : "off");
+  // Serial0.print("begin S1 tx "); Serial0.println(iSerial1.tx ? "on" : "off");
   Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
 
   curBoardMode = BOARD_MODE_DEBUG;
@@ -778,22 +795,23 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       currentChannelSetting = getChannelCommandForAsciiChar(character);
       break;
     case 2:  // POWER_DOWN
-      channelSettings[currentChannelSetting][POWER_DOWN] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[0] = getNumberForAsciiChar(character);
       break;
     case 3: // GAIN_SET
-      channelSettings[currentChannelSetting][GAIN_SET] = getGainForAsciiChar(character);
+      optionalArgBuffer7[1] = getGainForAsciiChar(character);
       break;
     case 4: // INPUT_TYPE_SET
-      channelSettings[currentChannelSetting][INPUT_TYPE_SET] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[2] = getNumberForAsciiChar(character);
       break;
     case 5: // BIAS_SET
-      channelSettings[currentChannelSetting][BIAS_SET] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[3] = getNumberForAsciiChar(character);
       break;
     case 6: // SRB2_SET
-      channelSettings[currentChannelSetting][SRB2_SET] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[4] = getNumberForAsciiChar(character);
+
       break;
     case 7: // SRB1_SET
-      channelSettings[currentChannelSetting][SRB1_SET] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[5] = getNumberForAsciiChar(character);
       break;
     case 8: // 'X' latch
       if (character != OPENBCI_CHANNEL_CMD_LATCH) {
@@ -805,8 +823,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         // We failed somehow and should just abort
         numberOfIncomingSettingsProcessedChannel = 0;
 
-    // put flag back down
-    isProcessingIncomingSettingsChannel = false;
+        // put flag back down
+        isProcessingIncomingSettingsChannel = false;
 
       }
       break;
@@ -836,6 +854,13 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       printAll(itoa(currentChannelSetting + 1, buf, 10));
       sendEOT();
     }
+
+    channelSettings[currentChannelSetting][POWER_DOWN] = optionalArgBuffer7[0];
+    channelSettings[currentChannelSetting][GAIN_SET] = optionalArgBuffer7[1];
+    channelSettings[currentChannelSetting][INPUT_TYPE_SET] = optionalArgBuffer7[2];
+    channelSettings[currentChannelSetting][BIAS_SET] = optionalArgBuffer7[3];
+    channelSettings[currentChannelSetting][SRB2_SET] = optionalArgBuffer7[4];
+    channelSettings[currentChannelSetting][SRB1_SET] = optionalArgBuffer7[5];
 
     // Set channel settings
     streamSafeChannelSettingsForChannel(currentChannelSetting + 1, channelSettings[currentChannelSetting][POWER_DOWN], channelSettings[currentChannelSetting][GAIN_SET], channelSettings[currentChannelSetting][INPUT_TYPE_SET], channelSettings[currentChannelSetting][BIAS_SET], channelSettings[currentChannelSetting][SRB2_SET], channelSettings[currentChannelSetting][SRB1_SET]);
@@ -877,10 +902,10 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       currentChannelSetting = getChannelCommandForAsciiChar(character);
       break;
     case 2: // pchannel setting
-      leadOffSettings[currentChannelSetting][PCHAN] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[0] = getNumberForAsciiChar(character);
       break;
     case 3: // nchannel setting
-      leadOffSettings[currentChannelSetting][NCHAN] = getNumberForAsciiChar(character);
+      optionalArgBuffer7[1] = getNumberForAsciiChar(character);
       break;
     case 4: // 'Z' latch
       if (character != OPENBCI_CHANNEL_IMPEDANCE_LATCH) {
@@ -893,8 +918,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
         // reset numberOfIncomingSettingsProcessedLeadOff
         numberOfIncomingSettingsProcessedLeadOff = 0;
 
-    // put flag back down
-    isProcessingIncomingSettingsLeadOff = false;
+        // put flag back down
+        isProcessingIncomingSettingsLeadOff = false;
 
       }
       break;
@@ -926,6 +951,9 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       printAll(itoa(currentChannelSetting + 1, buf, 10));
       sendEOT();
     }
+
+    leadOffSettings[currentChannelSetting][PCHAN] = optionalArgBuffer7[0];
+    leadOffSettings[currentChannelSetting][NCHAN] = optionalArgBuffer7[1];
 
     // Set lead off settings
     streamSafeLeadOffSetForChannel(currentChannelSetting + 1,leadOffSettings[currentChannelSetting][PCHAN],leadOffSettings[currentChannelSetting][NCHAN]);
@@ -978,9 +1006,9 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   lastSampleTime = 0;
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
-  numberOfIncomingSettingsProcessedBoardType = 0;
   sampleCounter = 0;
   timeOfLastRead = 0;
+  timeOfMultiByteMsgStart = 0;
 
   // Enums
   curAccelMode = ACCEL_MODE_ON;

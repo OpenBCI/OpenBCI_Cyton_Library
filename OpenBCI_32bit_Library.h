@@ -161,6 +161,7 @@ public:
   void    streamSafeTimeSendSyncSetPacket(void);
   void    streamStart(void);
   void    streamStop(void);
+  void    tryMultiAbort(void);
   void    updateBoardData(void);
   void    updateBoardData(boolean);
   void    updateChannelData(void);   // retrieve data from ADS
@@ -310,6 +311,7 @@ private:
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
   unsigned long timeOfLastRead;
+  unsigned long timeOfMultiByteMsgStart;
 
 #ifdef __OpenBCI_Wifi_Master__
   // functions
