@@ -132,6 +132,7 @@ public:
   void    printSerial(int, int);
   void    printSerial(const char *);
   boolean processChar(char);
+  boolean processCharWifi(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
   void    processIncomingChannelSettings(char);
@@ -289,6 +290,7 @@ private:
   byte    xfer(byte);        // SPI Transfer function
 
   // Variables
+  boolean commandFromSPI;
   boolean firstDataPacket;
   boolean isProcessingIncomingSettingsChannel;
   boolean isProcessingIncomingSettingsLeadOff;

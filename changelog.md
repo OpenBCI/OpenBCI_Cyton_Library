@@ -46,6 +46,13 @@
 * Removed public `waitForNewChannelData()`
 * Removed public `timeSynced` and private `sendTimeSyncUpPacket`
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
+* Sending multi char messages now times out after a second of not completing the multichar message.
+
+## Release Candidate 6
+
+### Bug Fixes
+
+* Even when command came from wifi, library printed to `Serial0`, which resulted in overflow of radio buffer which led to a reset.
 
 ## Release Candidate 5
 

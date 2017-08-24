@@ -50,7 +50,7 @@ void loop() {
     sdProcessChar(newChar);
 
     // Send to the board library
-    board.processChar(newChar);
+    board.processCharWifi(newChar);
   }
 
   if (!wifi.sentGains) {
