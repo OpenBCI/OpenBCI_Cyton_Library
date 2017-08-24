@@ -448,6 +448,13 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   return true;
 }
 
+boolean OpenBCI_32bit_Library::processCharWifi(char character) {
+  commandFromSPI = true;
+  boolean retVal = processChar(character);
+  commandFromSPI = false;
+  return retVal;
+}
+
 /**
  * Used to turn on or off the accel, will change the current packet type!
  * @param yes {boolean} - True if you want to use it
@@ -564,7 +571,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   iSerial1.baudRate = baudRate;
   // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
   // Serial0.print("begin S1 tx "); Serial0.println(iSerial1.tx ? "on" : "off");
-  Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
 
   curBoardMode = BOARD_MODE_DEBUG;
 
@@ -594,7 +601,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
     printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
   printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
-  printlnAll("Firmware: v3.0.0");
+  printlnAll("Firmware: v3.0.0-rc6");
   sendEOT();
   delay(5);
   wifi.reset();
@@ -993,6 +1000,7 @@ void __USER_ISR ADS_DRDY_Service() {
 void OpenBCI_32bit_Library::initializeVariables(void) {
   // Bools
   channelDataAvailable = false;
+  commandFromSPI = false;
   daisyPresent = false;
   isProcessingIncomingSettingsChannel = false;
   isProcessingIncomingSettingsLeadOff = false;
@@ -2613,7 +2621,7 @@ void OpenBCI_32bit_Library::stopADS()
 }
 
 void OpenBCI_32bit_Library::printSerial(int i) {
-  if (iSerial0.tx) {
+  if (iSerial0.tx && !commandFromSPI) {
     Serial0.print(i);
   }
   if (iSerial1.tx) {
@@ -2622,7 +2630,7 @@ void OpenBCI_32bit_Library::printSerial(int i) {
 }
 
 void OpenBCI_32bit_Library::printSerial(char c) {
-  if (iSerial0.tx) {
+  if (iSerial0.tx && !commandFromSPI) {
     Serial0.print(c);
   }
   if (iSerial1.tx) {
@@ -2631,7 +2639,7 @@ void OpenBCI_32bit_Library::printSerial(char c) {
 }
 
 void OpenBCI_32bit_Library::printSerial(int c, int arg) {
-  if (iSerial0.tx) {
+  if (iSerial0.tx && !commandFromSPI) {
     Serial0.print(c, arg);
   }
   if (iSerial1.tx) {
