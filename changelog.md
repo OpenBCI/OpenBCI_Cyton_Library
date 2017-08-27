@@ -48,6 +48,12 @@
 * Setting internal test signal now, when not streaming, returns a success message, with EOT `$$$`
 * Sending multi char messages now times out after a second of not completing the multichar message.
 
+## Release Candidate 7
+
+### Bug Fixes
+
+* Sending data for register query took too long to send, removed delay when command came from wifi.
+
 ## Release Candidate 6
 
 ### Bug Fixes

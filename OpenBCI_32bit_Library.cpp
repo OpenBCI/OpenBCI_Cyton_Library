@@ -148,7 +148,9 @@ void OpenBCI_32bit_Library::tryMultiAbort(void) {
     isProcessingIncomingSettingsLeadOff = false;
     settingBoardMode = false;
     settingSampleRate = false;
-    printAll("Timeout processing multi byte message - please send all commands at once as of v2");
+    printAll("Timeout processing multi byte");
+    printAll(" message - please send all");
+    printAll(" commands at once as of v2");
     sendEOT();
   }
 }
@@ -327,6 +329,8 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
       case OPENBCI_CHANNEL_MAX_NUMBER_8:  // use 8 channel mode
         if(daisyPresent){
           removeDaisy();
+        } else if (wifi.present && wifi.tx) {
+          wifi.sendStringLast("No daisy to remove");
         }
         break;
       case OPENBCI_CHANNEL_MAX_NUMBER_16:  // use 16 channel mode
@@ -635,7 +639,8 @@ void OpenBCI_32bit_Library::activateAllChannelsToTestCondition(byte testInputCod
     streamStart();
   } else {
     printSuccess();
-    printAll("Configured internal test signal.");
+    printAll("Configured internal");
+    printAll(" test signal.");
     sendEOT();
   }
 }
@@ -655,7 +660,8 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
       sendEOT();
     } else {
       printFailure();
-      printAll("board mode value out of bounds.");
+      printAll("board mode value");
+      printAll(" out of bounds.");
       sendEOT();
     }
   } else {
@@ -1042,13 +1048,17 @@ void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx,
 
 void OpenBCI_32bit_Library::printAllRegisters(){
   if(!isRunning){
-    printlnAll("\nBoard ADS Registers");
+    printlnAll();
+    printlnAll("Board ADS Registers");
+    // printlnAll("");
     printADSregisters(BOARD_ADS);
     if(daisyPresent){
-      printlnAll("\nDaisy ADS Registers");
+      printlnAll();
+      printlnAll("Daisy ADS Registers");
       printADSregisters(DAISY_ADS);
     }
-    printlnAll("\nLIS3DH Registers");
+    printlnAll();
+    printlnAll("LIS3DH Registers");
     LIS3DH_readAllRegs();
     sendEOT();
   }
@@ -1733,12 +1743,14 @@ void OpenBCI_32bit_Library::setChannelsToDefault(void){
 * @description Writes the default channel settings over the serial port
 */
 void OpenBCI_32bit_Library::reportDefaultChannelSettings(void){
-  Serial0.write(getDefaultChannelSettingForSettingAscii(POWER_DOWN));     // on = NO, off = YES
-  Serial0.write(getDefaultChannelSettingForSettingAscii(GAIN_SET));       // Gain setting
-  Serial0.write(getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET)); // input muxer setting
-  Serial0.write(getDefaultChannelSettingForSettingAscii(BIAS_SET));       // add this channel to bias generation
-  Serial0.write(getDefaultChannelSettingForSettingAscii(SRB2_SET));       // connect this P side to SRB2
-  Serial0.write(getDefaultChannelSettingForSettingAscii(SRB1_SET));       // don't use SRB1
+  char buf[7];
+  buf[0] = getDefaultChannelSettingForSettingAscii(POWER_DOWN);     // on = NO, off = YES
+  buf[1] = getDefaultChannelSettingForSettingAscii(GAIN_SET);       // Gain setting
+  buf[2] = getDefaultChannelSettingForSettingAscii(INPUT_TYPE_SET); // input muxer setting
+  buf[3] = getDefaultChannelSettingForSettingAscii(BIAS_SET);       // add this channel to bias generation
+  buf[4] = getDefaultChannelSettingForSettingAscii(SRB2_SET);       // connect this P side to SRB2
+  buf[5] = getDefaultChannelSettingForSettingAscii(SRB1_SET);       // don't use SRB1
+  printAll((const char*)buf);
   sendEOT();
 }
 
@@ -2914,7 +2926,7 @@ void OpenBCI_32bit_Library::RREGS(byte _address, byte _numRegistersMinusOne, int
         if(j!=7) printAll(", ");
       }
       printlnAll();
-      delay(30);
+      if (!commandFromSPI) delay(30);
     }
   }
 }
@@ -3183,6 +3195,7 @@ void OpenBCI_32bit_Library::printHex(byte _data){
   char buf[4];
   // Serial.print(_data);
   printAll(itoa(_data, buf, HEX));
+  if (commandFromSPI) delay(1);
 }
 
 void OpenBCI_32bit_Library::printlnHex(byte _data){
