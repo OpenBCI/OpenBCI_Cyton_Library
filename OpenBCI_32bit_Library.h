@@ -26,14 +26,31 @@ public:
     TIME_SYNC_MODE_ON,
     TIME_SYNC_MODE_OFF
   };
+  typedef enum MARKER_MODE {
+    MARKER_MODE_ON,
+    MARKER_MODE_OFF
+  };
+
 
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
     BOARD_MODE_DEBUG,
     BOARD_MODE_ANALOG,
-    BOARD_MODE_DIGITAL
+    BOARD_MODE_DIGITAL,
+    BOARD_MODE_MARKER,
+    BOARD_MODE_DUMMY  // This must be the last entry-insert any new board modes above this line
   };
 
+  typedef enum MULTI_CHAR_COMMAND {
+    NONE,
+    MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL,
+    MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF,
+    MULTI_CHAR_CMD_SERIAL_PASSTHROUGH,
+    MULTI_CHAR_CMD_SETTINGS_BOARD_MODE,
+    MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE,
+    MULTI_CHAR_CMD_INSERT_MARKER
+    };
+    
   typedef enum PACKET_TYPE {
     PACKET_TYPE_ACCEL,
     PACKET_TYPE_RAW_AUX,
@@ -180,6 +197,12 @@ public:
   void    writeTimeCurrentSerial(uint32_t newTime);
   void    writeZeroAux(void);
   void    zeroAuxData(void);
+    
+  void    startMultiCharCmdTimer(unsigned int);
+  void    endMultiCharCmdTimer(void);
+  boolean checkMultiCharCmdTimer(void)    ;
+  unsigned int getMultiCharCommand( void );
+
 
   // Variables
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
@@ -292,12 +315,24 @@ private:
   // Variables
   boolean commandFromSPI;
   boolean firstDataPacket;
+  boolean isRunning;
+
+/* These variables are replaced by the new multichar commands
   boolean isProcessingIncomingSettingsChannel;
   boolean isProcessingIncomingSettingsLeadOff;
   boolean isProcessingIncomingSerialPassThru;
-  boolean isRunning;
   boolean settingBoardMode;
   boolean settingSampleRate;
+ */
+    
+// variables for the Multi char serial command management
+  boolean isMultiCharCmd;  // A multi char command is in progress
+  unsigned int multiCharCommand;  // The type of command
+  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
+// variables for the serial makers
+  char markerValue;
+  boolean newMarkerReceived;
+  
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;

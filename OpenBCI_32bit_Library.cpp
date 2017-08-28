@@ -130,14 +130,6 @@ char OpenBCI_32bit_Library::getCharSerial1(void) {
   return Serial1.read();
 }
 
-/**
-* @description While processing incoming multi byte messages these will turn
-*  true.
-* @return {boolean} - True if processing a message and false otherwise
-*/
-boolean OpenBCI_32bit_Library::isProcessingMultibyteMsg(void) {
-  return isProcessingIncomingSettingsChannel || isProcessingIncomingSettingsLeadOff || settingBoardMode || settingSampleRate;
-}
 
 /**
  * Used to abort a multipack message
@@ -167,16 +159,27 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
     Serial1.print("pC: "); Serial1.println(character);
   }
 
-  if (isProcessingMultibyteMsg()) {
-    if (isProcessingIncomingSettingsChannel) {
-      processIncomingChannelSettings(character);
-    } else if (isProcessingIncomingSettingsLeadOff) {
-      processIncomingLeadOffSettings(character);
-    } else if (settingBoardMode) {
-      processIncomingBoardMode(character);
-    } else if (settingSampleRate) {
-      processIncomingSampleRate(character);
-    }
+    if ( checkMultiCharCmdTimer() ) {  // we are in a multi char command
+        switch ( getMultiCharCommand() ){
+            case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL:
+                processIncomingChannelSettings(character);
+                break;
+            case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF:
+                processIncomingLeadOffSettings(character);
+                break;
+            case MULTI_CHAR_CMD_SETTINGS_BOARD_MODE:
+                processIncomingBoardMode(character);
+                break;
+            case MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE:
+                processIncomingSampleRate(character);
+                break;
+            case MULTI_CHAR_CMD_INSERT_MARKER:
+                processInsertMarker(character);
+                break;
+            default:
+                break; 
+        }
+
   } else { // Normal...
     switch (character){
       //TURN CHANNELS ON/OFF COMMANDS
@@ -301,15 +304,14 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // CHANNEL SETTING COMMANDS
       case OPENBCI_CHANNEL_CMD_SET:  // This is the first byte that tells us to expect more commands
-        isProcessingIncomingSettingsChannel = true;
-        timeOfMultiByteMsgStart = millis();
+            // This initializes a multi character command with a timeout
+        startMultiCharCmdTimer(MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL);
         numberOfIncomingSettingsProcessedChannel = 1;
         break;
 
       // LEAD OFF IMPEDANCE DETECTION COMMANDS
       case OPENBCI_CHANNEL_IMPEDANCE_SET:
-        isProcessingIncomingSettingsLeadOff = true;
-        timeOfMultiByteMsgStart = millis();
+        startMultiCharCmdTimer(MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF);
         numberOfIncomingSettingsProcessedLeadOff = 1;
         break;
 
@@ -399,15 +401,13 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
       // BOARD TYPE SET TYPE
       case OPENBCI_BOARD_MODE_SET:
-        settingBoardMode = true;
-        timeOfMultiByteMsgStart = millis();
+        startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_BOARD_MODE);
         optionalArgCounter = 0;
         break;
 
       // Sample rate set
       case OPENBCI_SAMPLE_RATE_SET:
-        settingSampleRate = true;
-        timeOfMultiByteMsgStart = millis();
+          startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE);
         break;
 
       case OPENBCI_WIFI_ATTACH:
@@ -451,6 +451,61 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
   }
   return true;
 }
+
+/**
+ * Start the timer on multi char commands
+ * @param None
+ * @returns void
+ * @author gerrievanzyl
+ */
+void OpenBCI_32bit_Library::startMultiCharCmdTimer(unsigned int cmd) {
+    isMultiCharCmd = true;
+    multiCharCommand = cmd;
+    multiCharCmdTimeout = millis() + MULTI_CHAR_COMMAND_TIMEOUT_MS;
+}
+
+/**
+ * end the timer on multi char commands
+ * @param None
+ * @returns void
+ * @author gerrievanzyl
+ */
+void OpenBCI_32bit_Library::endMultiCharCmdTimer(void) {
+    isMultiCharCmd = false;
+    multiCharCommand = NONE;
+    
+}
+
+/**
+ * check for valid on multi char commands
+ * @param None
+ * @returns True if a multi char commands is active and the timer is running, otherwise False
+ * @author gerrievanzyl
+ */
+boolean OpenBCI_32bit_Library::checkMultiCharCmdTimer(void) {
+    
+    if (isMultiCharCmd){
+        
+        if (millis() < multiCharCmdTimeout)
+            return true;
+        else          // the timer has timed out - reset the multi char timeout
+            endMultiCharCmdTimer();
+        
+    }
+    return false;
+    
+}
+
+/**
+ * gets the active multi char command
+ * @param None
+ * @returns multiCharCommand
+ * @author gerrievanzyl
+ */
+unsigned int OpenBCI_32bit_Library::getMultiCharCommand( void ){
+    return  multiCharCommand;
+}
+
 
 boolean OpenBCI_32bit_Library::processCharWifi(char character) {
   commandFromSPI = true;
@@ -669,7 +724,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
     printAll("invalid board mode value.");
     sendEOT();
   }
-  settingBoardMode = false;
+  endMultiCharCmdTimer();
 }
 
 /**
@@ -778,8 +833,26 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
       sendEOT();
     }
   }
-  settingSampleRate = false;
+  endMultiCharCmdTimer();
 }
+
+/**
+ * @description When a `x is found on the serial port it is a signal to insert a marker
+ *      of value x into the AUX1 stream.  This function sets the flag to indicate that a new marker
+ *      is available.  The marker will be inserted during the serial and sd write functions
+ * @param `character` - {char} - The character that will be inserted into the data stream
+ */
+void OpenBCI_32bit_Library::processInsertMarker(char c) {
+    if (c < 128) {
+        markerValue = c;
+        newMarkerReceived = true;
+    } else {
+        markerValue = 0;
+        newMarkerReceived = false;
+    }
+    endMultiCharCmdTimer();
+}
+
 
 /**
 * @description When a 'x' is found on the serial port, we jump to this function
@@ -793,7 +866,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     numberOfIncomingSettingsProcessedChannel = 0;
 
     // put flag back down
-    isProcessingIncomingSettingsChannel = false;
+      endMultiCharCmdTimer();
 
     if (!streaming) {
       printFailure();
@@ -837,7 +910,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         numberOfIncomingSettingsProcessedChannel = 0;
 
         // put flag back down
-        isProcessingIncomingSettingsChannel = false;
+        endMultiCharCmdTimer();
 
       }
       break;
@@ -851,7 +924,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       numberOfIncomingSettingsProcessedChannel = 0;
 
       // put flag back down
-      isProcessingIncomingSettingsChannel = false;
+      endMultiCharCmdTimer();
       return;
   }
 
@@ -882,7 +955,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
     numberOfIncomingSettingsProcessedChannel = 0;
 
     // put flag back down
-    isProcessingIncomingSettingsChannel = false;
+    endMultiCharCmdTimer();
   }
 }
 
@@ -900,8 +973,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     numberOfIncomingSettingsProcessedLeadOff = 0;
 
     // put flag back down
-    isProcessingIncomingSettingsLeadOff = false;
-
+    endMultiCharCmdTimer();
+      
     if (!streaming) {
       printFailure();
       printAll("too few chars");
@@ -932,7 +1005,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
         numberOfIncomingSettingsProcessedLeadOff = 0;
 
         // put flag back down
-        isProcessingIncomingSettingsLeadOff = false;
+        endMultiCharCmdTimer();
 
       }
       break;
@@ -947,7 +1020,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       numberOfIncomingSettingsProcessedLeadOff = 0;
 
       // put flag back down
-      isProcessingIncomingSettingsLeadOff = false;
+      endMultiCharCmdTimer();
       return;
   }
 
@@ -975,7 +1048,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
     numberOfIncomingSettingsProcessedLeadOff = 0;
 
     // put flag back down
-    isProcessingIncomingSettingsLeadOff = false;
+    endMultiCharCmdTimer();
   }
 }
 
@@ -1008,10 +1081,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   channelDataAvailable = false;
   commandFromSPI = false;
   daisyPresent = false;
-  isProcessingIncomingSettingsChannel = false;
-  isProcessingIncomingSettingsLeadOff = false;
-  settingBoardMode = false;
-  settingSampleRate = false;
+  endMultiCharCmdTimer(); // this initializes and resets the variables
   streaming = false;
   verbosity = false; // when verbosity is true, there will be Serial feedback
 
@@ -2482,6 +2552,13 @@ void OpenBCI_32bit_Library::updateChannelData(){
       auxData[0] = digitalRead(11) << 8 | digitalRead(12);
       auxData[1] = (wifi.present ? 0 : digitalRead(13) << 8) | digitalRead(17);
       auxData[2] = wifi.present ? 0 : digitalRead(18);
+      break;
+    case BOARD_MODE_MARKER:
+      if (newMarkerReceived){
+        auxData[0] = (int)markerValue;
+        markerValue = 0;
+        newMarkerReceived = false;
+      }
       break;
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:
