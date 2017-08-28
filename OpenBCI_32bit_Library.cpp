@@ -980,7 +980,6 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
 
         // put flag back down
         endMultiCharCmdTimer();
-
       }
       break;
     default: // should have exited
