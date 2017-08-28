@@ -134,7 +134,8 @@ char OpenBCI_32bit_Library::getCharSerial1(void) {
 /**
  * Used to abort a multipack message
  */
-void OpenBCI_32bit_Library::tryMultiAbort(void) {
+/*  Replaced by startMultiCharCmdTimer
+ void OpenBCI_32bit_Library::tryMultiAbort(void) {
   if (millis() > timeOfMultiByteMsgStart + 1000) {
     isProcessingIncomingSettingsChannel = false;
     isProcessingIncomingSettingsLeadOff = false;
@@ -146,6 +147,7 @@ void OpenBCI_32bit_Library::tryMultiAbort(void) {
     sendEOT();
   }
 }
+ */
 
 /**
 * @description Process one char at a time from serial port. This is the main

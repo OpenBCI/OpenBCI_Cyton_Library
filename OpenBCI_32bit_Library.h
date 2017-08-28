@@ -152,6 +152,7 @@ public:
   boolean processCharWifi(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
+  void    processInsertMarker(char);
   void    processIncomingChannelSettings(char);
   void    processIncomingLeadOffSettings(char);
   void    reportDefaultChannelSettings(void);
