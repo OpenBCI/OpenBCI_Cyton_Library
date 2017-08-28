@@ -709,7 +709,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
     sendEOT();
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
-    if (digit <= BOARD_MODE_DIGITAL) {
+    if (digit < BOARD_MODE_DUMMY) {
       setBoardMode(digit);
       delay(100);
       printSuccess();
