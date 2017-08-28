@@ -330,7 +330,7 @@
 /** Set sample rate */
 #define OPENBCI_SAMPLE_RATE_SET '~'
 
-// Insert marker into the stream
+/** Insert marker into the stream */
 #define OPENBCI_INSERT_MARKER '`'
 
 /** Sync Clocks */

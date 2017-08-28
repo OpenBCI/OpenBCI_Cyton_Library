@@ -38,7 +38,7 @@ public:
     BOARD_MODE_ANALOG,
     BOARD_MODE_DIGITAL,
     BOARD_MODE_MARKER,
-    BOARD_MODE_DUMMY  // This must be the last entry-insert any new board modes above this line
+    BOARD_MODE_END_OF_MODES  // This must be the last entry-insert any new board modes above this line
   };
 
   typedef enum MULTI_CHAR_COMMAND {
@@ -105,6 +105,7 @@ public:
   void    channelSettingsArraySetForAll(void);
   void    channelSettingsArraySetForChannel(byte N);
   void    channelSettingsSetForChannel(byte, byte, byte, byte, byte, byte, byte);
+  boolean checkMultiCharCmdTimer(void)    ;
   void    csLow(int);
   void    csHigh(int);
   void    configureInternalTestSignal(byte,byte);
@@ -112,6 +113,7 @@ public:
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
   void    enable_accel(byte);  // start acceleromoeter with default settings
+  void    endMultiCharCmdTimer(void);
   const char* getBoardMode(void);
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
@@ -121,6 +123,7 @@ public:
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
   uint8_t * getGains(void);
+  unsigned int getMultiCharCommand( void );
   char    getNumberForAsciiChar(char);
   const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
@@ -171,6 +174,7 @@ public:
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo, boolean, boolean, uint32_t);
   boolean smellDaisy(void);
+  void    startMultiCharCmdTimer(unsigned int);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
   void    streamSafeChannelSettingsForChannel(byte, byte, byte, byte, byte, byte, byte);
@@ -198,11 +202,6 @@ public:
   void    writeTimeCurrentSerial(uint32_t newTime);
   void    writeZeroAux(void);
   void    zeroAuxData(void);
-    
-  void    startMultiCharCmdTimer(unsigned int);
-  void    endMultiCharCmdTimer(void);
-  boolean checkMultiCharCmdTimer(void)    ;
-  unsigned int getMultiCharCommand( void );
 
 
   // Variables
@@ -278,6 +277,7 @@ private:
   void    initializeSerialInfo(SerialInfo);
   void    initializeVariables(void);
   void    initializeSpiInfo(SpiInfo);
+  boolean isMultiCharCmd;  // A multi char command is in progress
   byte    LIS3DH_getDeviceID(void);
   byte    LIS3DH_read(byte);     // read a register on LIS3DH
   int     LIS3DH_read16(byte);    // read two bytes, used to get axis data
@@ -289,6 +289,10 @@ private:
   void    LIS3DH_writeAxisDataForAxisSerial(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
+  char markerValue;
+  unsigned int multiCharCommand;  // The type of command
+  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
+  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
@@ -318,22 +322,6 @@ private:
   boolean firstDataPacket;
   boolean isRunning;
 
-/* These variables are replaced by the new multichar commands
-  boolean isProcessingIncomingSettingsChannel;
-  boolean isProcessingIncomingSettingsLeadOff;
-  boolean isProcessingIncomingSerialPassThru;
-  boolean settingBoardMode;
-  boolean settingSampleRate;
- */
-    
-// variables for the Multi char serial command management
-  boolean isMultiCharCmd;  // A multi char command is in progress
-  unsigned int multiCharCommand;  // The type of command
-  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
-// variables for the serial makers
-  char markerValue;
-  boolean newMarkerReceived;
-  
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;
