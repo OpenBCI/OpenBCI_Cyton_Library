@@ -53,6 +53,10 @@ void loop() {
     board.processCharWifi(newChar);
   }
 
+  if (board.isMultiCharCmd) {
+    board.checkMultiCharCmdTimer();
+  }
+
   if (!wifi.sentGains) {
     if(wifi.present && wifi.tx) {
       wifi.sendGains(board.numChannels, board.getGains());
