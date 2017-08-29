@@ -335,7 +335,6 @@ private:
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
   unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
-
   unsigned long timeOfLastRead;
   unsigned long timeOfMultiByteMsgStart;
 
