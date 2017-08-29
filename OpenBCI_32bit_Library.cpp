@@ -437,10 +437,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
 
 /**
  * Start the timer on multi char commands
- * @param cmd the command received on the serial stream. See enum MULTI_CHAR_COMMAND
+ * @param cmd {char} the command received on the serial stream. See enum MULTI_CHAR_COMMAND
  * @returns void
  */
-void OpenBCI_32bit_Library::startMultiCharCmdTimer(unsigned int cmd) {
+void OpenBCI_32bit_Library::startMultiCharCmdTimer(char cmd) {
   isMultiCharCmd = true;
   multiCharCommand = cmd;
   multiCharCmdTimeout = millis() + MULTI_CHAR_COMMAND_TIMEOUT_MS;
@@ -465,8 +465,13 @@ boolean OpenBCI_32bit_Library::checkMultiCharCmdTimer(void) {
   if (isMultiCharCmd){
     if (millis() < multiCharCmdTimeout)
       return true;
-    else          // the timer has timed out - reset the multi char timeout
+    else{          // the timer has timed out - reset the multi char timeout
       endMultiCharCmdTimer();
+      printAll("Timeout processing multi byte");
+      printAll(" message - please send all");
+      printAll(" commands at once as of v2");
+      sendEOT();
+    }
   }
   return false;
 }

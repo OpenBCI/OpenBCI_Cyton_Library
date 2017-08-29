@@ -174,7 +174,7 @@ public:
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo, boolean, boolean, uint32_t);
   boolean smellDaisy(void);
-  void    startMultiCharCmdTimer(unsigned int);
+  void    startMultiCharCmdTimer(char);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
   void    streamSafeChannelSettingsForChannel(byte, byte, byte, byte, byte, byte, byte);
@@ -277,7 +277,6 @@ private:
   void    initializeSerialInfo(SerialInfo);
   void    initializeVariables(void);
   void    initializeSpiInfo(SpiInfo);
-  boolean isMultiCharCmd;  // A multi char command is in progress
   byte    LIS3DH_getDeviceID(void);
   byte    LIS3DH_read(byte);     // read a register on LIS3DH
   int     LIS3DH_read16(byte);    // read two bytes, used to get axis data
@@ -289,10 +288,6 @@ private:
   void    LIS3DH_writeAxisDataForAxisSerial(uint8_t);
   void    LIS3DH_updateAxisData(void);
   void    LIS3DH_zeroAxisData(void);
-  char markerValue;
-  unsigned int multiCharCommand;  // The type of command
-  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
-  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   void    printADSregisters(int);
   void    printAllRegisters(void);
   void    printFailure();
@@ -320,10 +315,13 @@ private:
   // Variables
   boolean commandFromSPI;
   boolean firstDataPacket;
+  boolean isMultiCharCmd;  // A multi char command is in progress
   boolean isRunning;
-
+  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
+  char    markerValue;
+  char    multiCharCommand;  // The type of command
   char    currentChannelSetting;
   char    optionalArgBuffer5[5];
   char    optionalArgBuffer6[6];
@@ -336,6 +334,8 @@ private:
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
+  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
+
   unsigned long timeOfLastRead;
   unsigned long timeOfMultiByteMsgStart;
 
