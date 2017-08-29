@@ -31,7 +31,8 @@ public:
     BOARD_MODE_DEFAULT,
     BOARD_MODE_DEBUG,
     BOARD_MODE_ANALOG,
-    BOARD_MODE_DIGITAL
+    BOARD_MODE_DIGITAL,
+    BOARD_MODE_BLE
   };
 
   typedef enum PACKET_TYPE {
@@ -56,15 +57,22 @@ public:
 
   // STRUCTS
   typedef struct {
-      uint32_t  baudRate;
-      boolean   rx;
-      boolean   tx;
+    uint32_t  baudRate;
+    boolean   rx;
+    boolean   tx;
   } SerialInfo;
 
   typedef struct {
-      boolean   rx;
-      boolean   tx;
+    boolean   rx;
+    boolean   tx;
   } SpiInfo;
+
+  typedef struct {
+    uint8_t sampleNumber;
+    uint8_t data[BLE_TOTAL_DATA_BYTES];
+    boolean ready;
+    uint8_t bytesLoaded;
+  } BLE;
 
   // Start up functions
   OpenBCI_32bit_Library();
@@ -80,6 +88,11 @@ public:
   void    begin(void);
   void    beginDebug(void);
   void    beginDebug(uint32_t);
+  void    beginPinsAnalog(void);
+  void    beginPinsDebug(void);
+  void    beginPinsDefault(void);
+  void    beginPinsDigital(void);
+  void    beginSerial0(void);
   void    beginSerial1(void);
   void    beginSerial1(uint32_t);
   void    boardReset(void);
@@ -95,6 +108,8 @@ public:
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
   void    enable_accel(byte);  // start acceleromoeter with default settings
+  void    endSerial0(void);
+  void    endSerial1(void);
   const char* getBoardMode(void);
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
@@ -224,6 +239,7 @@ public:
   TIME_SYNC_MODE curTimeSyncMode;
 
   // STRUCTS
+  BLE ble;
   SerialInfo iSerial0;
   SerialInfo iSerial1;
 
@@ -279,6 +295,7 @@ private:
   void    RREGS(byte,byte,int);      // read multiple ADS registers
   void    SDATAC(int);  // get out of read data continuous mode
   void    sendChannelDataSerial(PACKET_TYPE);
+  void    sendChannelDataSerialBLE(PACKET_TYPE packetType);
   void    sendTimeWithAccelSerial(void);
   void    sendTimeWithRawAuxSerial(void);
   void    STANDBY(int); // go into low power mode
@@ -298,6 +315,7 @@ private:
   boolean isRunning;
   boolean settingBoardMode;
   boolean settingSampleRate;
+  byte    bufferBLEPosition;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    currentChannelSetting;

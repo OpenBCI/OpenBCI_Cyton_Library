@@ -53,6 +53,7 @@
 ### Bug Fixes
 
 * Sending data for register query took too long to send, removed delay when command came from wifi.
+* Setting board mode restarted board for no real reason.
 
 ## Release Candidate 6
 

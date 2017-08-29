@@ -60,31 +60,6 @@ void OpenBCI_32bit_Library::beginDebug(uint32_t baudRate) {
 }
 
 /**
-* @description: The function the OpenBCI board will call in setup. This sets up the hardware serial port on D11 and D12
-* @param `baudRate` {uint32_t} - The baud rate of the new secondary serial port
-* @author: AJ Keller (@pushtheworldllc)
-*/
-void OpenBCI_32bit_Library::beginSerial1(void) {
-  beginSerial1(OPENBCI_BAUD_RATE);
-}
-
-/**
-* @description: The function the OpenBCI board will call in setup. This sets up the hardware serial port on D11 and D12
-* @param `baudRate` {uint32_t} - The baud rate of the new secondary serial port
-* @author: AJ Keller (@pushtheworldllc)
-*/
-void OpenBCI_32bit_Library::beginSerial1(uint32_t baudRate) {
-  // Initalize the serial 1 port
-  pinMode(OPENBCI_PIN_SERIAL1_TX,OUTPUT);
-  pinMode(OPENBCI_PIN_SERIAL1_RX,INPUT);
-  if (Serial1) {
-    Serial1.end();
-  }
-  Serial1.begin(baudRate);
-}
-
-
-/**
 * @description Called in every `loop()` and checks `Serial0`
 * @returns {boolean} - `true` if there is data ready to be read
 */
@@ -515,16 +490,11 @@ void OpenBCI_32bit_Library::accelWriteAxisDataWifi(void) {
 */
 boolean OpenBCI_32bit_Library::boardBegin(void) {
   // Initalize the serial port baud rate
-  Serial0.begin(OPENBCI_BAUD_RATE);
-
   // Set serial 0 to true for rx and tx
-  iSerial0.tx = true;
-  iSerial0.rx = true;
-  iSerial0.baudRate = OPENBCI_BAUD_RATE;
+  beginPinsDefault();
+  beginSerial0();
 
-  pinMode(OPENBCI_PIN_LED, OUTPUT);
-  digitalWrite(OPENBCI_PIN_LED, HIGH);
-  pinMode(OPENBCI_PIN_PGC, OUTPUT);
+  delay(10);
 
   // Startup the interrupt
   boardBeginADSInterrupt();
@@ -558,27 +528,11 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
-  // Initalize the serial port baud rate
-  Serial0.begin(OPENBCI_BAUD_RATE);
-  iSerial0.tx = true;
-  iSerial0.rx = true;
-  iSerial0.baudRate = OPENBCI_BAUD_RATE;
-  // Serial0.println("HIII");
-  // setSerialInfo(iSerial0, true, true, OPENBCI_BAUD_RATE);
-  // Serial1.print("begin S0 tx "); Serial1.println(iSerial0.tx ? "on" : "off");
-
-
-  // Initalize the serial debug port
-  Serial1.begin(baudRate);
-  iSerial1.tx = true;
-  iSerial1.rx = true;
-  iSerial1.baudRate = baudRate;
-  // setSerialInfo(iSerial1, true, true, OPENBCI_BAUD_RATE);
-  // Serial0.print("begin S1 tx "); Serial0.println(iSerial1.tx ? "on" : "off");
-  // Serial1.print("begin S1 tx "); Serial1.println(iSerial1.tx ? "on" : "off");
+  beginPinsDebug();
+  beginSerial0();
+  beginSerial1();
 
   curBoardMode = BOARD_MODE_DEBUG;
-
 
   // Startup for interrupt
   boardBeginADSInterrupt();
@@ -587,6 +541,85 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   boardReset();
 
   return true;
+}
+
+void OpenBCI_32bit_Library::beginPinsAnalog(void) {
+  pinMode(11, INPUT);
+  pinMode(12, INPUT);
+  if (!wifi.present) pinMode(13, INPUT);
+}
+
+void OpenBCI_32bit_Library::beginPinsDebug(void) {
+  pinMode(OPENBCI_PIN_SERIAL1_TX,OUTPUT);
+  pinMode(OPENBCI_PIN_SERIAL1_RX,INPUT);
+}
+
+void OpenBCI_32bit_Library::beginPinsDefault(void) {
+  pinMode(OPENBCI_PIN_LED, OUTPUT);
+  digitalWrite(OPENBCI_PIN_LED, HIGH);
+  pinMode(OPENBCI_PIN_PGC, OUTPUT);
+}
+
+void OpenBCI_32bit_Library::beginPinsDigital(void) {
+  pinMode(11, INPUT);
+  pinMode(12, INPUT);
+  pinMode(17, INPUT);
+  if (!wifi.present) pinMode(13, INPUT);
+  if (!wifi.present) pinMode(18, INPUT);
+}
+
+/**
+ * Used to start Serial0
+ */
+void OpenBCI_32bit_Library::beginSerial0(void) {
+  // Initalize the serial port baud rate
+  if (Serial0) Serial0.end();
+  Serial0.begin(OPENBCI_BAUD_RATE);
+  iSerial0.tx = true;
+  iSerial0.rx = true;
+  iSerial0.baudRate = OPENBCI_BAUD_RATE;
+}
+
+/**
+* @description: The function the OpenBCI board will call in setup. This sets up the hardware serial port on D11 and D12
+* @param `baudRate` {uint32_t} - The baud rate of the new secondary serial port
+* @author: AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Library::beginSerial1(void) {
+  beginSerial1(OPENBCI_BAUD_RATE);
+}
+
+/**
+* @description: The function the OpenBCI board will call in setup. This sets up the hardware serial port on D11 and D12
+* @param `baudRate` {uint32_t} - The baud rate of the new secondary serial port
+* @author: AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Library::beginSerial1(uint32_t baudRate) {
+  // Initalize the serial 1 port
+  if (Serial1) Serial1.end();
+  Serial1.begin(baudRate);
+  iSerial1.tx = true;
+  iSerial1.rx = true;
+  iSerial1.baudRate = baudRate;
+}
+
+/**
+ * Used to safely end a serial0 port
+ */
+void OpenBCI_32bit_Library::endSerial0(void) {
+  if (Serial0) Serial0.end();
+  iSerial0.tx = false;
+  iSerial0.rx = false;
+}
+
+/**
+ * Used to safely end a serial1 port
+ */
+void OpenBCI_32bit_Library::endSerial1(void) {
+  if (Serial1) Serial1.end();
+  iSerial1.tx = false;
+  iSerial1.rx = false;
+  iSerial1.baudRate = OPENBCI_BAUD_RATE;
 }
 
 /**
@@ -654,7 +687,6 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
     uint8_t digit = c - '0';
     if (digit <= BOARD_MODE_DIGITAL) {
       setBoardMode(digit);
-      delay(100);
       printSuccess();
       printAll(getBoardMode());
       sendEOT();
@@ -677,35 +709,30 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
  * @param newBoardMode The board mode to swtich to
  */
 void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
+  if (curBoardMode == (BOARD_MODE)newBoardMode) return;
   curBoardMode = (BOARD_MODE)newBoardMode;
   switch (curBoardMode) {
     case BOARD_MODE_ANALOG:
       curAccelMode = ACCEL_MODE_OFF;
-      pinMode(11, INPUT);
-      pinMode(12, INPUT);
-      if (!wifi.present) pinMode(13, INPUT);
+      beginPinsAnalog();
       break;
     case BOARD_MODE_DIGITAL:
       curAccelMode = ACCEL_MODE_OFF;
-      pinMode(11, INPUT);
-      pinMode(12, INPUT);
-      pinMode(17, INPUT);
-      if (!wifi.present) pinMode(13, INPUT);
-      if (!wifi.present) pinMode(18, INPUT);
+      beginPinsDigital();
+      break;
+    case BOARD_MODE_BLE:
       break;
     case BOARD_MODE_DEBUG:
-      curAccelMode = ACCEL_MODE_ON;
-      if (Serial0) Serial0.end();
-      if (Serial1) Serial1.end();
-      boardBeginDebug();
+      beginPinsDebug();
+      beginSerial1();
       break;
     case BOARD_MODE_DEFAULT:
       curAccelMode = ACCEL_MODE_ON;
-      if (Serial0) Serial0.end();
-      if (Serial1) Serial1.end();
-      boardBegin();
+      endSerial1();
+      beginPinsDefault();
       break;
   }
+  delay(10);
   setCurPacketType();
 }
 
@@ -1016,6 +1043,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   verbosity = false; // when verbosity is true, there will be Serial feedback
 
   // Nums
+  bufferBLEPosition = 0;
   currentChannelSetting = 0;
   lastSampleTime = 0;
   numberOfIncomingSettingsProcessedChannel = 0;
@@ -1034,6 +1062,8 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   // Structs
   initializeSerialInfo(iSerial0);
   initializeSerialInfo(iSerial1);
+  ble.ready = false;
+  ble.bytesLoaded = 0;
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
@@ -1079,13 +1109,36 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
     if (daisyPresent) sendChannelDataWifi(packetType, true);
   } else {
     // Send over bluetooth
-    if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
+    if (curBoardMode == BOARD_MODE_BLE) {
+      if (ble.ready) {
+        sendChannelDataSerialBLE(packetType);
+      }
+    } else {
+      if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
+    }
   }
 
   if (packetType == PACKET_TYPE_ACCEL) LIS3DH_zeroAxisData();
   if (packetType == PACKET_TYPE_RAW_AUX || packetType == PACKET_TYPE_RAW_AUX_TIME_SYNC) zeroAuxData();
 
   sampleCounter++;
+}
+
+/**
+* @description Writes smaller BLE channel data to serial port in the correct stream packet format.
+* @param `packetType` {PACKET_TYPE} - The type of packet to send
+*  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
+*/
+void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
+  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+  writeSerial(ble.sampleNumber); // 1 byte
+
+  for (uint8_t i = 0; i < BLE_TOTAL_DATA_BYTES; i++) {
+    writeSerial(ble.data[i]);
+  }
+
+  ble.bytesLoaded = 0;
+  ble.ready = false;
 }
 
 /**
@@ -2456,7 +2509,7 @@ boolean OpenBCI_32bit_Library::isADSDataAvailable(void) {
 }
 
 // CALLED WHEN DRDY PIN IS ASSERTED. NEW ADS DATA AVAILABLE!
-void OpenBCI_32bit_Library::updateChannelData(){
+void OpenBCI_32bit_Library::updateChannelData(void) {
   // this needs to be reset, or else it will constantly flag us
   channelDataAvailable = false;
 
@@ -2512,8 +2565,17 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
     for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++){   //  read 24 bits of channel data in 8 3 byte chunks
       inByte = xfer(0x00);
       boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
+      if (curBoardMode == BOARD_MODE_BLE && i < 2) {
+        if (ble.bytesLoaded == 0) {
+          ble.sampleNumber = sampleCounter;
+        }
+        ble.data[ble.bytesLoaded++] = inByte;
+        if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
+          ble.ready = true;
+        }
+      }
       byteCounter++;
-      boardChannelDataInt[i] = (boardChannelDataInt[i]<<8) | inByte;  // int data goes here
+      boardChannelDataInt[i] = (boardChannelDataInt[i] << 8) | inByte;  // int data goes here
     }
   }
   csHigh(BOARD_ADS); // close SPI
