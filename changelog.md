@@ -12,8 +12,8 @@
    * BOARD_MODE_DEBUG is `1`
    * BOARD_MODE_ANALOG is `2`
    * BOARD_MODE_DIGITAL is `3`
-   * BOARD_MODE_MARKER is `4` 
-* A new board mode called MARKER.  In this mode, if a command in the format of ``'`n'``  (where n is ASCII '0':'9') is received by the Cyton over any of the serial streams (including wifi) then a marker of int(n) is inserted in the AUX1 channel.  Note that this mode is mutually exclusive to the DEFAULT (accelerometer mode) as it uses the AUX1/ACCELX channel. 
+   * BOARD_MODE_MARKER is `4`
+* A new board mode called MARKER.  In this mode, if a command in the format of ``'`n'``  (where n is ASCII '0':'9') is received by the Cyton over any of the serial streams (including wifi) then a marker of int(n) is inserted in the AUX1 channel.  Note that this mode is mutually exclusive to the DEFAULT (accelerometer mode) as it uses the AUX1/ACCELX channel.
 * Add loop function for internal timing operations related to power on reset for wifi shield, remove `loop` to free up pins and such and remove wifi capability.
 * Add function to turn time stamps on `useTimeStamp(true)`, time stamps are disabled by default. Note the Wifi shield will use NTP time stamps.
 * Add wifi commands:
@@ -56,6 +56,10 @@
 
 * Sending data for register query took too long to send, removed delay when command came from wifi.
 * Setting board mode restarted board for no real reason.
+
+### New Features
+
+* Marker mode, where you can store markers to the stream.
 
 ## Release Candidate 6
 

@@ -368,6 +368,11 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE);
         break;
 
+      // Sample rate set
+      case OPENBCI_INSERT_MARKER:
+        startMultiCharCmdTimer(MULTI_CHAR_CMD_INSERT_MARKER);
+        break;
+
       case OPENBCI_WIFI_ATTACH:
         if (wifi.attach()) {
           printSuccess();
@@ -865,14 +870,12 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
  * @param character {char} - The character that will be inserted into the data stream
  */
 void OpenBCI_32bit_Library::processInsertMarker(char c) {
-    if (c < 128) {
-        markerValue = c;
-        newMarkerReceived = true;
-    } else {
-        markerValue = 0;
-        newMarkerReceived = false;
-    }
-    endMultiCharCmdTimer();
+  markerValue = c;
+  newMarkerReceived = true;
+  endMultiCharCmdTimer();
+  if (wifi.present && wifi.tx) {
+    wifi.sendStringLast("Marker recieved");
+  }
 }
 
 
@@ -2603,7 +2606,6 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
     case BOARD_MODE_MARKER:
       if (newMarkerReceived){
         auxData[0] = (short)markerValue;
-        markerValue = 0;
         newMarkerReceived = false;
       }
       break;
