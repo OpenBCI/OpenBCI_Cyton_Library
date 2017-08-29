@@ -465,7 +465,7 @@ boolean OpenBCI_32bit_Library::checkMultiCharCmdTimer(void) {
   if (isMultiCharCmd){
     if (millis() < multiCharCmdTimeout)
       return true;
-    else{          // the timer has timed out - reset the multi char timeout
+    else {          // the timer has timed out - reset the multi char timeout
       endMultiCharCmdTimer();
       printAll("Timeout processing multi byte");
       printAll(" message - please send all");
