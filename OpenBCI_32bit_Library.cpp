@@ -428,7 +428,7 @@ void OpenBCI_32bit_Library::startMultiCharCmdTimer(char cmd) {
  */
 void OpenBCI_32bit_Library::endMultiCharCmdTimer(void) {
   isMultiCharCmd = false;
-  multiCharCommand = NONE;
+  multiCharCommand = MULTI_CHAR_CMD_NONE;
 }
 
 /**

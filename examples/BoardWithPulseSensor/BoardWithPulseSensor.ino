@@ -62,7 +62,8 @@ void loop() {
       board.sendChannelData();
     }
   }
-  // Check the serial port for new data
+  // Check the serial ports for new data
   if (board.hasDataSerial0()) board.processChar(board.getCharSerial0());
+  if (board.hasDataSerial1()) board.processChar(board.getCharSerial1());
   board.loop();
 }

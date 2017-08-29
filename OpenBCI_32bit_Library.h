@@ -38,7 +38,7 @@ public:
     BOARD_MODE_ANALOG,
     BOARD_MODE_DIGITAL,
     BOARD_MODE_MARKER,
-    BOARD_MODE_BLE
+    BOARD_MODE_BLE,
     BOARD_MODE_END_OF_MODES  // This must be the last entry-insert any new board modes above this line
   };
 
@@ -138,7 +138,7 @@ public:
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
   uint8_t * getGains(void);
-  unsigned int getMultiCharCommand( void );
+  char    getMultiCharCommand(void);
   char    getNumberForAsciiChar(char);
   const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
