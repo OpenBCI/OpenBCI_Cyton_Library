@@ -118,26 +118,26 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
     Serial1.print("pC: "); Serial1.println(character);
   }
 
-    if (checkMultiCharCmdTimer()) {  // we are in a multi char command
-        switch (getMultiCharCommand()){
-            case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL:
-                processIncomingChannelSettings(character);
-                break;
-            case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF:
-                processIncomingLeadOffSettings(character);
-                break;
-            case MULTI_CHAR_CMD_SETTINGS_BOARD_MODE:
-                processIncomingBoardMode(character);
-                break;
-            case MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE:
-                processIncomingSampleRate(character);
-                break;
-            case MULTI_CHAR_CMD_INSERT_MARKER:
-                processInsertMarker(character);
-                break;
-            default:
-                break;
-        }
+  if (checkMultiCharCmdTimer()) {  // we are in a multi char command
+    switch (getMultiCharCommand()){
+      case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL:
+        processIncomingChannelSettings(character);
+        break;
+      case MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF:
+        processIncomingLeadOffSettings(character);
+        break;
+      case MULTI_CHAR_CMD_SETTINGS_BOARD_MODE:
+        processIncomingBoardMode(character);
+        break;
+      case MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE:
+        processIncomingSampleRate(character);
+        break;
+      case MULTI_CHAR_CMD_INSERT_MARKER:
+        processInsertMarker(character);
+        break;
+      default:
+        break;
+    }
 
   } else { // Normal...
     switch (character){
@@ -762,8 +762,6 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_OFF;
       beginPinsDigital();
       break;
-    case BOARD_MODE_BLE:
-      break;
     case BOARD_MODE_DEBUG:
       beginPinsDebug();
       beginSerial1();
@@ -772,6 +770,12 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_ON;
       endSerial1();
       beginPinsDefault();
+      break;
+    case BOARD_MODE_MARKER:
+      curAccelMode = ACCEL_MODE_OFF;
+      break;
+    case BOARD_MODE_BLE:
+    default:
       break;
   }
   delay(10);
@@ -811,6 +815,10 @@ const char* OpenBCI_32bit_Library::getBoardMode(void) {
       return "analog";
     case BOARD_MODE_DIGITAL:
       return "digital";
+    case BOARD_MODE_MARKER:
+      return "marker";
+    case BOARD_MODE_BLE:
+      return "BLE";
     case BOARD_MODE_DEFAULT:
     default:
       return "default";
@@ -2594,7 +2602,7 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
       break;
     case BOARD_MODE_MARKER:
       if (newMarkerReceived){
-        auxData[0] = (int)markerValue;
+        auxData[0] = (short)markerValue;
         markerValue = 0;
         newMarkerReceived = false;
       }
