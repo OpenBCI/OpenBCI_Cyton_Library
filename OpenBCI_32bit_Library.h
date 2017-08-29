@@ -26,14 +26,31 @@ public:
     TIME_SYNC_MODE_ON,
     TIME_SYNC_MODE_OFF
   };
+  typedef enum MARKER_MODE {
+    MARKER_MODE_ON,
+    MARKER_MODE_OFF
+  };
+
 
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
     BOARD_MODE_DEBUG,
     BOARD_MODE_ANALOG,
-    BOARD_MODE_DIGITAL
+    BOARD_MODE_DIGITAL,
+    BOARD_MODE_MARKER,
+    BOARD_MODE_END_OF_MODES  // This must be the last entry-insert any new board modes above this line
   };
 
+  typedef enum MULTI_CHAR_COMMAND {
+    NONE,
+    MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_CHANNEL,
+    MULTI_CHAR_CMD_PROCESSING_INCOMING_SETTINGS_LEADOFF,
+    MULTI_CHAR_CMD_SERIAL_PASSTHROUGH,
+    MULTI_CHAR_CMD_SETTINGS_BOARD_MODE,
+    MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE,
+    MULTI_CHAR_CMD_INSERT_MARKER
+    };
+    
   typedef enum PACKET_TYPE {
     PACKET_TYPE_ACCEL,
     PACKET_TYPE_RAW_AUX,
@@ -88,6 +105,7 @@ public:
   void    channelSettingsArraySetForAll(void);
   void    channelSettingsArraySetForChannel(byte N);
   void    channelSettingsSetForChannel(byte, byte, byte, byte, byte, byte, byte);
+  boolean checkMultiCharCmdTimer(void)    ;
   void    csLow(int);
   void    csHigh(int);
   void    configureInternalTestSignal(byte,byte);
@@ -95,6 +113,7 @@ public:
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
   void    enable_accel(byte);  // start acceleromoeter with default settings
+  void    endMultiCharCmdTimer(void);
   const char* getBoardMode(void);
   char    getChannelCommandForAsciiChar(char);
   char    getCharSerial0(void);
@@ -104,6 +123,7 @@ public:
   char    getDefaultChannelSettingForSettingAscii(byte);
   char    getGainForAsciiChar(char);
   uint8_t * getGains(void);
+  unsigned int getMultiCharCommand( void );
   char    getNumberForAsciiChar(char);
   const char* getSampleRate(void);
   char    getTargetSSForConstrainedChannelNumber(byte);
@@ -135,6 +155,7 @@ public:
   boolean processCharWifi(char);
   void    processIncomingBoardMode(char);
   void    processIncomingSampleRate(char);
+  void    processInsertMarker(char);
   void    processIncomingChannelSettings(char);
   void    processIncomingLeadOffSettings(char);
   void    reportDefaultChannelSettings(void);
@@ -153,6 +174,7 @@ public:
   void    sendEOT(void);
   void    setSerialInfo(SerialInfo, boolean, boolean, uint32_t);
   boolean smellDaisy(void);
+  void    startMultiCharCmdTimer(char);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
   void    streamSafeChannelSettingsForChannel(byte, byte, byte, byte, byte, byte, byte);
@@ -180,6 +202,7 @@ public:
   void    writeTimeCurrentSerial(uint32_t newTime);
   void    writeZeroAux(void);
   void    zeroAuxData(void);
+
 
   // Variables
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
@@ -292,14 +315,13 @@ private:
   // Variables
   boolean commandFromSPI;
   boolean firstDataPacket;
-  boolean isProcessingIncomingSettingsChannel;
-  boolean isProcessingIncomingSettingsLeadOff;
-  boolean isProcessingIncomingSerialPassThru;
+  boolean isMultiCharCmd;  // A multi char command is in progress
   boolean isRunning;
-  boolean settingBoardMode;
-  boolean settingSampleRate;
+  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
+  char    markerValue;
+  char    multiCharCommand;  // The type of command
   char    currentChannelSetting;
   char    optionalArgBuffer5[5];
   char    optionalArgBuffer6[6];
@@ -312,6 +334,7 @@ private:
   int     numberOfIncomingSettingsProcessedLeadOff;
   int     numberOfIncomingSettingsProcessedBoardType;
   uint8_t optionalArgCounter;
+  unsigned long multiCharCmdTimeout;  // the timeout in millis of the current multi char command
   unsigned long timeOfLastRead;
   unsigned long timeOfMultiByteMsgStart;
 

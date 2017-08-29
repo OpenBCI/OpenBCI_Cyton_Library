@@ -330,6 +330,9 @@
 /** Set sample rate */
 #define OPENBCI_SAMPLE_RATE_SET '~'
 
+/** Insert marker into the stream */
+#define OPENBCI_INSERT_MARKER '`'
+
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
 #define OPENBCI_TIME_STOP '>'
@@ -352,6 +355,9 @@
 /** Possible Sample Rates*/
 #define OPENBCI_SAMPLE_RATE_125 125
 #define OPENBCI_SAMPLE_RATE_250 250
+
+/** Time out for multi char commands **/
+#define MULTI_CHAR_COMMAND_TIMEOUT_MS 1000
 
 /** Packet Size */
 #define OPENBCI_PACKET_SIZE 33
