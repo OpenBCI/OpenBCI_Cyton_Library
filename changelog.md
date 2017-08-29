@@ -59,7 +59,7 @@
 
 ### New Features
 
-* Marker mode, where you can store markers to the stream.
+* Marker mode, where you can store markers to the stream. Send a `/4` to engage this mode.
 
 ## Release Candidate 6
 
