@@ -7,11 +7,13 @@
    * Send channel gains to wifi shield at start of stream
    * takes ~4 seconds for the wifi shield to be reachable
 * Add ability to turn external serial port `Serial1` on through commands.
-* Change board types on the fly! No longer do you have to upload new code to the Cyton's Pic32 just to do an analog read. You can now read from analog or digital pins with the press send of a code! `/` now sets the board mode, where:
+* Change board types on the fly! No longer do you have to upload new code to the Cyton's Pic32 just to do an analog read. You can now read from analog or digital pins with the press send of a code! `'/x'` now sets the board mode, where x can be one of the following:
    * BOARD_MODE_DEFAULT is `0`
    * BOARD_MODE_DEBUG is `1`
    * BOARD_MODE_ANALOG is `2`
    * BOARD_MODE_DIGITAL is `3`
+   * BOARD_MODE_MARKER is `4` 
+* A new board mode called MARKER.  In this mode, if a command in the format of ``'`n'``  (where n is ASCII '0':'9') is received by the Cyton over any of the serial streams (including wifi) then a marker of int(n) is inserted in the AUX1 channel.  Note that this mode is mutually exclusive to the DEFAULT (accelerometer mode) as it uses the AUX1/ACCELX channel. 
 * Add loop function for internal timing operations related to power on reset for wifi shield, remove `loop` to free up pins and such and remove wifi capability.
 * Add function to turn time stamps on `useTimeStamp(true)`, time stamps are disabled by default. Note the Wifi shield will use NTP time stamps.
 * Add wifi commands:

@@ -22,25 +22,13 @@ void loop() {
     }
   }
 
-  // Used to abort multi part messages
-  if (board.isProcessingMultibyteMsg()) {
-    board.tryMultiAbort();
-  }
+  // Check the serial ports for new data
+  if (board.hasDataSerial0()) board.processChar(board.getCharSerial0());
+  if (board.hasDataSerial1()) board.processChar(board.getCharSerial1());
+  board.loop();
 
   // Call to wifi loop
   wifi.loop();
-
-  // Check serial 0 for new data
-  if (board.hasDataSerial0()) {
-    // Read one char from the serial 0 port
-    char newChar = board.getCharSerial0();
-
-    // Send to the sd library for processing
-    sdProcessChar(newChar);
-
-    // Send to the board library
-    board.processChar(newChar);
-  }
 
   if (wifi.hasData()) {
     // Read one char from the wifi shield

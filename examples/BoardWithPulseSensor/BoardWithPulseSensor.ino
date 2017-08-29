@@ -63,12 +63,6 @@ void loop() {
     }
   }
   // Check the serial port for new data
-  if (board.hasDataSerial0()) {
-    // Read one char and process it
-    board.processChar(board.getCharSerial0());
-  }
-  // Used to abort multi part messages
-  if (board.isProcessingMultibyteMsg()) {
-    board.tryMultiAbort();
-  }
+  if (board.hasDataSerial0()) board.processChar(board.getCharSerial0());
+  board.loop();
 }
