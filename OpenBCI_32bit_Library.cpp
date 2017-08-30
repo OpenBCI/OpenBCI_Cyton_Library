@@ -368,7 +368,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_SAMPLE_RATE);
         break;
 
-      // Sample rate set
+      // Insert Marker into the EEG data stream
       case OPENBCI_INSERT_MARKER:
         startMultiCharCmdTimer(MULTI_CHAR_CMD_INSERT_MARKER);
         break;
