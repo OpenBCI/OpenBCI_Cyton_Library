@@ -110,6 +110,7 @@ public:
   void    beginPinsDefault(void);
   void    beginPinsDigital(void);
   void    beginSerial0(void);
+  void    beginSerial0(uint32_t);
   void    beginSerial1(void);
   void    beginSerial1(uint32_t);
   void    boardReset(void);

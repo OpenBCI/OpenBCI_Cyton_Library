@@ -12,6 +12,7 @@
 
 // Baud rates
 #define OPENBCI_BAUD_RATE 115200
+#define OPENBCI_BAUD_RATE_BLE 9600
 #define OPENBCI_BAUD_RATE_MIN_NO_AVG 200000
 
 // File transmissions

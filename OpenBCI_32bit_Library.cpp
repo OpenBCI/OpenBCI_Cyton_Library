@@ -619,12 +619,19 @@ void OpenBCI_32bit_Library::beginPinsDigital(void) {
  * Used to start Serial0
  */
 void OpenBCI_32bit_Library::beginSerial0(void) {
+  beginSerial0(OPENBCI_BAUD_RATE);
+}
+
+/**
+ * Used to start Serial0
+ */
+void OpenBCI_32bit_Library::beginSerial0(uint32_t baudRate) {
   // Initalize the serial port baud rate
   if (Serial0) Serial0.end();
-  Serial0.begin(OPENBCI_BAUD_RATE);
+  Serial0.begin(baudRate);
   iSerial0.tx = true;
   iSerial0.rx = true;
-  iSerial0.baudRate = OPENBCI_BAUD_RATE;
+  iSerial0.baudRate = baudRate;
 }
 
 /**
@@ -775,11 +782,15 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       curAccelMode = ACCEL_MODE_ON;
       endSerial1();
       beginPinsDefault();
+      endSerial0();
+      beginSerial0(OPENBCI_BAUD_RATE);
       break;
     case BOARD_MODE_MARKER:
       curAccelMode = ACCEL_MODE_OFF;
       break;
     case BOARD_MODE_BLE:
+      endSerial0();
+      beginSerial0(OPENBCI_BAUD_RATE_BLE);
     default:
       break;
   }
@@ -2638,15 +2649,6 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
     for(int j = 0; j < OPENBCI_ADS_BYTES_PER_CHAN; j++){   //  read 24 bits of channel data in 8 3 byte chunks
       inByte = xfer(0x00);
       boardChannelDataRaw[byteCounter] = inByte;  // raw data goes here
-      if (curBoardMode == BOARD_MODE_BLE && i < 2) {
-        if (ble.bytesLoaded == 0) {
-          ble.sampleNumber = sampleCounter;
-        }
-        ble.data[ble.bytesLoaded++] = inByte;
-        if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
-          ble.ready = true;
-        }
-      }
       byteCounter++;
       boardChannelDataInt[i] = (boardChannelDataInt[i] << 8) | inByte;  // int data goes here
     }
@@ -2661,7 +2663,7 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
       boardChannelDataInt[i] &= 0x00FFFFFF;
     }
   }
-  if(daisyPresent && !firstDataPacket && downsample){
+  if((daisyPresent || curBoardMode == BOARD_MODE_BLE) && !firstDataPacket && downsample){
     byteCounter = 0;
     for(int i = 0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){   // take the average of this and the last sample
       meanBoardChannelDataInt[i] = (lastBoardChannelDataInt[i] + boardChannelDataInt[i])/2;
@@ -2670,6 +2672,17 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
       for(int b=2; b>=0; b--){
         meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
         byteCounter++;
+      }
+    }
+    if(sampleCounter % 2 != 0 && curBoardMode == BOARD_MODE_BLE) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
+      for(int i = 0; i < 6; i++){
+        if (ble.bytesLoaded == 0) {
+          ble.sampleNumber = sampleCounter/2;
+        }
+        ble.data[ble.bytesLoaded++] = meanBoardDataRaw[i];
+        if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
+          ble.ready = true;
+        }
       }
     }
   }
