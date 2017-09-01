@@ -908,6 +908,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       printFailure();
       printAll("too few chars");
       sendEOT();
+    } else if (wifi.present && wifi.tx) {
+      wifi.sendStringLast("Failure: too few chars");
     }
 
     return;
@@ -941,6 +943,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
           printFailure();
           printAll("Err: 9th char not X");
           sendEOT();
+        } else if (wifi.present && wifi.tx) {
+          wifi.sendStringLast("Failure: Err: 9th char not X");
         }
         // We failed somehow and should just abort
         numberOfIncomingSettingsProcessedChannel = 0;
@@ -955,6 +959,8 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
         printFailure();
         printAll("Err: too many chars");
         sendEOT();
+      } else if (wifi.present && wifi.tx) {
+        wifi.sendStringLast("Failure: Err: too many chars");
       }
       // We failed somehow and should just abort
       numberOfIncomingSettingsProcessedChannel = 0;
@@ -975,6 +981,10 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       printAll("Channel set for ");
       printAll(itoa(currentChannelSetting + 1, buf, 10));
       sendEOT();
+    } else if (wifi.present && wifi.tx) {
+      char buf[3];
+      wifi.sendStringMulti("Success: Channel set for ");
+      wifi.sendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
 
     channelSettings[currentChannelSetting][POWER_DOWN] = optionalArgBuffer7[0];
@@ -1015,6 +1025,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       printFailure();
       printAll("too few chars");
       sendEOT();
+    } else if (wifi.present && wifi.tx) {
+      wifi.sendStringLast("Failure: too few chars");
     }
 
     return;
@@ -1035,6 +1047,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
           printFailure();
           printAll("Err: 5th char not Z");
           sendEOT();
+        } else if (wifi.present && wifi.tx) {
+          wifi.sendStringLast("Failure: Err: 5th char not Z");
         }
         // We failed somehow and should just abort
         // reset numberOfIncomingSettingsProcessedLeadOff
@@ -1049,6 +1063,8 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
         printFailure();
         printAll("Err: too many chars");
         sendEOT();
+      } else if (wifi.present && wifi.tx) {
+        wifi.sendStringLast("Failure: Err: too many chars");
       }
       // We failed somehow and should just abort
       // reset numberOfIncomingSettingsProcessedLeadOff
@@ -1071,6 +1087,10 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       printAll("Lead off set for ");
       printAll(itoa(currentChannelSetting + 1, buf, 10));
       sendEOT();
+    } else if (wifi.present && wifi.tx) {
+      char buf[3];
+      wifi.sendStringMulti("Success: Lead off set for ");
+      wifi.sendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
 
     leadOffSettings[currentChannelSetting][PCHAN] = optionalArgBuffer7[0];
@@ -1208,12 +1228,15 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
-  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+  writeSerial(OPENBCI_BOP); // 1 byte - 0x41
+
   writeSerial(ble.sampleNumber); // 1 byte
 
   for (uint8_t i = 0; i < BLE_TOTAL_DATA_BYTES; i++) {
     writeSerial(ble.data[i]);
   }
+
+  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
 
   ble.bytesLoaded = 0;
   ble.ready = false;
