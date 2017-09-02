@@ -10,31 +10,30 @@
 #ifndef _____OpenBCI_32bit_Library_Definitions_h
 #define _____OpenBCI_32bit_Library_Definitions_h
 
-// The default baud rate
+// Baud rates
 #define OPENBCI_BAUD_RATE 115200
+#define OPENBCI_BAUD_RATE_BLE 9600
+#define OPENBCI_BAUD_RATE_MIN_NO_AVG 200000
 
 // File transmissions
 #define OPENBCI_BOP 'A' // Begining of stream packet
-#define OPENBCI_EOP_STND_ACCEL          0xC0 // End of standard stream packet
-#define OPENBCI_EOP_STND_RAW_AUX        0xC1 // End of stream packet with raw packet
-#define OPENBCI_EOP_USER_DEFINED        0xC2 // End of stream packet, user defined
-#define OPENBCI_EOP_ACCEL_TIME_SET      0xC3 // End of time sync up with accel stream packet
-#define OPENBCI_EOP_ACCEL_TIME_SYNCED   0xC4 // End of time synced stream packet
-#define OPENBCI_EOP_RAW_AUX_TIME_SET    0xC5 // End of time sync up stream packet
-#define OPENBCI_EOP_RAW_AUX_TIME_SYNCED 0xC6 // End of time synced stream packet
 
 //PIN CONNECTIONS
-#define ADS_DRDY 	    9   // ADS data ready pin
-#define ADS_RST	        4   // ADS reset pin
-#define BOARD_ADS	    8   // ADS chip select
-#define DAISY_ADS	    3   // ADS Daisy chip select
-#define BOTH_ADS        5	// Slave Select Both ADS chips
-#define SD_SS	        2  	// SD card chip select
-#define LIS3DH_SS	    1   // LIS3DH chip select
-#define LIS3DH_DRDY	    0	// LIS3DH data ready pin
+#define ADS_DRDY 9          // ADS data ready pin
+#define ADS_RST	4           // ADS reset pin
+#define BOARD_ADS	8         // ADS chip select
+#define DAISY_ADS	3         // ADS Daisy chip select
+#define BOTH_ADS 5	        // Slave Select Both ADS chips
+#define SD_SS 2  	          // SD card chip select
+#define LIS3DH_SS	1         // LIS3DH chip select
+#define LIS3DH_DRDY 0	      // LIS3DH data ready pin
+// #define WIFI_SS 13          // Wifi Chip Select
 #define OPENBCI_PIN_LED 11
 #define OPENBCI_PIN_PGC 12
+// #define WIFI_RESET 18
 
+#define OPENBCI_PIN_SERIAL1_TX 11
+#define OPENBCI_PIN_SERIAL1_RX 12
 
 //ADS1299 SPI Command Definition Byte Assignments
 #define _WAKEUP 0x02 // Wake-up from standby mode
@@ -114,6 +113,9 @@
 #define ADSTESTSIG_PULSE_FAST (0b00000001)
 #define ADSTESTSIG_DCSIG (0b00000011)
 #define ADSTESTSIG_NOCHANGE (0b11111111)
+
+#define ADS1299_CONFIG1_DAISY (0b10110000)
+#define ADS1299_CONFIG1_DAISY_NOT (0b10010000)
 
 //Lead-off signal choices
 #define LOFF_MAG_6NA        (0b00000000)
@@ -324,17 +326,23 @@
 #define OPENBCI_CHANNEL_MAX_NUMBER_8    'c'
 #define OPENBCI_CHANNEL_MAX_NUMBER_16   'C'
 
-/** Set Packet Type */
 #define OPENBCI_BOARD_MODE_SET '/'
-#define OPENBCI_BOARD_MODE_DEFAULT '0'
-#define OPENBCI_BOARD_MODE_DEBUG '1'
-#define OPENBCI_BOARD_MODE_WIFI '2'
-#define OPENBCI_BOARD_MODE_INPUT_ANALOG '3'
-#define OPENBCI_BOARD_MODE_INPUT_DIGITAL '4'
+
+/** Set sample rate */
+#define OPENBCI_SAMPLE_RATE_SET '~'
+
+/** Insert marker into the stream */
+#define OPENBCI_INSERT_MARKER '`'
 
 /** Sync Clocks */
 #define OPENBCI_TIME_SET '<'
 #define OPENBCI_TIME_STOP '>'
+
+/** Wifi Stuff */
+#define OPENBCI_WIFI_ATTACH '{'
+#define OPENBCI_WIFI_REMOVE '}'
+#define OPENBCI_WIFI_STATUS ':'
+#define OPENBCI_WIFI_RESET ';'
 
 /** Possible number of channels */
 #define OPENBCI_NUMBER_OF_CHANNELS_DAISY 16
@@ -349,19 +357,18 @@
 #define OPENBCI_SAMPLE_RATE_125 125
 #define OPENBCI_SAMPLE_RATE_250 250
 
+/** Time out for multi char commands **/
+#define MULTI_CHAR_COMMAND_TIMEOUT_MS 1000
+
 /** Packet Size */
 #define OPENBCI_PACKET_SIZE 33
+
+#define OPENBCI_NUMBER_BYTES_PER_ADS_SAMPLE 24
+#define OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE 24
 
 /** Impedance Calculation Variables */
 #define OPENBCI_LEAD_OFF_DRIVE_AMPS 0.000000006
 #define OPENBCI_LEAD_OFF_FREQUENCY_HZ 31
-
-/** Raw data packet types/codes */
-#define OPENBCI_PACKET_TYPE_V3              0 // 0000
-#define OPENBCI_PACKET_TYPE_TIME_SYNCED     1 // 0001
-#define OPENBCI_PACKET_TYPE_TIME_SET        2 // 0010
-#define OPENBCI_PACKET_TYPE_USER_DEFINED    3 // 0011
-#define OPENBCI_PACKET_TYPE_RAW_AUX         4 // 0100
 
 #define OPENBCI_TIME_OUT_MS_1 1
 #define OPENBCI_TIME_OUT_MS_3 3
@@ -373,5 +380,14 @@
 
 #define OPENBCI_FIRMWARE_VERSION_V1 1
 #define OPENBCI_FIRMWARE_VERSION_V2 1
+
+#define OPENBCI_ADS_BYTES_PER_CHAN 3
+#define OPENBCI_ADS_CHANS_PER_BOARD 8
+
+/** BLE Packet Information */
+#define BLE_BYTES_PER_PACKET 20
+#define BLE_BYTES_PER_SAMPLE 6
+#define BLE_SAMPLES_PER_PACKET 3
+#define BLE_TOTAL_DATA_BYTES 18
 
 #endif

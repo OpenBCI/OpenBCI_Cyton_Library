@@ -176,7 +176,7 @@ void testSendChannelData() {
     // A call to send channel data should send 34 bytes, so we should be
     //  able to verify this by counting how many bytes are returned by
     //  '::sendChannelData()'
-    byte expectedNumberOfBytes = 34;
+    byte expectedNumberOfBytes = 33;
 
     byte acutalNumberOfBytes = board.sendChannelData();
 
