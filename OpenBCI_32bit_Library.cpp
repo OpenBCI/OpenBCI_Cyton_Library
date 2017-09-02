@@ -692,7 +692,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
     printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
   printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
-  printlnAll("Firmware: v3.0.0-rc7");
+  printlnAll("Firmware: v3.0.0");
   sendEOT();
   delay(5);
   wifi.reset();
