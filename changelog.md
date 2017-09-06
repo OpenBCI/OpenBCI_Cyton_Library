@@ -1,3 +1,9 @@
+# v3.1.0
+
+### Bug Fixes
+
+* Sending a start streaming command from `Serial0` when wifi was attached resulted in data flowing out over wifi, instead of flowing back to Serial0. If you had previous set your sample rate to 1000Hz to do WiFi, and then send a start stream command from Serial port, the board will ensure the sample rate is set to 250Hz.
+
 # v3.0.0
 
 ### New Features

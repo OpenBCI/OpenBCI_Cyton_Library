@@ -310,8 +310,18 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(curAccelMode == ACCEL_MODE_ON){
           enable_accel(RATE_25HZ);
         }      // fire up the accelerometer if you want it
+        wifi.tx = commandFromSPI;
         if (wifi.present && wifi.tx) {
           wifi.sendStringLast("Stream started");
+        }
+        // Reads if the command is not from the SPI port and we are not in debug mode
+        if (!commandFromSPI && !iSerial1.tx) {
+          // If the sample rate is higher than 250, we need to drop down to 250Hz
+          //  to not break the RFduino system that can't handle above 250SPS.
+          if (curSampleRate != SAMPLE_RATE_250) {
+            streamSafeSetSampleRate(SAMPLE_RATE_250);
+            delay(50);
+          }
         }
         streamStart(); // turn on the fire hose
         break;
@@ -319,6 +329,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         if(curAccelMode == ACCEL_MODE_ON){
           disable_accel();
         }  // shut down the accelerometer if you're using it
+        wifi.tx = true;
         streamStop();
         if (wifi.present && wifi.tx) {
           wifi.sendStringLast("Stream stopped");
@@ -844,24 +855,33 @@ const char* OpenBCI_32bit_Library::getBoardMode(void) {
 void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
   if (c == OPENBCI_SAMPLE_RATE_SET) {
     printSuccess();
+    printAll("Sample rate is ");
     printAll(getSampleRate());
+    printAll("Hz");
     sendEOT();
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
     if (digit <= SAMPLE_RATE_250) {
+      streamSafeSetSampleRate((SAMPLE_RATE)digit);
       if (!streaming) {
-        setSampleRate(digit);
         printSuccess();
         printAll("Sample rate is ");
         printAll(getSampleRate());
         printAll("Hz");
         sendEOT();
+      } else if (wifi.present && wifi.tx) {
+        wifi.sendStringMulti("Success: Sample rate is ");
+        wifi.sendStringMulti(getSampleRate());
+        wifi.sendStringLast("Hz");
       }
     } else {
       if (!streaming) {
         printFailure();
         printAll("sample value out of bounds");
         sendEOT();
+      } else if (wifi.present && wifi.tx) {
+        wifi.sendStringMulti("Failure: sample value");
+        wifi.sendStringLast(" out of bounds");
       }
     }
   } else {
@@ -869,6 +889,8 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
       printFailure();
       printAll("invalid sample value");
       sendEOT();
+    } else if (wifi.present && wifi.tx) {
+      wifi.sendStringLast("Failure: invalid sample value");
     }
   }
   endMultiCharCmdTimer();
@@ -1738,6 +1760,27 @@ void OpenBCI_32bit_Library::streamSafeSetAllChannelsToDefault(void) {
   }
 
   setChannelsToDefault();
+
+  // Restart stream if need be
+  if (wasStreaming) {
+    streamStart();
+  }
+}
+
+/**
+* @description Used to set the sample rate
+* @param sr {SAMPLE_RATE} - The sample rate to set to.
+* @author AJ Keller (@pushtheworldllc)
+*/
+void OpenBCI_32bit_Library::streamSafeSetSampleRate(SAMPLE_RATE sr) {
+  boolean wasStreaming = streaming;
+
+  // Stop streaming if you are currently streaming
+  if (streaming) {
+    streamStop();
+  }
+
+  setSampleRate(sr);
 
   // Restart stream if need be
   if (wasStreaming) {
