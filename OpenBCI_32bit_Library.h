@@ -193,6 +193,7 @@ public:
   void    startMultiCharCmdTimer(char);
   void    streamSafeChannelDeactivate(byte);
   void    streamSafeChannelActivate(byte);
+  void    streamSafeSetSampleRate(SAMPLE_RATE);
   void    streamSafeChannelSettingsForChannel(byte, byte, byte, byte, byte, byte, byte);
   void    streamSafeSetAllChannelsToDefault(void);
   void    streamSafeReportAllChannelDefaults(void);
