@@ -1169,6 +1169,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   numberOfIncomingSettingsProcessedChannel = 0;
   numberOfIncomingSettingsProcessedLeadOff = 0;
   sampleCounter = 0;
+  sampleCounterBLE = 0;
   timeOfLastRead = 0;
   timeOfMultiByteMsgStart = 0;
 
@@ -1262,6 +1263,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
 
   ble.bytesLoaded = 0;
   ble.ready = false;
+  sampleCounterBLE += 3;
 }
 
 /**
@@ -2636,6 +2638,7 @@ void OpenBCI_32bit_Library::changeInputType(byte inputCode){
 void OpenBCI_32bit_Library::startADS(void) // NEEDS ADS ADDRESS, OR BOTH?
 {
   sampleCounter = 0;
+  sampleCounterBLE = 0;
   firstDataPacket = true;
   RDATAC(BOTH_ADS); // enter Read Data Continuous mode
   delay(1);
@@ -2743,7 +2746,7 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
     if(sampleCounter % 2 != 0 && curBoardMode == BOARD_MODE_BLE) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
       for(int i = 0; i < 6; i++){
         if (ble.bytesLoaded == 0) {
-          ble.sampleNumber = sampleCounter/2;
+          ble.sampleNumber = sampleCounterBLE;
         }
         ble.data[ble.bytesLoaded++] = meanBoardDataRaw[i];
         if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
