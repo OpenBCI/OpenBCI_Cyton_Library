@@ -1231,6 +1231,17 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
   } else {
     // Send over bluetooth
     if (curBoardMode == BOARD_MODE_BLE) {
+      if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
+        for(int i = 0; i < 6; i++){
+          if (ble.bytesLoaded == 0) {
+            ble.sampleNumber = sampleCounterBLE;
+          }
+          ble.data[ble.bytesLoaded++] = meanBoardDataRaw[i];
+          if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
+            ble.ready = true;
+          }
+        }
+      }
       if (ble.ready) {
         sendChannelDataSerialBLE(packetType);
       }
@@ -2689,6 +2700,7 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
         newMarkerReceived = false;
       }
       break;
+    case BOARD_MODE_BLE:
     case BOARD_MODE_DEBUG:
     case BOARD_MODE_DEFAULT:
       break;
@@ -2703,7 +2715,7 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
   byte inByte;
   int byteCounter = 0;
 
-  if(daisyPresent && !firstDataPacket && downsample){
+  if((daisyPresent || curBoardMode == BOARD_MODE_BLE) && !firstDataPacket && downsample){
     for(int i=0; i < OPENBCI_ADS_CHANS_PER_BOARD; i++){  // shift and average the byte arrays
       lastBoardChannelDataInt[i] = boardChannelDataInt[i]; // remember the last samples
     }
@@ -2741,17 +2753,6 @@ void OpenBCI_32bit_Library::updateBoardData(boolean downsample){
       for(int b=2; b>=0; b--){
         meanBoardDataRaw[byteCounter] = (meanBoardChannelDataInt[i] >> (b*8)) & 0xFF;
         byteCounter++;
-      }
-    }
-    if(sampleCounter % 2 != 0 && curBoardMode == BOARD_MODE_BLE) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-      for(int i = 0; i < 6; i++){
-        if (ble.bytesLoaded == 0) {
-          ble.sampleNumber = sampleCounterBLE;
-        }
-        ble.data[ble.bytesLoaded++] = meanBoardDataRaw[i];
-        if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
-          ble.ready = true;
-        }
       }
     }
   }
