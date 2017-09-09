@@ -1163,7 +1163,8 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   verbosity = false; // when verbosity is true, there will be Serial feedback
 
   // Nums
-  bufferBLEPosition = 0;
+  bufferBLEHead = 0;
+  bufferBLETail = 0;
   currentChannelSetting = 0;
   lastSampleTime = 0;
   numberOfIncomingSettingsProcessedChannel = 0;
@@ -1183,8 +1184,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   // Structs
   initializeSerialInfo(iSerial0);
   initializeSerialInfo(iSerial1);
-  ble.ready = false;
-  ble.bytesLoaded = 0;
+  bufferBLEReset();
 }
 
 void OpenBCI_32bit_Library::initializeSerialInfo(SerialInfo si) {
@@ -1195,6 +1195,25 @@ void OpenBCI_32bit_Library::setSerialInfo(SerialInfo si, boolean rx, boolean tx,
   si.baudRate = baudRate;
   si.rx = rx;
   si.tx = tx;
+}
+
+/**
+ * Reset all the ble buffers
+ */
+void OpenBCI_32bit_Library::bufferBLEReset() {
+  for (uint8_t i = 0; i < BLE_RING_BUFFER_SIZE; i++) {
+    bufferBLEReset(bufferBLE + i);
+  }
+}
+
+/**
+ * Reset only the given BLE buffer
+ * @param ble {BLE} - A BLE struct to be reset
+ */
+void OpenBCI_32bit_Library::bufferBLEReset(BLE *ble) {
+  ble->bytesLoaded = 0;
+  ble->ready = false;
+  ble->flushing = false;
 }
 
 void OpenBCI_32bit_Library::printAllRegisters(){
@@ -1215,6 +1234,11 @@ void OpenBCI_32bit_Library::printAllRegisters(){
   }
 }
 
+/**
+ * Called from the .ino file as the main sender. Driven by board mode,
+ *  sample number, and ultimately the current packer type.
+ *
+ */
 void OpenBCI_32bit_Library::sendChannelData() {
   sendChannelData(curPacketType);
 }
@@ -1233,18 +1257,24 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
     if (curBoardMode == BOARD_MODE_BLE) {
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
         for(int i = 0; i < 6; i++){
-          if (ble.bytesLoaded == 0) {
-            ble.sampleNumber = sampleCounterBLE;
+          if ((bufferBLE + bufferBLEHead)->bytesLoaded == 0) {
+            (bufferBLE + bufferBLEHead)->sampleNumber = sampleCounterBLE;
           }
-          ble.data[ble.bytesLoaded++] = meanBoardDataRaw[i];
-          if (ble.bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
-            ble.ready = true;
+          (bufferBLE + bufferBLEHead)->data[(bufferBLE + bufferBLEHead)->bytesLoaded++] = meanBoardDataRaw[i];
+          if ((bufferBLE + bufferBLEHead)->bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
+            (bufferBLE + bufferBLEHead)->ready = true;
           }
         }
       }
-      if (ble.ready) {
-        sendChannelDataSerialBLE(packetType);
+      if ((bufferBLE + bufferBLEHead)->ready) {
+        bufferBLEHead++;
+        sampleCounterBLE += 3;
+        if (bufferBLEHead >= BLE_RING_BUFFER_SIZE) {
+          bufferBLEHead = 0;
+        }
       }
+      sendChannelDataSerialBLE(packetType);
+
     } else {
       if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
     }
@@ -1262,19 +1292,26 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
-  writeSerial(OPENBCI_BOP); // 1 byte - 0x41
+  if ((bufferBLE + bufferBLETail)->ready == true && (bufferBLE + bufferBLETail)->flushing == false) {
+    (bufferBLE + bufferBLETail)->flushing = true;
 
-  writeSerial(ble.sampleNumber); // 1 byte
+    writeSerial(OPENBCI_BOP); // 1 byte - 0x41
 
-  for (uint8_t i = 0; i < BLE_TOTAL_DATA_BYTES; i++) {
-    writeSerial(ble.data[i]);
+    writeSerial((bufferBLE + bufferBLETail)->sampleNumber); // 1 byte
+
+    for (uint8_t i = 0; i < BLE_TOTAL_DATA_BYTES; i++) {
+      writeSerial((bufferBLE + bufferBLETail)->data[i]);
+    }
+
+    writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+
+    bufferBLEReset(bufferBLE + bufferBLETail);
+
+    bufferBLETail++;
+    if (bufferBLETail >= BLE_RING_BUFFER_SIZE) {
+      bufferBLETail = 0;
+    }
   }
-
-  writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
-
-  ble.bytesLoaded = 0;
-  ble.ready = false;
-  sampleCounterBLE += 3;
 }
 
 /**

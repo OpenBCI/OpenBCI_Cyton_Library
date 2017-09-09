@@ -88,6 +88,7 @@ public:
     uint8_t sampleNumber;
     uint8_t data[BLE_TOTAL_DATA_BYTES];
     boolean ready;
+    boolean flushing;
     uint8_t bytesLoaded;
   } BLE;
 
@@ -264,7 +265,6 @@ public:
   TIME_SYNC_MODE curTimeSyncMode;
 
   // STRUCTS
-  BLE ble;
   SerialInfo iSerial0;
   SerialInfo iSerial1;
 
@@ -289,6 +289,8 @@ private:
   int     getX(void);
   int     getY(void);
   int     getZ(void);
+  void    bufferBLEReset(void);
+  void    bufferBLEReset(BLE *);
   void    initialize(void);
   void    initialize_accel(byte);    // initialize
   void    initialize_ads(void);
@@ -331,6 +333,9 @@ private:
   void    WREGS(byte,byte,int);      // write multiple ADS registers
   byte    xfer(byte);        // SPI Transfer function
 
+  // Stucts
+  BLE bufferBLE[BLE_RING_BUFFER_SIZE];
+
   // Variables
   boolean commandFromSPI;
   boolean firstDataPacket;
@@ -339,7 +344,8 @@ private:
   boolean settingBoardMode;
   boolean settingSampleRate;
   boolean newMarkerReceived;  // flag to indicate a new marker has been received
-  byte    bufferBLEPosition;
+  byte    bufferBLEHead;
+  byte    bufferBLETail;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    markerValue;
