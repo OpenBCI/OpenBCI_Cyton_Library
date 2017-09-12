@@ -10,22 +10,22 @@ void setup() {
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
-    if (Serial1.available()) {
-        Serial1.read();
-        go();
-    }
+  // put your main code here, to run repeatedly:
+  if (Serial1.available()) {
+    Serial1.read();
+    go();
+  }
 }
 
 void go() {
-    // Start the test
-    test.begin();
+  // Start the test
+  test.begin();
 
-    testGetters();
-    // testResets();
-    testSendChannelData();
+  // testGetters();
+  // testResets();
+  // testSendChannelData();
 
-    test.end();
+  test.end();
 }
 
 void testGetters() {

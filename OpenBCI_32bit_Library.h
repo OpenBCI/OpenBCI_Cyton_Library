@@ -32,6 +32,11 @@ public:
     MARKER_MODE_OFF
   };
 
+  typedef enum DEBUG_MODE {
+    DEBUG_MODE_ON,
+    DEBUG_MODE_OFF
+  };
+
   typedef enum BOARD_MODE {
     BOARD_MODE_DEFAULT,
     BOARD_MODE_DEBUG,
@@ -89,6 +94,7 @@ public:
     uint8_t data[BLE_TOTAL_DATA_BYTES];
     boolean ready;
     boolean flushing;
+    uint8_t bytesFlushed;
     uint8_t bytesLoaded;
   } BLE;
 
@@ -242,6 +248,8 @@ public:
   byte sampleCounter;
   byte sampleCounterBLE;
 
+  int ringBufBLEHead;
+  int ringBufBLETail;
   int boardChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
   int daisyChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];    // array used when reading channel data as ints
   int lastBoardChannelDataInt[OPENBCI_NUMBER_CHANNELS_PER_ADS_SAMPLE];
@@ -259,10 +267,15 @@ public:
 
   // ENUMS
   ACCEL_MODE curAccelMode;
+  BLE *curBLEPacketFlusing;
   BOARD_MODE curBoardMode;
+  DEBUG_MODE curDebugMode;
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
   TIME_SYNC_MODE curTimeSyncMode;
+
+  // Stucts
+  BLE bufferBLE[BLE_RING_BUFFER_SIZE];
 
   // STRUCTS
   SerialInfo iSerial0;
@@ -333,9 +346,6 @@ private:
   void    WREGS(byte,byte,int);      // write multiple ADS registers
   byte    xfer(byte);        // SPI Transfer function
 
-  // Stucts
-  BLE bufferBLE[BLE_RING_BUFFER_SIZE];
-
   // Variables
   boolean commandFromSPI;
   boolean firstDataPacket;
@@ -344,8 +354,6 @@ private:
   boolean settingBoardMode;
   boolean settingSampleRate;
   boolean newMarkerReceived;  // flag to indicate a new marker has been received
-  byte    bufferBLEHead;
-  byte    bufferBLETail;
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    markerValue;

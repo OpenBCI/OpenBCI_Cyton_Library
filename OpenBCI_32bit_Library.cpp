@@ -48,7 +48,6 @@ void OpenBCI_32bit_Library::beginDebug(void) {
 
 void OpenBCI_32bit_Library::beginDebug(uint32_t baudRate) {
   // Bring the board up
-  curBoardMode = BOARD_MODE_DEBUG;
   boolean started = boardBeginDebug(baudRate);
 
   if (started) {
@@ -114,7 +113,7 @@ char OpenBCI_32bit_Library::getCharSerial1(void) {
 * @return {boolean} - `true` if the command was recognized, `false` if not
 */
 boolean OpenBCI_32bit_Library::processChar(char character) {
-  if (curBoardMode == BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
     Serial1.print("pC: "); Serial1.println(character);
   }
 
@@ -432,6 +431,9 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
  * @returns void
  */
 void OpenBCI_32bit_Library::startMultiCharCmdTimer(char cmd) {
+  if (curDebugMode == DEBUG_MODE_ON) {
+    Serial1.printf("Start multi char: %c\n", cmd);
+  }
   isMultiCharCmd = true;
   multiCharCommand = cmd;
   multiCharCmdTimeout = millis() + MULTI_CHAR_COMMAND_TIMEOUT_MS;
@@ -471,8 +473,8 @@ boolean OpenBCI_32bit_Library::checkMultiCharCmdTimer(void) {
  * To be called at some point in every loop function
  */
 void OpenBCI_32bit_Library::loop(void) {
-  if (board.isMultiCharCmd) {
-    board.checkMultiCharCmdTimer();
+  if (isMultiCharCmd) {
+    checkMultiCharCmdTimer();
   }
 }
 
@@ -591,6 +593,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   beginSerial1();
 
   curBoardMode = BOARD_MODE_DEBUG;
+  curDebugMode = DEBUG_MODE_ON;
 
   // Startup for interrupt
   boardBeginADSInterrupt();
@@ -703,7 +706,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
     printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
   printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
-  printlnAll("Firmware: v3.0.0");
+  printlnAll("Firmware: v3.0.1");
   sendEOT();
   delay(5);
   wifi.reset();
@@ -786,6 +789,7 @@ void OpenBCI_32bit_Library::setBoardMode(uint8_t newBoardMode) {
       beginPinsDigital();
       break;
     case BOARD_MODE_DEBUG:
+      curDebugMode = DEBUG_MODE_ON;
       beginPinsDebug();
       beginSerial1();
       break;
@@ -1163,8 +1167,8 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   verbosity = false; // when verbosity is true, there will be Serial feedback
 
   // Nums
-  bufferBLEHead = 0;
-  bufferBLETail = 0;
+  ringBufBLEHead = 0;
+  ringBufBLETail = 0;
   currentChannelSetting = 0;
   lastSampleTime = 0;
   numberOfIncomingSettingsProcessedChannel = 0;
@@ -1177,6 +1181,7 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   // Enums
   curAccelMode = ACCEL_MODE_ON;
   curBoardMode = BOARD_MODE_DEFAULT;
+  curDebugMode = DEBUG_MODE_OFF;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
   curTimeSyncMode = TIME_SYNC_MODE_OFF;
@@ -1211,6 +1216,7 @@ void OpenBCI_32bit_Library::bufferBLEReset() {
  * @param ble {BLE} - A BLE struct to be reset
  */
 void OpenBCI_32bit_Library::bufferBLEReset(BLE *ble) {
+  ble->bytesFlushed = 0;
   ble->bytesLoaded = 0;
   ble->ready = false;
   ble->flushing = false;
@@ -1256,25 +1262,32 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
     // Send over bluetooth
     if (curBoardMode == BOARD_MODE_BLE) {
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-        for(int i = 0; i < 6; i++){
-          if ((bufferBLE + bufferBLEHead)->bytesLoaded == 0) {
-            (bufferBLE + bufferBLEHead)->sampleNumber = sampleCounterBLE;
-          }
-          (bufferBLE + bufferBLEHead)->data[(bufferBLE + bufferBLEHead)->bytesLoaded++] = meanBoardDataRaw[i];
-          if ((bufferBLE + bufferBLEHead)->bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
-            (bufferBLE + bufferBLEHead)->ready = true;
+        if( (bufferBLE + ringBufBLEHead)->flushing) {
+          Serial1.println("head still flushing");
+        } else {
+          for(int i = 0; i < 6; i++){
+            Serial1.printf("\n<- h: %d i: %d c->bL: %d\n", ringBufBLEHead, i, (bufferBLE + ringBufBLEHead)->bytesLoaded);
+
+            if ((bufferBLE + ringBufBLEHead)->bytesLoaded == 0) {
+              (bufferBLE + ringBufBLEHead)->sampleNumber = sampleCounterBLE;
+            }
+            (bufferBLE + ringBufBLEHead)->data[(bufferBLE + ringBufBLEHead)->bytesLoaded++] = meanBoardDataRaw[i];
+            if ((bufferBLE + ringBufBLEHead)->bytesLoaded >= BLE_TOTAL_DATA_BYTES) {
+              // Serial1.println("Moving head");
+              (bufferBLE + ringBufBLEHead)->ready = true;
+              sampleCounterBLE += 3;
+              ringBufBLEHead++;
+              if (ringBufBLEHead >= BLE_RING_BUFFER_SIZE) {
+                ringBufBLEHead = 0;
+              }
+            }
           }
         }
       }
-      if ((bufferBLE + bufferBLEHead)->ready) {
-        bufferBLEHead++;
-        sampleCounterBLE += 3;
-        if (bufferBLEHead >= BLE_RING_BUFFER_SIZE) {
-          bufferBLEHead = 0;
-        }
+      if ((bufferBLE + ringBufBLETail)->ready && (bufferBLE + ringBufBLETail)->bytesFlushed == 0) {
+        (bufferBLE + ringBufBLETail)->flushing = true;
       }
       sendChannelDataSerialBLE(packetType);
-
     } else {
       if (iSerial0.tx || iSerial1.tx) sendChannelDataSerial(packetType);
     }
@@ -1292,24 +1305,65 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
-  if ((bufferBLE + bufferBLETail)->ready == true && (bufferBLE + bufferBLETail)->flushing == false) {
-    (bufferBLE + bufferBLETail)->flushing = true;
+  static int delayPeriod = 900;
+  unsigned long startTime = micros();
+  if ((bufferBLE + ringBufBLETail)->flushing) {
+    Serial1.printf("\n-> t: %d c->bF: %d\n", ringBufBLETail, curBLEPacketFlusing->bytesFlushed);
+    for (int i = 0; i < 3; i++) {
+      switch ((bufferBLE + ringBufBLETail)->bytesFlushed) {
+        case 0:
+          writeSerial(OPENBCI_BOP); // 1 byte - 0x41
+          (bufferBLE + ringBufBLETail)->bytesFlushed++;
+          delayMicroseconds(delayPeriod);
+          break;
+        case 1:
+          writeSerial((bufferBLE + ringBufBLETail)->sampleNumber); // 1 byte
+          (bufferBLE + ringBufBLETail)->bytesFlushed++;
+          delayMicroseconds(delayPeriod);
+          break;
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+          writeSerial((bufferBLE + ringBufBLETail)->data[(bufferBLE + ringBufBLETail)->bytesFlushed - 2]);
+          (bufferBLE + ringBufBLETail)->bytesFlushed++;
+          delayMicroseconds(delayPeriod);
+          break;
+        case 20:
+          writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
+          delayMicroseconds(delayPeriod);
+          bufferBLEReset((bufferBLE + ringBufBLETail));
+          ringBufBLETail++;
+          if (ringBufBLETail >= BLE_RING_BUFFER_SIZE) {
+            ringBufBLETail = 0;
+          }
+          break;
+        default:
+          if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
+            Serial1.printf("\nCritical error bF: %d\n", (bufferBLE + ringBufBLETail)->bytesFlushed);
+          }
+          bufferBLEReset((bufferBLE + ringBufBLETail));
+          ringBufBLETail++;
+          if (ringBufBLETail >= BLE_RING_BUFFER_SIZE) {
+            ringBufBLETail = 0;
+          }
 
-    writeSerial(OPENBCI_BOP); // 1 byte - 0x41
-
-    writeSerial((bufferBLE + bufferBLETail)->sampleNumber); // 1 byte
-
-    for (uint8_t i = 0; i < BLE_TOTAL_DATA_BYTES; i++) {
-      writeSerial((bufferBLE + bufferBLETail)->data[i]);
-    }
-
-    writeSerial((uint8_t)(PCKT_END | packetType)); // 1 byte
-
-    bufferBLEReset(bufferBLE + bufferBLETail);
-
-    bufferBLETail++;
-    if (bufferBLETail >= BLE_RING_BUFFER_SIZE) {
-      bufferBLETail = 0;
+          break;
+      }
     }
   }
 }
@@ -1862,7 +1916,7 @@ void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
   }
   streaming = true;
   startADS();
-  if (curBoardMode == BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
     Serial1.println("ADS Started");
   }
 }
@@ -1874,7 +1928,7 @@ void OpenBCI_32bit_Library::streamStart(){  // needs daisy functionality
 void OpenBCI_32bit_Library::streamStop(){
   streaming = false;
   stopADS();
-  if (curBoardMode == BOARD_MODE_DEBUG) {
+  if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
     Serial1.println("ADS Stopped");
   }
 
@@ -2663,7 +2717,7 @@ void OpenBCI_32bit_Library::configureInternalTestSignal(byte amplitudeCode, byte
     amplitudeCode &= 0b00000100;  	//only this bit is used
     byte setting = 0b11010000 | freqCode | amplitudeCode;  //compose the code
     WREG(CONFIG2,setting,targetSS); delay(1);
-    if (curBoardMode == BOARD_MODE_DEBUG) {
+    if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
       Serial1.print("Wrote to CONFIG2: ");
       Serial1.print(setting,BIN);
     }
