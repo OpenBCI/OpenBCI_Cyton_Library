@@ -1299,7 +1299,7 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
-  static int delayPeriod = 800;
+  static int delayPeriod = 0;
   unsigned long startTime = micros();
   if ((bufferBLE + ringBufBLETail)->ready && (bufferBLE + ringBufBLETail)->bytesFlushed == 0) {
     (bufferBLE + ringBufBLETail)->flushing = true;
