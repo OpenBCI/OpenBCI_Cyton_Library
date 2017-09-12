@@ -267,7 +267,6 @@ public:
 
   // ENUMS
   ACCEL_MODE curAccelMode;
-  BLE *curBLEPacketFlusing;
   BOARD_MODE curBoardMode;
   DEBUG_MODE curDebugMode;
   PACKET_TYPE curPacketType;

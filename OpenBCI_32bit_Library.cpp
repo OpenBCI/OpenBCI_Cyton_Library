@@ -1262,12 +1262,9 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
     // Send over bluetooth
     if (curBoardMode == BOARD_MODE_BLE) {
       if(sampleCounter % 2 != 0) { //CHECK SAMPLE ODD-EVEN AND SEND THE APPROPRIATE ADS DATA
-        if( (bufferBLE + ringBufBLEHead)->flushing) {
-          Serial1.println("head still flushing");
-        } else {
+        if(!(bufferBLE + ringBufBLEHead)->flushing) {
           for(int i = 0; i < 6; i++){
-            Serial1.printf("\n<- h: %d i: %d c->bL: %d\n", ringBufBLEHead, i, (bufferBLE + ringBufBLEHead)->bytesLoaded);
-
+            // Serial1.printf("\n<- h: %d t: %d i: %d c->bL: %d\n", ringBufBLEHead, ringBufBLETail, i, (bufferBLE + ringBufBLEHead)->bytesLoaded);
             if ((bufferBLE + ringBufBLEHead)->bytesLoaded == 0) {
               (bufferBLE + ringBufBLEHead)->sampleNumber = sampleCounterBLE;
             }
@@ -1283,9 +1280,6 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
             }
           }
         }
-      }
-      if ((bufferBLE + ringBufBLETail)->ready && (bufferBLE + ringBufBLETail)->bytesFlushed == 0) {
-        (bufferBLE + ringBufBLETail)->flushing = true;
       }
       sendChannelDataSerialBLE(packetType);
     } else {
@@ -1305,10 +1299,13 @@ void OpenBCI_32bit_Library::sendChannelData(PACKET_TYPE packetType) {
 *  Adds stop byte see `OpenBCI_32bit_Library.h` enum PACKET_TYPE
 */
 void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
-  static int delayPeriod = 900;
+  static int delayPeriod = 800;
   unsigned long startTime = micros();
+  if ((bufferBLE + ringBufBLETail)->ready && (bufferBLE + ringBufBLETail)->bytesFlushed == 0) {
+    (bufferBLE + ringBufBLETail)->flushing = true;
+  }
   if ((bufferBLE + ringBufBLETail)->flushing) {
-    Serial1.printf("\n-> t: %d c->bF: %d\n", ringBufBLETail, curBLEPacketFlusing->bytesFlushed);
+    // Serial1.printf("\n-> t: %d c->bF: %d\n", ringBufBLETail, (bufferBLE + ringBufBLETail)->bytesFlushed);
     for (int i = 0; i < 3; i++) {
       switch ((bufferBLE + ringBufBLETail)->bytesFlushed) {
         case 0:

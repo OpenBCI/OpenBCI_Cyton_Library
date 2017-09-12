@@ -4,7 +4,7 @@
 
 void setup() {
   // Bring up the OpenBCI Board
-  board.beginDebug();
+  board.begin();
   // Put it in BLE mode
   board.setBoardMode(board.BOARD_MODE_BLE);
 }
