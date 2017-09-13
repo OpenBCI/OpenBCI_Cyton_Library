@@ -1306,7 +1306,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
   }
   if ((bufferBLE + ringBufBLETail)->flushing) {
     // Serial1.printf("\n-> t: %d c->bF: %d\n", ringBufBLETail, (bufferBLE + ringBufBLETail)->bytesFlushed);
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
       switch ((bufferBLE + ringBufBLETail)->bytesFlushed) {
         case 0:
           writeSerial(OPENBCI_BOP); // 1 byte - 0x41
@@ -1348,7 +1348,7 @@ void OpenBCI_32bit_Library::sendChannelDataSerialBLE(PACKET_TYPE packetType)  {
           if (ringBufBLETail >= BLE_RING_BUFFER_SIZE) {
             ringBufBLETail = 0;
           }
-          break;
+          return;
         default:
           if (curBoardMode == BOARD_MODE_DEBUG || curDebugMode == DEBUG_MODE_ON) {
             Serial1.printf("\nCritical error bF: %d\n", (bufferBLE + ringBufBLETail)->bytesFlushed);
