@@ -328,6 +328,8 @@
 
 #define OPENBCI_BOARD_MODE_SET '/'
 
+#define OPENBCI_GET_VERSION 'V'
+
 /** Set sample rate */
 #define OPENBCI_SAMPLE_RATE_SET '~'
 
