@@ -419,6 +419,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         printSerial("Wifi soft reset");
         sendEOT();
         break;
+      case OPENBCI_GET_VERSION:
+        printAll("v3.1.0");
+        sendEOT();
+        break;
       default:
         return false;
     }
@@ -707,7 +711,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
     printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
   printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
-  printlnAll("Firmware: v3.0.1");
+  printlnAll("Firmware: v3.1.0");
   sendEOT();
   delay(5);
   wifi.reset();
