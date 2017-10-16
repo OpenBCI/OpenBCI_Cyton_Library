@@ -312,6 +312,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         wifi.tx = commandFromSPI;
         if (wifi.present && wifi.tx) {
           wifi.sendStringLast("Stream started");
+          iSerial0.tx = false;
         }
         // Reads if the command is not from the SPI port and we are not in debug mode
         if (!commandFromSPI && !iSerial1.tx) {
@@ -579,7 +580,7 @@ void OpenBCI_32bit_Library::boardBeginADSInterrupt(void) {
 * @author: AJ Keller (@pushtheworldllc)
 */
 boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
-  boardBeginDebug(OPENBCI_BAUD_RATE);
+  boardBeginDebug(iSerial1.baudRate);
 }
 
 /**
@@ -590,7 +591,7 @@ boolean OpenBCI_32bit_Library::boardBeginDebug(void) {
 boolean OpenBCI_32bit_Library::boardBeginDebug(int baudRate) {
   beginPinsDebug();
   beginSerial0();
-  beginSerial1();
+  beginSerial1(baudRate);
 
   curBoardMode = BOARD_MODE_DEBUG;
   curDebugMode = DEBUG_MODE_ON;
@@ -1694,10 +1695,12 @@ void OpenBCI_32bit_Library::initialize_ads(){
   delay(10);
   daisyPresent = smellDaisy(); // check to see if daisy module is present
   if(!daisyPresent){
-    WREG(CONFIG1,(ADS1299_CONFIG1_DAISY_NOT | curSampleRate),BOARD_ADS); // turn off clk output if no daisy present
+    WREG(CONFIG1, (ADS1299_CONFIG1_DAISY_NOT | curSampleRate), BOARD_ADS); // turn off clk output if no daisy present
     numChannels = 8;    // expect up to 8 ADS channels
   }else{
     numChannels = 16;   // expect up to 16 ADS channels
+    WREG(CONFIG1, (ADS1299_CONFIG1_DAISY_NOT | curSampleRate), DAISY_ADS); // tell on-board ADS to output its clk, set the data rate to 250SPS
+    delay(40);
   }
 
   // DEFAULT CHANNEL SETTINGS FOR ADS

@@ -34,9 +34,6 @@ void loop() {
     // Read one char from the wifi shield
     char newChar = wifi.getChar();
 
-    // Send to the sd library for processing
-    sdProcessChar(newChar);
-
     // Send to the board library
     board.processCharWifi(newChar);
   }
