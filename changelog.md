@@ -3,6 +3,9 @@
 ### Bug Fixes
 
 * Sending a start streaming command from `Serial0` when wifi was attached resulted in data flowing out over wifi, instead of flowing back to Serial0. If you had previous set your sample rate to 1000Hz to do WiFi, and then send a start stream command from Serial port, the board will ensure the sample rate is set to 250Hz.
+* Example for BoardWithWifi.ino did not compile
+* Custom sample rate for debug port was broken and not accepting sample rates.
+* Daisy sample rate was not being set, so sample rate was always at 250Hz
 
 # v3.0.0
 
