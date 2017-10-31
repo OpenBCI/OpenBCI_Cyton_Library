@@ -368,7 +368,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         setCurPacketType();
         break;
 
-      // BOARD TYPE SET TYPE
+      // BOARD TYPE SET MODE
       case OPENBCI_BOARD_MODE_SET:
         startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_BOARD_MODE);
         optionalArgCounter = 0;
@@ -1580,7 +1580,7 @@ void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
 void OpenBCI_32bit_Library::writeAuxDataWifi(void){
   for(int i = 0; i < 3; i++){
     wifi.storeByteBufTx((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
-    wifi.storeByteBufTx((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    wifi.storeByteBufTx((uint8_t)lowByte(auxData[i]));  // auxData is array of type short (16bit)
   }
 }
 
@@ -2866,6 +2866,8 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
     case BOARD_MODE_MARKER:
       if (newMarkerReceived){
         auxData[0] = (short)markerValue;
+        auxData[1] = (short)markerValue;
+        auxData[2] = (short)markerValue;
         newMarkerReceived = false;
       }
       break;
