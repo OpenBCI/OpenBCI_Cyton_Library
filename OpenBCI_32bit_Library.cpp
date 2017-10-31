@@ -622,7 +622,7 @@ void OpenBCI_32bit_Library::beginPinsDebug(void) {
 
 void OpenBCI_32bit_Library::beginPinsDefault(void) {
   pinMode(OPENBCI_PIN_LED, OUTPUT);
-  digitalWrite(OPENBCI_PIN_LED, HIGH);
+  activateLed(ON);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
 }
 
@@ -916,6 +916,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
 void OpenBCI_32bit_Library::processInsertMarker(char c) {
   markerValue = c;
   newMarkerReceived = true;
+  activateLedMarker(true);
   endMultiCharCmdTimer();
   if (wifi.present && wifi.tx) {
     wifi.sendStringLast("Marker recieved");
@@ -1677,6 +1678,76 @@ void OpenBCI_32bit_Library::csHigh(int SS)
   }
   spi.setSpeed(20000000);
   spi.setMode(DSPI_MODE0);  // DEFAULT TO SD MODE!
+}
+
+
+/**
+ * @description activates the LED to show marker received (500ms ON)
+ * @param `on` - [boolean] - whether to activate
+ */
+void OpenBCI_32bit_Library::activateLedMarker(boolean on){
+  ledMarkerFound = true;
+  ledState = OFF;
+  nextLedEvent = millis();
+}
+
+/**
+ * @description activates the LED to SD Write (50ms:ON - 50ms:OFF )
+ * @param `on` - [boolean] - whether to activate or deactivate
+ */
+void OpenBCI_32bit_Library::activateLedSDWrite(boolean on){
+  if (on){
+    ledSDWrite = true;
+    ledState = OFF;
+  } else {
+    ledSDWrite = false;
+  }
+  nextLedEvent = millis();
+}
+
+/**
+ * @description activates the LED (either ON or OFF)
+ * @param `on` - [boolean] - whether to activate or deactivate
+ */
+void OpenBCI_32bit_Library::activateLed(boolean on){
+  if (on){
+    ledOnOff = true;
+  } else {
+    ledOnOff = false;
+  }
+  nextLedEvent = millis();
+}
+
+/**
+ * @description State machine to drive the LED based on whether:
+ 1) a marker was received
+ 2) the SD card is writing
+ 3) the LED has been signalled on or off
+ */
+void OpenBCI_32bit_Library::driveLed(void){
+  if (ledMarkerFound){
+    if (ledState == OFF){
+      ledState = ON;
+      nextLedEvent =  millis() + 500;
+    } else {
+      ledState = OFF;
+      ledMarkerFound = false;
+      nextLedEvent = millis();
+    }
+  } else if (ledSDWrite){
+    if (ledState == OFF)
+      ledState = ON;
+    else
+      ledState = OFF;
+    nextLedEvent =  millis() + 50;
+  } else {
+    if (ledOnOff)
+      ledState = ON;
+    else
+      ledState = OFF;
+    nextLedEvent = millis() + 1000;
+  }
+  digitalWrite(OPENBCI_PIN_LED, ledState);
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
