@@ -41,6 +41,11 @@ void loop() {
       if(SDfileOpen) {
         // Write to the SD card, writes aux data
         writeDataToSDcard(board.sampleCounter);
+        if (!board.ledSDWrite)
+          board.activateLedSDWrite(true);
+      } else {
+          if (board.ledSDWrite)
+            board.activateLedSDWrite(false);
       }
 
       board.sendChannelData();
@@ -92,4 +97,7 @@ void loop() {
       wifi.sendGains(board.numChannels, board.getGains());
     }
   }
+
+  if (millis() > board.nextLedEvent)
+    board.driveLed();
 }
