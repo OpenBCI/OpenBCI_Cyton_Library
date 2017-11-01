@@ -105,8 +105,8 @@ public:
   void    accelWriteAxisDataSerial(void);
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
-  void    activateLedMarker(boolean);
-  void    activateLedSDWrite(boolean);
+  void    activateLedMarkerRec(boolean);
+  void    activateLedSDCardWrite(boolean);
   void    activateLed(boolean);
   void    ADS_writeChannelData(void);
   void    ADS_writeChannelDataAvgDaisy(void);
@@ -239,6 +239,7 @@ public:
   boolean ledMarkerFound;
   boolean ledSDWrite;
   boolean ledOnOff;
+  boolean sdFileOpen;
   boolean streaming;
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];

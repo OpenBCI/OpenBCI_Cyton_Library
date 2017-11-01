@@ -481,6 +481,9 @@ void OpenBCI_32bit_Library::loop(void) {
   if (isMultiCharCmd) {
     checkMultiCharCmdTimer();
   }
+  
+  if (millis() > board.nextLedEvent)
+    board.driveLed();
 }
 
 /**
@@ -914,7 +917,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
 void OpenBCI_32bit_Library::processInsertMarker(char c) {
   markerValue = c;
   newMarkerReceived = true;
-  activateLedMarker(true);
+  activateLedMarkerRec(true);
   endMultiCharCmdTimer();
   if (wifi.present && wifi.tx) {
     wifi.sendStringLast("Marker recieved");
@@ -1681,7 +1684,7 @@ void OpenBCI_32bit_Library::csHigh(int SS)
  * @description activates the LED to show marker received (500ms ON)
  * @param `on` - [boolean] - whether to activate
  */
-void OpenBCI_32bit_Library::activateLedMarker(boolean on){
+void OpenBCI_32bit_Library::activateLedMarkerRec(boolean on){
   ledMarkerFound = true;
   ledState = ON;
   nextLedEvent = millis();
@@ -1691,7 +1694,7 @@ void OpenBCI_32bit_Library::activateLedMarker(boolean on){
  * @description activates the LED to SD Write (50ms:ON - 50ms:OFF )
  * @param `on` - [boolean] - whether to activate or deactivate
  */
-void OpenBCI_32bit_Library::activateLedSDWrite(boolean on){
+void OpenBCI_32bit_Library::activateLedSDCardWrite(boolean on){
   if (on){
     ledSDWrite = true;
     ledState = OFF;
@@ -1721,29 +1724,39 @@ void OpenBCI_32bit_Library::activateLed(boolean on){
  3) the LED has been signalled on or off
  */
 void OpenBCI_32bit_Library::driveLed(void){
-  if (ledMarkerFound){
-    if (ledState == ON){
-      ledState = OFF;
-      nextLedEvent =  millis() + 500;
+  // The LED output pin is also used for debug serial communication block
+  // LED functions if the board is in debug mode
+  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON){
+    if (ledMarkerFound) {
+      if (ledState == ON) {
+        ledState = OFF;
+        nextLedEvent =  millis() + 500;
+      } else {
+        ledState = ON;
+        ledMarkerFound = false;
+
+        if(sdFileOpen)
+          activateLedSDCardWrite(true);
+        else
+          activateLedSDCardWrite(false);
+
+        nextLedEvent = millis();
+      }
+    } else if (ledSDWrite) {
+      if (ledState == OFF)
+        ledState = ON;
+      else
+        ledState = OFF;
+      nextLedEvent =  millis() + 50;
     } else {
-      ledState = ON;
-      ledMarkerFound = false;
-      nextLedEvent = millis();
+      if (ledOnOff)
+        ledState = ON;
+      else
+        ledState = OFF;
+      nextLedEvent = millis() + 1000;
     }
-  } else if (ledSDWrite){
-    if (ledState == OFF)
-      ledState = ON;
-    else
-      ledState = OFF;
-    nextLedEvent =  millis() + 50;
-  } else {
-    if (ledOnOff)
-      ledState = ON;
-    else
-      ledState = OFF;
-    nextLedEvent = millis() + 1000;
+    digitalWrite(OPENBCI_PIN_LED, ledState);
   }
-  digitalWrite(OPENBCI_PIN_LED, ledState);
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2862,8 +2875,6 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
     case BOARD_MODE_MARKER:
       if (newMarkerReceived){
         auxData[0] = (short)markerValue;
-        auxData[1] = (short)markerValue;
-        auxData[2] = (short)markerValue;
         newMarkerReceived = false;
       }
       break;
