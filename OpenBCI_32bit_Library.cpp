@@ -759,9 +759,7 @@ void OpenBCI_32bit_Library::processIncomingBoardMode(char c) {
   } else if (isDigit(c)) {
     uint8_t digit = c - '0';
     if (digit < BOARD_MODE_END_OF_MODES) {
-      //setBoardMode(digit);
-      //GvZ Hard default to Board mode
-      setBoardMode(BOARD_MODE_MARKER);
+      setBoardMode(digit);
       printSuccess();
       printAll(getBoardMode());
       sendEOT();
@@ -1187,8 +1185,8 @@ void OpenBCI_32bit_Library::initializeVariables(void) {
   timeOfMultiByteMsgStart = 0;
 
   // Enums
-  curAccelMode = ACCEL_MODE_OFF;   //GvZ
-  curBoardMode = BOARD_MODE_MARKER;  //GvZ
+  curAccelMode = ACCEL_MODE_ON;
+  curBoardMode = BOARD_MODE_DEFAULT;
   curDebugMode = DEBUG_MODE_OFF;
   curPacketType = PACKET_TYPE_ACCEL;
   curSampleRate = SAMPLE_RATE_250;
@@ -1422,7 +1420,6 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
   wifi.storeByteBufTx((uint8_t)(PCKT_END | packetType)); // 1 byte
   wifi.storeByteBufTx(sampleCounter); // 1 byte
   ADS_writeChannelDataWifi(daisy);       // 24 bytes
-//  if (!daisy){
   switch (packetType) {
     case PACKET_TYPE_ACCEL:
       accelWriteAxisDataWifi(); // 6 bytes
@@ -1446,7 +1443,6 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
       writeAuxDataWifi(); // 6 bytes
       break;
   }
-//  }
   wifi.flushBufferTx();
 }
 /**
@@ -1687,7 +1683,7 @@ void OpenBCI_32bit_Library::csHigh(int SS)
  */
 void OpenBCI_32bit_Library::activateLedMarker(boolean on){
   ledMarkerFound = true;
-  ledState = OFF;
+  ledState = ON;
   nextLedEvent = millis();
 }
 
@@ -1726,11 +1722,11 @@ void OpenBCI_32bit_Library::activateLed(boolean on){
  */
 void OpenBCI_32bit_Library::driveLed(void){
   if (ledMarkerFound){
-    if (ledState == OFF){
-      ledState = ON;
+    if (ledState == ON){
+      ledState = OFF;
       nextLedEvent =  millis() + 500;
     } else {
-      ledState = OFF;
+      ledState = ON;
       ledMarkerFound = false;
       nextLedEvent = millis();
     }
