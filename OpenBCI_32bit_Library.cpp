@@ -326,9 +326,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
-        if(curAccelMode == ACCEL_MODE_ON){
+        if(curAccelMode == ACCEL_MODE_ON) {
           disable_accel();
         }  // shut down the accelerometer if you're using it
+        activateLedSDCardWrite(false);
         wifi.tx = true;
         streamStop();
         if (wifi.present && wifi.tx) {
@@ -1747,7 +1748,7 @@ void OpenBCI_32bit_Library::driveLed(void){
         ledState = ON;
       else
         ledState = OFF;
-      nextLedEvent =  millis() + 50;
+      nextLedEvent =  millis() + 30;
     } else {
       if (ledOnOff)
         ledState = ON;
