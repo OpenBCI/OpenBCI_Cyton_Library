@@ -482,7 +482,18 @@ void OpenBCI_32bit_Library::loop(void) {
   if (isMultiCharCmd) {
     checkMultiCharCmdTimer();
   }
-  
+  if(sdFileOpen && streaming) {
+    if(!ledSDWrite){
+      activateLedSDCardWrite(true);
+      board.nextLedEvent = millis();
+    }
+  } else {
+    if(ledSDWrite){
+      activateLedSDCardWrite(false);
+      board.nextLedEvent = millis();
+    }
+  }
+
   if (millis() > board.nextLedEvent)
     board.driveLed();
 }
@@ -1727,7 +1738,8 @@ void OpenBCI_32bit_Library::activateLed(boolean on){
 void OpenBCI_32bit_Library::driveLed(void){
   // The LED output pin is also used for debug serial communication block
   // LED functions if the board is in debug mode
-  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON){
+//  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON){
+  if (1){
     if (ledMarkerFound) {
       if (ledState == ON) {
         ledState = OFF;
@@ -1735,12 +1747,6 @@ void OpenBCI_32bit_Library::driveLed(void){
       } else {
         ledState = ON;
         ledMarkerFound = false;
-
-        if(sdFileOpen)
-          activateLedSDCardWrite(true);
-        else
-          activateLedSDCardWrite(false);
-
         nextLedEvent = millis();
       }
     } else if (ledSDWrite) {
@@ -1748,7 +1754,7 @@ void OpenBCI_32bit_Library::driveLed(void){
         ledState = ON;
       else
         ledState = OFF;
-      nextLedEvent =  millis() + 30;
+      nextLedEvent =  millis() + 50;
     } else {
       if (ledOnOff)
         ledState = ON;
