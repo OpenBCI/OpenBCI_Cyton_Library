@@ -927,8 +927,8 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
  * @param character {char} - The character that will be inserted into the data stream
  */
 void OpenBCI_32bit_Library::processInsertMarker(char c) {
-  markerValue = c;
-  newMarkerReceived = true;
+  markerValue = c-31;  // The GUI encodes markers to printable ascii charaters starting with ' '
+  curMarkerStatus = REC_MARKER_STATUS_RECEIVED;
   activateLedMarkerRec(true);
   endMultiCharCmdTimer();
   if (wifi.present && wifi.tx) {
@@ -2880,9 +2880,9 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
       auxData[2] = wifi.present ? 0 : digitalRead(18);
       break;
     case BOARD_MODE_MARKER:
-      if (newMarkerReceived){
-        auxData[0] = (short)markerValue;
-        newMarkerReceived = false;
+      if (curMarkerStatus == REC_MARKER_STATUS_RECEIVED){
+        auxData[0] = (unsigned short)markerValue;
+        curMarkerStatus = REC_MARKER_STATUS_NONE;
       }
       break;
     case BOARD_MODE_BLE:

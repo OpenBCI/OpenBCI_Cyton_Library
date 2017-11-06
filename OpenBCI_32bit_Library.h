@@ -76,6 +76,11 @@ public:
     SAMPLE_RATE_500,
     SAMPLE_RATE_250
   };
+  
+  typedef enum REC_MARKER_STATUS {
+    REC_MARKER_STATUS_NONE,
+    REC_MARKER_STATUS_RECEIVED
+  };
 
   // STRUCTS
   typedef struct {
@@ -282,6 +287,8 @@ public:
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
   TIME_SYNC_MODE curTimeSyncMode;
+  REC_MARKER_STATUS curMarkerStatus;  // state to deal with multichar markers
+
 
   // Stucts
   BLE bufferBLE[BLE_RING_BUFFER_SIZE];
@@ -362,7 +369,6 @@ private:
   boolean isRunning;
   boolean settingBoardMode;
   boolean settingSampleRate;
-  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    markerValue;
