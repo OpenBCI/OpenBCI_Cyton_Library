@@ -1738,8 +1738,7 @@ void OpenBCI_32bit_Library::activateLed(boolean on){
 void OpenBCI_32bit_Library::driveLed(void){
   // The LED output pin is also used for debug serial communication block
   // LED functions if the board is in debug mode
-//  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON){
-  if (1){
+  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON) {
     if (ledMarkerFound) {
       if (ledState == ON) {
         ledState = OFF;
