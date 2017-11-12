@@ -76,6 +76,11 @@ public:
     SAMPLE_RATE_500,
     SAMPLE_RATE_250
   };
+  
+  typedef enum REC_MARKER_STATUS {
+    REC_MARKER_STATUS_NONE,
+    REC_MARKER_STATUS_RECEIVED
+  };
 
   // STRUCTS
   typedef struct {
@@ -105,6 +110,9 @@ public:
   void    accelWriteAxisDataSerial(void);
   void    activateAllChannelsToTestCondition(byte testInputCode, byte amplitudeCode, byte freqCode);
   void    activateChannel(byte);                  // enable the selected channel
+  void    activateLedMarkerRec(boolean);
+  void    activateLedSDCardWrite(boolean);
+  void    activateLed(boolean);
   void    ADS_writeChannelData(void);
   void    ADS_writeChannelDataAvgDaisy(void);
   void    ADS_writeChannelDataNoAvgDaisy(void);
@@ -133,6 +141,7 @@ public:
   void    configureLeadOffDetection(byte, byte);
   void    deactivateChannel(byte);                // disable given channel 1-8(16)
   void    disable_accel(void); // stop data acquisition and go into low power mode
+  void    driveLed(void);
   void    enable_accel(byte);  // start acceleromoeter with default settings
   void    endMultiCharCmdTimer(void);
   void    endSerial0(void);
@@ -231,6 +240,11 @@ public:
   boolean boardUseSRB1;             // used to keep track of if we are using SRB1
   boolean daisyPresent;
   boolean daisyUseSRB1;
+  boolean ledState;
+  boolean ledMarkerFound;
+  boolean ledSDWrite;
+  boolean ledOnOff;
+  boolean sdFileOpen;
   boolean streaming;
   boolean useInBias[OPENBCI_NUMBER_OF_CHANNELS_DAISY];        // used to remember if we were included in Bias before channel power down
   boolean useSRB2[OPENBCI_NUMBER_OF_CHANNELS_DAISY];
@@ -262,6 +276,7 @@ public:
   short axisData[3];
 
   unsigned long lastSampleTime;
+  unsigned long nextLedEvent;
 
   volatile boolean channelDataAvailable;
 
@@ -272,6 +287,8 @@ public:
   PACKET_TYPE curPacketType;
   SAMPLE_RATE curSampleRate;
   TIME_SYNC_MODE curTimeSyncMode;
+  REC_MARKER_STATUS curMarkerStatus;  // state to deal with multichar markers
+
 
   // Stucts
   BLE bufferBLE[BLE_RING_BUFFER_SIZE];
@@ -352,7 +369,6 @@ private:
   boolean isRunning;
   boolean settingBoardMode;
   boolean settingSampleRate;
-  boolean newMarkerReceived;  // flag to indicate a new marker has been received
   byte    regData[24]; // array is used to mirror register data
   char    buffer[1];
   char    markerValue;

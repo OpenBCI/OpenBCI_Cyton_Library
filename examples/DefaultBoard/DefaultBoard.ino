@@ -37,11 +37,11 @@ void loop() {
         addAuxToSD = true;
       }
 
-      // Verify the SD file is open
-      if(SDfileOpen) {
-        // Write to the SD card, writes aux data
+      // Check SD file is open and then write EEG and Aux data
+      if(SDfileOpen)  
         writeDataToSDcard(board.sampleCounter);
-      }
+      // this is required for the board to be aware of active SD card writes
+      board.sdFileOpen = SDfileOpen;
 
       board.sendChannelData();
     }
@@ -92,4 +92,5 @@ void loop() {
       wifi.sendGains(board.numChannels, board.getGains());
     }
   }
+
 }
