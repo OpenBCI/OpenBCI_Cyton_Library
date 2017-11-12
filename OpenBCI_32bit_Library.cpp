@@ -326,9 +326,10 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         streamStart(); // turn on the fire hose
         break;
       case OPENBCI_STREAM_STOP:  // stop streaming data
-        if(curAccelMode == ACCEL_MODE_ON){
+        if(curAccelMode == ACCEL_MODE_ON) {
           disable_accel();
         }  // shut down the accelerometer if you're using it
+        activateLedSDCardWrite(false);
         wifi.tx = true;
         streamStop();
         if (wifi.present && wifi.tx) {
@@ -368,7 +369,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         setCurPacketType();
         break;
 
-      // BOARD TYPE SET TYPE
+      // BOARD TYPE SET MODE
       case OPENBCI_BOARD_MODE_SET:
         startMultiCharCmdTimer(MULTI_CHAR_CMD_SETTINGS_BOARD_MODE);
         optionalArgCounter = 0;
@@ -481,6 +482,20 @@ void OpenBCI_32bit_Library::loop(void) {
   if (isMultiCharCmd) {
     checkMultiCharCmdTimer();
   }
+  if(sdFileOpen && streaming) {
+    if(!ledSDWrite){
+      activateLedSDCardWrite(true);
+      board.nextLedEvent = millis();
+    }
+  } else {
+    if(ledSDWrite){
+      activateLedSDCardWrite(false);
+      board.nextLedEvent = millis();
+    }
+  }
+
+  if (millis() > board.nextLedEvent)
+    board.driveLed();
 }
 
 /**
@@ -622,7 +637,7 @@ void OpenBCI_32bit_Library::beginPinsDebug(void) {
 
 void OpenBCI_32bit_Library::beginPinsDefault(void) {
   pinMode(OPENBCI_PIN_LED, OUTPUT);
-  digitalWrite(OPENBCI_PIN_LED, HIGH);
+  activateLed(ON);
   pinMode(OPENBCI_PIN_PGC, OUTPUT);
 }
 
@@ -912,8 +927,9 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
  * @param character {char} - The character that will be inserted into the data stream
  */
 void OpenBCI_32bit_Library::processInsertMarker(char c) {
-  markerValue = c;
-  newMarkerReceived = true;
+  markerValue = c-31;  // The GUI encodes markers to printable ascii charaters starting with ' '
+  curMarkerStatus = REC_MARKER_STATUS_RECEIVED;
+  activateLedMarkerRec(true);
   endMultiCharCmdTimer();
   if (wifi.present && wifi.tx) {
     wifi.sendStringLast("Marker recieved");
@@ -1419,7 +1435,6 @@ void OpenBCI_32bit_Library::sendChannelDataWifi(PACKET_TYPE packetType, boolean 
   wifi.storeByteBufTx((uint8_t)(PCKT_END | packetType)); // 1 byte
   wifi.storeByteBufTx(sampleCounter); // 1 byte
   ADS_writeChannelDataWifi(daisy);       // 24 bytes
-
   switch (packetType) {
     case PACKET_TYPE_ACCEL:
       accelWriteAxisDataWifi(); // 6 bytes
@@ -1576,7 +1591,7 @@ void OpenBCI_32bit_Library::sendTimeWithRawAuxWifi(void) {
 void OpenBCI_32bit_Library::writeAuxDataWifi(void){
   for(int i = 0; i < 3; i++){
     wifi.storeByteBufTx((uint8_t)highByte(auxData[i])); // write 16 bit axis data MSB first
-    wifi.storeByteBufTx((uint8_t)lowByte(auxData[i]));  // axisData is array of type short (16bit)
+    wifi.storeByteBufTx((uint8_t)lowByte(auxData[i]));  // auxData is array of type short (16bit)
   }
 }
 
@@ -1674,6 +1689,80 @@ void OpenBCI_32bit_Library::csHigh(int SS)
   }
   spi.setSpeed(20000000);
   spi.setMode(DSPI_MODE0);  // DEFAULT TO SD MODE!
+}
+
+
+/**
+ * @description activates the LED to show marker received (500ms ON)
+ * @param `on` - [boolean] - whether to activate
+ */
+void OpenBCI_32bit_Library::activateLedMarkerRec(boolean on){
+  ledMarkerFound = true;
+  ledState = ON;
+  nextLedEvent = millis();
+}
+
+/**
+ * @description activates the LED to SD Write (50ms:ON - 50ms:OFF )
+ * @param `on` - [boolean] - whether to activate or deactivate
+ */
+void OpenBCI_32bit_Library::activateLedSDCardWrite(boolean on){
+  if (on){
+    ledSDWrite = true;
+    ledState = OFF;
+  } else {
+    ledSDWrite = false;
+  }
+  nextLedEvent = millis();
+}
+
+/**
+ * @description activates the LED (either ON or OFF)
+ * @param `on` - [boolean] - whether to activate or deactivate
+ */
+void OpenBCI_32bit_Library::activateLed(boolean on){
+  if (on){
+    ledOnOff = true;
+  } else {
+    ledOnOff = false;
+  }
+  nextLedEvent = millis();
+}
+
+/**
+ * @description State machine to drive the LED based on whether:
+ 1) a marker was received
+ 2) the SD card is writing
+ 3) the LED has been signalled on or off
+ */
+void OpenBCI_32bit_Library::driveLed(void){
+  // The LED output pin is also used for debug serial communication block
+  // LED functions if the board is in debug mode
+  if (curBoardMode != BOARD_MODE_DEBUG && curDebugMode != DEBUG_MODE_ON) {
+    if (ledMarkerFound) {
+      if (ledState == ON) {
+        ledState = OFF;
+        nextLedEvent =  millis() + 500;
+      } else {
+        ledState = ON;
+        ledMarkerFound = false;
+        nextLedEvent = millis();
+      }
+    } else if (ledSDWrite) {
+      if (ledState == OFF)
+        ledState = ON;
+      else
+        ledState = OFF;
+      nextLedEvent =  millis() + 50;
+    } else {
+      if (ledOnOff)
+        ledState = ON;
+      else
+        ledState = OFF;
+      nextLedEvent = millis() + 1000;
+    }
+    digitalWrite(OPENBCI_PIN_LED, ledState);
+  }
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF BOARD WIDE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2790,9 +2879,9 @@ void OpenBCI_32bit_Library::updateChannelData(void) {
       auxData[2] = wifi.present ? 0 : digitalRead(18);
       break;
     case BOARD_MODE_MARKER:
-      if (newMarkerReceived){
-        auxData[0] = (short)markerValue;
-        newMarkerReceived = false;
+      if (curMarkerStatus == REC_MARKER_STATUS_RECEIVED){
+        auxData[0] = (unsigned short)markerValue;
+        curMarkerStatus = REC_MARKER_STATUS_NONE;
       }
       break;
     case BOARD_MODE_BLE:
