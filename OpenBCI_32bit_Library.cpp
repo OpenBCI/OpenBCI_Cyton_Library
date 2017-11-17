@@ -1472,13 +1472,13 @@ void OpenBCI_32bit_Library::sendRawAuxWifi(void) {
 void OpenBCI_32bit_Library::sendTimeWithAccelSerial(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
-    case ACCEL_AXIS_X: // 7
+    case ACCEL_AXIS_X: // 0
       LIS3DH_writeAxisDataForAxisSerial(ACCEL_AXIS_X);
       break;
-    case ACCEL_AXIS_Y: // 8
+    case ACCEL_AXIS_Y: // 1
       LIS3DH_writeAxisDataForAxisSerial(ACCEL_AXIS_Y);
       break;
-    case ACCEL_AXIS_Z: // 9
+    case ACCEL_AXIS_Z: // 2
       LIS3DH_writeAxisDataForAxisSerial(ACCEL_AXIS_Z);
       break;
     default:
@@ -1506,13 +1506,13 @@ void OpenBCI_32bit_Library::sendTimeWithAccelSerial(void) {
 void OpenBCI_32bit_Library::sendTimeWithAccelWifi(void) {
   // send two bytes of either accel data or blank
   switch (sampleCounter % 10) {
-    case ACCEL_AXIS_X: // 7
+    case ACCEL_AXIS_X: // 0
       LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_X);
       break;
-    case ACCEL_AXIS_Y: // 8
+    case ACCEL_AXIS_Y: // 1
       LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Y);
       break;
-    case ACCEL_AXIS_Z: // 9
+    case ACCEL_AXIS_Z: // 2
       LIS3DH_writeAxisDataForAxisWifi(ACCEL_AXIS_Z);
       break;
     default:
