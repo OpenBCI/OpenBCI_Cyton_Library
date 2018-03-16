@@ -420,7 +420,7 @@ boolean OpenBCI_32bit_Library::processChar(char character) {
         sendEOT();
         break;
       case OPENBCI_GET_VERSION:
-        printAll("v3.1.0");
+        printAll("v3.1.1");
         sendEOT();
         break;
       default:
@@ -711,7 +711,7 @@ void OpenBCI_32bit_Library::boardReset(void) {
     printAll("On Daisy ADS1299 Device ID: 0x"); printlnHex(ADS_getDeviceID(ON_DAISY));
   }
   printAll("LIS3DH Device ID: 0x"); printlnHex(LIS3DH_getDeviceID());
-  printlnAll("Firmware: v3.1.0");
+  printlnAll("Firmware: v3.1.1");
   sendEOT();
   delay(5);
   wifi.reset();
@@ -880,7 +880,9 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
         sendEOT();
       } else if (wifi.present && wifi.tx) {
         wifi.sendStringMulti("Success: Sample rate is ");
+        delay(1);
         wifi.sendStringMulti(getSampleRate());
+        delay(1);
         wifi.sendStringLast("Hz");
       }
     } else {
@@ -889,7 +891,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
         printAll("sample value out of bounds");
         sendEOT();
       } else if (wifi.present && wifi.tx) {
-        wifi.sendStringMulti("Failure: sample value");
+        wifi.sendStringMulti("Failure: sample value"); delay(1);
         wifi.sendStringLast(" out of bounds");
       }
     }
@@ -899,7 +901,7 @@ void OpenBCI_32bit_Library::processIncomingSampleRate(char c) {
       printAll("invalid sample value");
       sendEOT();
     } else if (wifi.present && wifi.tx) {
-      wifi.sendStringLast("Failure: invalid sample value");
+      wifi.sendStringLast("Failure: invalid sample value"); delay(1);
     }
   }
   endMultiCharCmdTimer();
@@ -1014,7 +1016,7 @@ void OpenBCI_32bit_Library::processIncomingChannelSettings(char character) {
       sendEOT();
     } else if (wifi.present && wifi.tx) {
       char buf[3];
-      wifi.sendStringMulti("Success: Channel set for ");
+      wifi.sendStringMulti("Success: Channel set for "); delay(1);
       wifi.sendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
 
@@ -1120,7 +1122,7 @@ void OpenBCI_32bit_Library::processIncomingLeadOffSettings(char character) {
       sendEOT();
     } else if (wifi.present && wifi.tx) {
       char buf[3];
-      wifi.sendStringMulti("Success: Lead off set for ");
+      wifi.sendStringMulti("Success: Lead off set for "); delay(1);
       wifi.sendStringLast(itoa(currentChannelSetting + 1, buf, 10));
     }
 
@@ -3528,6 +3530,7 @@ void OpenBCI_32bit_Library::printAll(char c) {
   printSerial(c);
   if (wifi.present && wifi.tx) {
     wifi.sendStringMulti(c);
+    delay(1);
   }
 }
 
@@ -3535,6 +3538,7 @@ void OpenBCI_32bit_Library::printAll(const char *arr) {
   printSerial(arr);
   if (wifi.present && wifi.tx) {
     wifi.sendStringMulti(arr);
+    delay(1);
   }
 }
 
@@ -3542,7 +3546,9 @@ void OpenBCI_32bit_Library::printlnAll(const char *arr) {
   printlnSerial(arr);
   if (wifi.present && wifi.tx) {
     wifi.sendStringMulti(arr);
+    delay(1);
     wifi.sendStringMulti("\n");
+    delay(1);
   }
 }
 
@@ -3550,6 +3556,7 @@ void OpenBCI_32bit_Library::printlnAll(void) {
   printlnSerial();
   if (wifi.present && wifi.tx) {
     wifi.sendStringMulti("\n");
+    delay(1);
   }
 }
 
