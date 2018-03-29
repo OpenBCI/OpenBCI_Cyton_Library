@@ -3343,6 +3343,7 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisDataSerial(void){
 }
 
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisSerial(uint8_t axis) {
+  axis -= ACCEL_AXIS_X; // make sure we get a value in [0:2]
   if (axis > 2) axis = 0;
   writeSerial(highByte(axisData[axis])); // write 16 bit axis data MSB first
   writeSerial(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
@@ -3356,6 +3357,7 @@ void OpenBCI_32bit_Library::LIS3DH_writeAxisDataWifi(void){
   }
 }
 void OpenBCI_32bit_Library::LIS3DH_writeAxisDataForAxisWifi(uint8_t axis) {
+  axis -= ACCEL_AXIS_X; // make sure we get a value in [0:2]
   if (axis > 2) axis = 0;
   wifi.storeByteBufTx(highByte(axisData[axis])); // write 16 bit axis data MSB first
   wifi.storeByteBufTx(lowByte(axisData[axis]));  // axisData is array of type short (16bit)
