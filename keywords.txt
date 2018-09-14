@@ -11,40 +11,40 @@ board	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-accelHasNewData                     KEYWORD2
-accelUpdateAxisData                 KEYWORD2
-begin                               KEYWORD2
-beginDebug		                      KEYWORD2
-getCharSerial0                      KEYWORD2
-getCharSerial1                      KEYWORD2
-hasDataSerial0                      KEYWORD2
-hasDataSerial1                      KEYWORD2
-isADSDataAvailable                  KEYWORD2
-isProcessingMultibyteMsg            KEYWORD2
-loop                                KEYWORD2
-processChar                         KEYWORD2
-tryMultiAbort                       KEYWORD2
-updateChannelData                   KEYWORD2
-useAccel                            KEYWORD2
-useTimeStamp                        KEYWORD2
-sendChannelData                     KEYWORD2
-streaming                           KEYWORD2
+accelHasNewData	KEYWORD2  
+accelUpdateAxisData	KEYWORD2
+begin	KEYWORD2
+beginDebug			KEYWORD2
+getCharSerial0	KEYWORD2
+getCharSerial1	KEYWORD2
+hasDataSerial0	KEYWORD2
+hasDataSerial1	KEYWORD2
+isADSDataAvailable	KEYWORD2
+isProcessingMultibyteMsg	KEYWORD2
+loop	KEYWORD2
+processChar	KEYWORD2
+tryMultiAbort	KEYWORD2
+updateChannelData	KEYWORD2
+useAccel	KEYWORD2
+useTimeStamp	KEYWORD2
+sendChannelData	KEYWORD2
+streaming	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
 
-PACKET_TYPE_ACCEL                 LITERAL1
-PACKET_TYPE_RAW_AUX               LITERAL1
-PACKET_TYPE_USER_DEFINED          LITERAL1
-PACKET_TYPE_ACCEL_TIME_SET        LITERAL1
-PACKET_TYPE_ACCEL_TIME_SYNC       LITERAL1
-PACKET_TYPE_RAW_AUX_TIME_SET      LITERAL1
-PACKET_TYPE_RAW_AUX_TIME_SYN      LITERAL1
-SAMPLE_RATE_16000                 LITERAL1
-SAMPLE_RATE_8000                  LITERAL1
-SAMPLE_RATE_4000                  LITERAL1
-SAMPLE_RATE_2000                  LITERAL1
-SAMPLE_RATE_1000                  LITERAL1
-SAMPLE_RATE_500                   LITERAL1
-SAMPLE_RATE_250                   LITERAL1
+PACKET_TYPE_ACCEL	LITERAL1
+PACKET_TYPE_RAW_AUX	LITERAL1
+PACKET_TYPE_USER_DEFINED	LITERAL1
+PACKET_TYPE_ACCEL_TIME_SET	LITERAL1
+PACKET_TYPE_ACCEL_TIME_SYNC	LITERAL1
+PACKET_TYPE_RAW_AUX_TIME_SET	LITERAL1
+PACKET_TYPE_RAW_AUX_TIME_SYN	LITERAL1
+SAMPLE_RATE_16000	LITERAL1
+SAMPLE_RATE_8000	LITERAL1
+SAMPLE_RATE_4000	LITERAL1
+SAMPLE_RATE_2000	LITERAL1
+SAMPLE_RATE_1000	LITERAL1
+SAMPLE_RATE_500	LITERAL1
+SAMPLE_RATE_250	LITERAL1
