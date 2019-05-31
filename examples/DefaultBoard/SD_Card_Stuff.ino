@@ -301,7 +301,7 @@ void writeCache(){
       writeFooter();
     }
     if(blockCounter == BLOCK_COUNT){
-      closeSDfile();
+      SDfileOpen = closeSDfile();
       BLOCK_COUNT = 0;
     }  // we did it!
 }
