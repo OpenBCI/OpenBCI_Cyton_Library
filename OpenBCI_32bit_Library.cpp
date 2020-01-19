@@ -314,25 +314,12 @@ boolean OpenBCI_32bit_Library::processChar(char character)
       {
         removeDaisy();
       }
-      else if (wifi.present && wifi.tx)
-      {
-        wifi.sendStringLast("No daisy to remove");
-      }
       break;
     case OPENBCI_CHANNEL_MAX_NUMBER_16: // use 16 channel mode
       if (daisyPresent == false)
       {
         attachDaisy();
       }
-      if (daisyPresent)
-      {
-        printAll("16");
-      }
-      else
-      {
-        printAll("8");
-      }
-      sendEOT();
       break;
 
     // STREAM DATA AND FILTER COMMANDS
@@ -2278,6 +2265,7 @@ void OpenBCI_32bit_Library::attachDaisy(void)
     if (!isRunning)
     {
       printAll("no daisy to attach!");
+      sendEOT();
     }
   }
   else
@@ -2286,6 +2274,7 @@ void OpenBCI_32bit_Library::attachDaisy(void)
     if (!isRunning)
     {
       printAll("daisy attached");
+      sendEOT();
     }
   }
 }
