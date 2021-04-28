@@ -6,7 +6,7 @@
 
 #include <DSPI.h>
 #include <OpenBCI_32bit_Library.h>
-#include <OpenBCI_32Bit_Library_Definitions.h>
+#include <OpenBCI_32bit_Library_Definitions.h>
 
 //    Pulse Sensor Stuff
 //------------------------------------------------------------------------------
