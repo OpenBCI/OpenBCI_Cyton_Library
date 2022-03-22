@@ -223,6 +223,8 @@ boolean closeSDfile(){
   return fileIsOpen;
 }
 
+
+
 void writeDataToSDcard(byte sampleNumber){
   boolean addComma = true;
   // convert 8 bit sampleCounter into HEX
@@ -270,7 +272,7 @@ void writeDataToSDcard(byte sampleNumber){
 
 void writeCache(){
     if(blockCounter > BLOCK_COUNT) {
-      blockCounter=0; //ioannis
+      blockCounter=0; 
       return;
     }
     
@@ -299,21 +301,23 @@ void writeCache(){
     
     if(blockCounter == BLOCK_COUNT-1){
       t = millis() - t;
-    //  board.streamStop(); //ioannis
-    //   stopRunning();
-    //  board.disable_accel(); //ioannis
+      // Time to Close the file but do not stop Streaming 
       writeFooter();
     }
+    
     if(blockCounter == BLOCK_COUNT){
-      SDfileOpen = closeSDfile(); //ioannis
+      SDfileOpen  = closeSDfile(); // Update open-file flag 
       BLOCK_COUNT = 0;
     }  // we did it!
+    
 }
 
 
 void incrementFileCounter(){
+  
   fileTens = EEPROM.read(0);
   fileOnes = EEPROM.read(1);
+ 
   // if it's the first time writing to EEPROM, seed the file number to '00'
   if(fileTens == 0xFF | fileOnes == 0xFF){
     fileTens = fileOnes = '0';
@@ -330,9 +334,14 @@ void incrementFileCounter(){
   EEPROM.write(1,fileOnes);
   currentFileName[5] = fileTens;
   currentFileName[6] = fileOnes;
-//  // send corresponding file name to controlling program
-//  Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);
+   //  // send corresponding file name to controlling program
+   //  Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);
 }
+
+
+
+
+
 
 void stampSD(boolean state){
   unsigned long time = millis();
