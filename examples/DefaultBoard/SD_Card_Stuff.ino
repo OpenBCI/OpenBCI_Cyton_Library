@@ -1,15 +1,13 @@
-
-#define BLOCK_5MIN  11000
-#define BLOCK_15MIN  33000
-#define BLOCK_30MIN  66000
-#define BLOCK_1HR  131000
-#define BLOCK_2HR  261000
-#define BLOCK_4HR  521000
-#define BLOCK_12HR  1561000
-#define BLOCK_24HR  3122000
+#define BLOCK_5MIN    16832           
+#define BLOCK_15MIN  (BLOCK_5MIN*3)    
+#define BLOCK_30MIN  (BLOCK_15MIN*2)   
+#define BLOCK_1HR    (BLOCK_30MIN*2)  
+#define BLOCK_2HR    (BLOCK_1HR*2)    
+#define BLOCK_4HR    (BLOCK_1HR*4)    
+#define BLOCK_12HR   (BLOCK_1HR*12)  
+#define BLOCK_24HR   (BLOCK_1HR*24) 
 
 #define OVER_DIM 20 // make room for up to 20 write-time overruns
-
 
 char fileSize = '0';  // SD file size indicator
 int blockCounter = 0;
@@ -271,7 +269,11 @@ void writeDataToSDcard(byte sampleNumber){
 
 
 void writeCache(){
-    if(blockCounter > BLOCK_COUNT) return;
+    if(blockCounter > BLOCK_COUNT) {
+      blockCounter=0; //ioannis
+      return;
+    }
+    
     uint32_t tw = micros();  // start block write timer
     board.csLow(SD_SS);  // take spi
     if(!card.writeData(pCache)) {
@@ -291,17 +293,19 @@ void writeCache(){
       }
       overruns++;
     }
+    
     byteCounter = 0; // reset 512 byte counter for next block
     blockCounter++;    // increment BLOCK counter
+    
     if(blockCounter == BLOCK_COUNT-1){
       t = millis() - t;
-      board.streamStop();
+    //  board.streamStop(); //ioannis
     //   stopRunning();
-      board.disable_accel();
+    //  board.disable_accel(); //ioannis
       writeFooter();
     }
     if(blockCounter == BLOCK_COUNT){
-      closeSDfile();
+      SDfileOpen = closeSDfile(); //ioannis
       BLOCK_COUNT = 0;
     }  // we did it!
 }
