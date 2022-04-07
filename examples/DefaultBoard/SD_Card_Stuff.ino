@@ -37,7 +37,8 @@ uint32_t t;        // used to measure total file write time
 
 byte fileTens, fileOnes;  // enumerate succesive files on card and store number in EEPROM
 char currentFileName[] = "OBCI_00.TXT"; // file name will enumerate in hex 00 - FF
-prog_char elapsedTime[] PROGMEM = {"\n%Total time mS:\n"};  // 17
+prog_char samplingFreq[] PROGMEM = {"\n%SamplingFreq:\n"};  // 16
+prog_char elapsedTime[] PROGMEM = {"%Total time mS:\n"};  // 17
 prog_char minTime[] PROGMEM = {  "%min Write time uS:\n"};  // 20
 prog_char maxTime[] PROGMEM = {  "%max Write time uS:\n"};  // 20
 prog_char overNum[] PROGMEM = {  "%Over:\n"};               //  7
@@ -200,9 +201,10 @@ boolean closeSDfile(){
     board.csHigh(SD_SS);  // release the spi
     fileIsOpen = false;
     if(!board.streaming){ // verbosity. this also gets insterted as footer in openFile
-      Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println(" mS"); //delay(10);
-      Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS"); //delay(10);
-      Serial0.print("Min write time: ");Serial0.print(minWriteTime); Serial0.println(" uS"); //delay(10);
+      Serial0.print("SamplingRate: ");Serial0.print(board.getSampleRate());Serial0.println("Hz"); //delay(10);
+      Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println(" mS");              //delay(10);
+      Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS");     //delay(10);
+      Serial0.print("Min write time: ");Serial0.print(minWriteTime); Serial0.println(" uS");      //delay(10);
       Serial0.print("Overruns: "); Serial0.print(overruns); Serial0.println(); //delay(10);
       if (overruns) {
         uint8_t n = overruns > OVER_DIM ? OVER_DIM : overruns;
@@ -289,7 +291,7 @@ void writeCache(){
     if (tw > maxWriteTime) maxWriteTime = tw;  // check for max write time
     if (tw < minWriteTime) minWriteTime = tw;  // check for min write time
     if (tw > MICROS_PER_BLOCK) {      // check for overrun
-      if (overruns < OVER_DIM) {
+    if (overruns < OVER_DIM) {
         over[overruns].block = blockCounter;
         over[overruns].micro = tw;
       }
@@ -367,6 +369,13 @@ void stampSD(boolean state){
 }
 
 void writeFooter(){
+  for(int i=0; i<16; i++){
+    pCache[byteCounter] = pgm_read_byte_near(samplingFreq+i);
+    byteCounter++;
+  }
+  String daqFreq = board.getSampleRate();
+  convertToHex(daqFreq.toInt(), 4, false);
+  
   for(int i=0; i<17; i++){
     pCache[byteCounter] = pgm_read_byte_near(elapsedTime+i);
     byteCounter++;
