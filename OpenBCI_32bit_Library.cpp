@@ -469,7 +469,7 @@ boolean OpenBCI_32bit_Library::processChar(char character)
       sendEOT();
       break;
     case OPENBCI_GET_VERSION:
-      printAll("v3.1.2");
+      printAll("v3.1.5");
       sendEOT();
       break;
     default:
