@@ -42,6 +42,7 @@ uint32_t t;        // used to measure total file write time
 uint8_t ERROR_BLINKS = 3;
 uint8_t OK_BLINKS    = 3;
 
+boolean footerWritten = false;  // track if footer has been written
 
 byte fileTens, fileOnes;  // enumerate succesive files on card and store number in EEPROM
 char currentFileName[] = "OBCI_00.TXT"; // file name will enumerate in hex 00 - FF
@@ -116,7 +117,7 @@ char sdProcessChar(char character) {
             break;
 
         case 'c':
-        	   // Consider 8-Channels - Single Cyton Board
+             // Consider 8-Channels - Single Cyton Board
             BLOCK_DIV = 2;
             break;
             
@@ -155,6 +156,7 @@ boolean setupSDcard(char limit){
           Serial0.println("Could not find FAT16/FAT32 partition. Make sure you've formatted the card");
           board.sendEOT();
         }
+        footerWritten = false; // reset flag when a new file is opened
         return fileIsOpen;
       }
    }
@@ -203,7 +205,8 @@ boolean setupSDcard(char limit){
       
     }
     cardInit = false;
-  }//else{Serial0.print("got contiguous file...");delay(1);}
+  }
+  
   // get the location of the file's blocks
   if (!openfile.contiguousRange(&bgnBlock, &endBlock)) {
     if(!board.streaming) {
@@ -212,19 +215,19 @@ boolean setupSDcard(char limit){
    
     }
     cardInit = false;
-  }//else{Serial0.print("got file range...");delay(1);}
+  }
   
   // grab the Cache
   pCache = (uint8_t*)volume.cacheClear();
   
-  // tell card to setup for multiple block write with pre-erase
+  // let SDcard to setup for multiple block write with pre-erase
   if (!card.erase(bgnBlock, endBlock)){
     if(!board.streaming) {
       Serial0.println("erase block fail");
       LED_SD_Status_Indication(ERROR_BLINKS, 500, ERROR_LED);
     }
     cardInit = false;
-  }//else{Serial0.print("erased...");delay(1);}
+  }
  
   if (!card.writeStart(bgnBlock, BLOCK_COUNT)){
     if(!board.streaming) {
@@ -236,14 +239,18 @@ boolean setupSDcard(char limit){
     fileIsOpen = true;
     delay(1);
   }
-  board.csHigh(SD_SS);  // release the spi
+  board.csHigh(SD_SS);  // release SPI resourcese 
   
   // initialize write-time overrun error counter and min/max wirte time benchmarks
   overruns = 0;
   maxWriteTime = 0;
   minWriteTime = 65000;
-  byteCounter = 0;  // counter from 0 - 512
+  byteCounter = 0;   // counter from 0 - 512
   blockCounter = 0; // counter from 0 - BLOCK_COUNT;
+  
+  footerWritten = false;   // reset for new session
+  t = millis();            // start elapsed timer
+  
   if(fileIsOpen == true){  // send corresponding file name to controlling program
     if(!board.streaming) {
       Serial0.print("Corresponding SD file ");
@@ -265,12 +272,31 @@ boolean setupSDcard(char limit){
 boolean closeSDfile(){
 
   if(fileIsOpen){
-    board.csLow(SD_SS);  // take spi
+   // Write footer if not already written
+   if(!footerWritten){
+
+        if(byteCounter > 0){
+            memset(pCache + byteCounter, 0x00, 512 - byteCounter);
+            board.csLow(SD_SS);
+            card.writeData(pCache);
+            board.csHigh(SD_SS);
+            byteCounter = 0;
+            blockCounter++;
+        }
+        // Clear the cache buffer before writing footer
+        memset(pCache, 0x00, 512);   
+        byteCounter = 0;              
+        t = millis() - t;
+        writeFooter();
+        footerWritten = true;
+    }
+    
+    board.csLow(SD_SS);  
     card.writeStop();
     openfile.close();
-    board.csHigh(SD_SS);  // release the spi
+    board.csHigh(SD_SS);  
     fileIsOpen = false;
-    if(!board.streaming){ // verbosity. this also gets insterted as footer in openFile
+    if(!board.streaming){ // Verbosity: This also gets insterted as footer in openFile
       Serial0.print("SamplingRate: ");Serial0.print(board.getSampleRate());Serial0.println("Hz"); //delay(10);
       Serial0.print("Total Elapsed Time: ");Serial0.print(t);Serial0.println(" mS");              //delay(10);
       Serial0.print("Max write time: "); Serial0.print(maxWriteTime); Serial0.println(" uS");     //delay(10);
@@ -296,7 +322,7 @@ boolean closeSDfile(){
     
   }
   
-  // delay(100); // cool down
+  // delay(100); // check later
   return fileIsOpen;
 }
 
@@ -306,6 +332,7 @@ void writeDataToSDcard(byte sampleNumber){
   boolean addComma = true;
   // convert 8 bit sampleCounter into HEX
   convertToHex(sampleNumber, 1, addComma);
+  
   // convert 24 bit channelData into HEX
   for (int currentChannel = 0; currentChannel < 8; currentChannel++){
     convertToHex(board.boardChannelDataInt[currentChannel], 5, addComma);
@@ -359,47 +386,52 @@ void writeDataToSDcard(byte sampleNumber){
 
 
 void writeCache(){
-    
-    if(blockCounter > BLOCK_COUNT) {
-      blockCounter=0; 
-      return;
+    static boolean writingFooter = false; 
+
+    // Guard: if we've somehow gone past BLOCK_COUNT, reset and bail
+    if(blockCounter >= BLOCK_COUNT && !writingFooter) {
+        blockCounter = 0;
+        return;
     }
-    
-    uint32_t tw = micros();  // start block write timer
-    board.csLow(SD_SS);  // take spi
+
+    uint32_t tw = micros();
+    board.csLow(SD_SS);
     if(!card.writeData(pCache)) {
-      if (!board.streaming) {
-        Serial0.println("block write fail");
-        board.sendEOT();
-      }
-    }   // write the block
-    board.csHigh(SD_SS);  // release spi
-    tw = micros() - tw;      // stop block write timer
-    if (tw > maxWriteTime) maxWriteTime = tw;  // check for max write time
-    if (tw < minWriteTime) minWriteTime = tw;  // check for min write time
-    if (tw > MICROS_PER_BLOCK) {      // check for overrun
-    if (overruns < OVER_DIM) {
-        over[overruns].block = blockCounter;
-        over[overruns].micro = tw;
-      }
-      overruns++;
+        if (!board.streaming) {
+            Serial0.println("block write fail");
+            board.sendEOT();
+        }
+    }
+    board.csHigh(SD_SS);
+    tw = micros() - tw;
+
+    if (tw > maxWriteTime) maxWriteTime = tw;
+    if (tw < minWriteTime) minWriteTime = tw;
+    if (tw > MICROS_PER_BLOCK) {
+        if (overruns < OVER_DIM) {
+            over[overruns].block = blockCounter;
+            over[overruns].micro = tw;
+        }
+        overruns++;
     }
 
-    byteCounter = 0; // reset 512 byte counter for next block
-    blockCounter++;    // increment BLOCK counter
-    
-    if(blockCounter == BLOCK_COUNT-1){
-      t = millis() - t;
+    byteCounter = 0;
+    blockCounter++;
 
-      // Time to Close the file but do not stop Streaming 
-      writeFooter();
+    if(blockCounter == BLOCK_COUNT - 1 && !writingFooter){
+        t = millis() - t;
+        writingFooter = true;
+        footerWritten = true; // update flag
+        writeFooter();
+        writingFooter = false;
     }
-    
-    if(blockCounter == BLOCK_COUNT){
-       SDfileOpen  = closeSDfile(); // Update open-file flag     
-    }  // we did it!
-    
+
+    if(blockCounter >= BLOCK_COUNT){
+        SDfileOpen = closeSDfile();
+    }
 }
+
+
 
 
 void incrementFileCounter(){
@@ -423,8 +455,7 @@ void incrementFileCounter(){
   EEPROM.write(1,fileOnes);
   currentFileName[5] = fileTens;
   currentFileName[6] = fileOnes;
-   //  // send corresponding file name to controlling program
-   //  Serial0.print("Corresponding SD file ");Serial0.println(currentFileName);
+   
 }
 
 
@@ -461,14 +492,15 @@ void stampSD(boolean state){
 
 void writeFooter(){
  
-  for(int i=0; i<16; i++){
+for(int i=0; i<16; i++){
     pCache[byteCounter] = pgm_read_byte_near(samplingFreq+i);
     byteCounter++;
-  }
+}
+
   String daqFreq = board.getSampleRate();
-  convertToHex(daqFreq.toInt(), 4, false);
+  convertToHex(daqFreq.toInt(), 1, false);
   
-  for(int i=0; i<17; i++){
+  for(int i=0; i<16; i++){
     pCache[byteCounter] = pgm_read_byte_near(elapsedTime+i);
     byteCounter++;
   }
@@ -506,10 +538,15 @@ void writeFooter(){
   }
 
   for(int i=byteCounter; i<512; i++){
-    pCache[i] = NULL;
+    pCache[i] = 0x00;
   }
  
-  writeCache();
+  board.csLow(SD_SS);
+  card.writeData(pCache);
+  board.csHigh(SD_SS);
+  byteCounter = 0;
+  blockCounter++;
+
 }
 
 
@@ -518,7 +555,7 @@ void writeFooter(){
 //    CONVERT RAW BYTE DATA TO HEX FOR SD STORAGE
 void convertToHex(long rawData, int numNibbles, boolean useComma){
 
-  for (int currentNibble = numNibbles; currentNibble >= 0; currentNibble--){
+  for (int currentNibble = numNibbles; currentNibble >= 0; currentNibble--){ // changed from equal
     byte nibble = (rawData >> currentNibble*4) & 0x0F;
     if (nibble > 9){
       nibble += 55;  // convert to ASCII A-F
